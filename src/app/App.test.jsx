@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { App } from './App';
 
 describe('App', () => {
-  it('renders PrepByte heading on home page', () => {
+  it('renders PrepByte heading on home page', async () => {
     render(<App />);
     expect(
-      screen.getByRole('heading', { name: /prepbyte/i })
+      await screen.findByRole('heading', { name: /prepbyte/i })
     ).toBeInTheDocument();
   });
 });
