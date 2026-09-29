@@ -140,6 +140,74 @@ Aliases are configured in both `vite.config.js` and `jsconfig.json`:
 
 ---
 
+## 🎨 Design System & Brand Identity
+
+PrepByte uses a dark developer/terminal-inspired aesthetic characterized by pure black backgrounds, high-contrast monospace typography, and subtle dot-matrix motifs.
+
+### Design Tokens
+
+Defined in `src/index.css` as CSS custom properties:
+
+| Token                   | Value     | Purpose                                      |
+| ----------------------- | --------- | -------------------------------------------- |
+| `--color-bg`            | `#000000` | Canvas background                            |
+| `--color-surface`       | `#0a0a0a` | Elevated surface/card background             |
+| `--color-border`        | `#262626` | Subtle 1px structural borders                |
+| `--color-border-strong` | `#404040` | Interactive border outlines                  |
+| `--color-text`          | `#ffffff` | Primary text and solid highlights            |
+| `--color-text-muted`    | `#a3a3a3` | Secondary labels, descriptions, and metadata |
+| `--color-error`         | `#ff6b6b` | Error alerts and input invalid states        |
+| `--radius`              | `4px`     | Border radius for controls and surfaces      |
+
+### Typography
+
+- **Monospace Stack (`--font-mono`)**: Self-hosted **JetBrains Mono** (weights 400 and 700 with latin and cyrillic subsets via `@fontsource/jetbrains-mono`), falling back to `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`. Used for logo, headings, buttons, tags, and inputs.
+- **System Sans (`--font-sans`)**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`. Used for flowing body text and paragraphs.
+
+### Background & Shape Language
+
+- **Dot Matrix Grid**: Fixed 24px pure CSS radial dot grid with 5% white opacity on pure `#000000`.
+- **Controls & Accessibility**: Sharp or slightly rounded corners ($\le 4\text{px}$), 1px solid borders, no box shadows, no gradients. Touch targets and inputs maintain a minimum height of 44px. Focus rings use high-contrast `:focus-visible` outlines.
+
+### Logo Usage
+
+The `Logo` component (`src/shared/ui/Logo/Logo.jsx`) renders the 12-cell matrix "P" mark on a 5x5 grid:
+
+```jsx
+import { Logo } from '@shared/ui/Logo/Logo';
+
+// Mark only
+<Logo variant="mark" size={24} />
+
+// Full variant with wordmark
+<Logo variant="full" size={28} />
+```
+
+### Brand Intro Animation
+
+The `BrandIntro` component (`src/app/BrandIntro/BrandIntro.jsx`) renders a non-blocking animated intro overlay on top of the app:
+
+1. **0.0s – 0.9s**: The 12 matrix cells scatter as binary `0`/`1` glyphs across the screen and converge into their grid positions.
+2. **0.9s – 1.4s**: Glyphs snap to the 5x5 matrix and flip into solid white squares to form the "P" mark.
+3. **1.4s – 2.4s**: The wordmark "PrepByte" resolves from random binary noise to real text via `scrambleText`, followed by a blinking terminal cursor.
+4. **2.4s – 2.8s**: The overlay smoothly fades out and unmounts from the DOM.
+
+#### Intro Rules & Replay:
+
+- **Once Per Session**: The intro runs only once per browser session. Its completion is stored in `sessionStorage` under the key:
+  ```text
+  prepbyte_intro_shown
+  ```
+- **Replaying the Intro**: Open DevTools Application/Storage tab or console and run:
+  ```javascript
+  sessionStorage.removeItem('prepbyte_intro_shown');
+  ```
+  Then reload the page.
+- **Skip Controls**: Pressing <kbd>Escape</kbd>, clicking anywhere on the overlay, or pressing any key instantly dismisses the intro.
+- **Accessibility & Reduced Motion**: When `prefers-reduced-motion: reduce` is enabled in system settings, the animation is bypassed automatically without rendering the overlay.
+
+---
+
 ## 🏛 Architecture Rules
 
 All contributors must adhere to the following architecture principles:
