@@ -7,6 +7,36 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Test sessions collection: manages user test attempts
+    match /test_sessions/{sessionId} {
+      // Allow read only to the authenticated session owner
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+
+      // Allow creation only by the session owner with valid initial state and constraints
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'in_progress'
+        && request.resource.data.questionIds is list
+        && request.resource.data.questionIds.size() >= 1
+        && request.resource.data.questionIds.size() <= 60
+        && request.resource.data.durationLimitSec == 3600
+        && request.resource.data.answers is map;
+
+      // Allow updates only by the owner while in_progress, preserving immutable fields and enforcing allowed statuses
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && resource.data.status == 'in_progress'
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.questionIds == resource.data.questionIds
+        && request.resource.data.startedAt == resource.data.startedAt
+        && request.resource.data.durationLimitSec == resource.data.durationLimitSec
+        && request.resource.data.status in ['in_progress', 'completed', 'abandoned'];
+
+      // Client deletions are strictly denied
+      allow delete: if false;
+    }
+
     // Default deny for all other documents
     match /{document=**} {
       allow read, write: if false;
