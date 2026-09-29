@@ -36,15 +36,33 @@ cd prepbyte
 npm install
 ```
 
-### Environment Configuration
+### Firebase Setup
 
-Copy the sample environment file to `.env`:
-
-```bash
-cp .env.example .env
-```
-
-Populate `.env` with your Firebase project credentials when ready (note: `.env*` files are strictly gitignored).
+1. **Create Project**: Open the [Firebase Console](https://console.firebase.google.com/) and create a new Firebase project (or use an existing one).
+2. **Enable Authentication Providers**:
+   - In the sidebar, navigate to **Build** > **Authentication**.
+   - Under the **Sign-in method** tab, enable:
+     - **Email/Password**
+     - **Google** (configure the project support email).
+3. **Register Web App**:
+   - Go to **Project Settings** (gear icon) > **General**.
+   - Under **Your apps**, click the web icon (`</>`) to register a web application.
+   - Note the provided Firebase configuration keys.
+4. **Configure Environment**:
+   - Create a local environment file from the template:
+     ```bash
+     cp .env.example .env.local
+     ```
+   - Populate `.env.local` with your project's configuration values:
+     ```env
+     VITE_FIREBASE_API_KEY=your_api_key
+     VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+     VITE_FIREBASE_PROJECT_ID=your_project_id
+     VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+     VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+     VITE_FIREBASE_APP_ID=your_app_id
+     ```
+   - Real credentials belong _only_ in `.env.local`. `.env*` files are strictly gitignored to protect secrets.
 
 ### Available Scripts
 
@@ -65,15 +83,19 @@ PrepByte follows a **Feature-Driven Clean Architecture** to maintain high cohesi
 
 ```text
 prepByte/
-├── public/                 # Static public assets
+├── public/                 # Static public assets (favicon, etc.)
 ├── src/
 │   ├── app/                # Application root (App.jsx, router, providers, top-level pages)
+│   │   ├── pages/          # Top-level routed views (HomePage, etc.)
+│   │   ├── App.jsx         # Root app wiring
+│   │   ├── providers.jsx   # Top-level context providers (AuthProvider)
+│   │   └── router.jsx      # Route tree definition (protected & public routes)
 │   ├── features/           # Domain-driven feature slices
 │   │   ├── auth/           # Authentication feature
-│   │   │   ├── data/       # Firebase & remote data source implementations
-│   │   │   ├── domain/     # Pure business logic, models, and interfaces
-│   │   │   ├── hooks/      # Custom React hooks coordinating UI and domain
-│   │   │   └── ui/         # Feature-specific presentation components
+│   │   │   ├── data/       # Firebase data repository & mappers
+│   │   │   ├── domain/     # Pure business logic, errors, and validation
+│   │   │   ├── hooks/      # AuthProvider, useAuth hook
+│   │   │   └── ui/         # AuthForm, LoginPage, RegisterPage, ProtectedRoute
 │   │   ├── question-bank/  # Question database, filtering, catalog
 │   │   │   ├── data/
 │   │   │   ├── domain/
@@ -99,7 +121,7 @@ prepByte/
 │   ├── index.css           # Global CSS reset and typography
 │   └── main.jsx            # React root mount entrypoint
 ├── .env.example            # Template for environment variables
-├── eslint.config.js        # ESLint flat configuration
+├── eslint.config.js        # ESLint flat configuration (with architectural boundaries)
 ├── jsconfig.json           # IDE path alias resolution
 ├── package.json            # Dependencies and npm scripts
 ├── vite.config.js          # Vite build, aliases, and Vitest configuration
@@ -137,6 +159,19 @@ All contributors must adhere to the following architecture principles:
    - Use **named exports** for all non-page modules (components, hooks, utilities, domain functions).
    - Default exports are reserved for routed page components.
    - **No business logic in JSX**: Presentation components should remain declarative; derive state or trigger operations via hooks.
+
+### ESLint Architectural Import Boundaries
+
+Import restrictions are automatically enforced by ESLint via `no-restricted-imports`:
+
+- **Domain Layer (`src/features/*/domain/**`)**:
+  - Forbidden: `react`, `react-dom`, `react-router-dom`, `firebase/*`, `@infrastructure/*`.
+  - Forbidden: imports from sibling feature layers (`@features/*/data`, `*/hooks`, `*/ui`, `../data`, `../hooks`, `../ui`).
+- **UI Layer (`src/features/*/ui/**`)**:
+  - Forbidden: `firebase/*`.
+  - Forbidden: direct imports from any data layer (`@features/*/data`, `../data`). All data interactions must go through hooks.
+- **Application & Shared Layers (`src/**`)**:
+  - Forbidden: `firebase/*` (allowed strictly within `src/infrastructure/firebase/**` and `src/features/*/data/**`).
 
 ---
 
