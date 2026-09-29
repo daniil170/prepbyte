@@ -63,6 +63,10 @@ describe('authMappers', () => {
           expected: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
         },
         {
+          input: { code: 'auth/invalid-login-credentials' },
+          expected: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
+        },
+        {
           input: { code: 'auth/email-already-in-use' },
           expected: AUTH_ERROR_CODES.EMAIL_IN_USE,
         },
@@ -85,6 +89,14 @@ describe('authMappers', () => {
         {
           input: { code: 'auth/cancelled-popup-request' },
           expected: AUTH_ERROR_CODES.POPUP_CLOSED,
+        },
+        {
+          input: { code: 'auth/popup-blocked' },
+          expected: AUTH_ERROR_CODES.POPUP_BLOCKED,
+        },
+        {
+          input: { code: 'auth/too-many-requests' },
+          expected: AUTH_ERROR_CODES.TOO_MANY_REQUESTS,
         },
         {
           input: { code: 'auth/other-random-error' },

@@ -5,6 +5,8 @@ export const AUTH_ERROR_CODES = Object.freeze({
   INVALID_EMAIL: 'invalid-email',
   NETWORK: 'network',
   POPUP_CLOSED: 'popup-closed',
+  POPUP_BLOCKED: 'popup-blocked',
+  TOO_MANY_REQUESTS: 'too-many-requests',
   UNKNOWN: 'unknown',
 });
 
@@ -20,6 +22,10 @@ export const AUTH_ERROR_MESSAGES_RU = Object.freeze({
     'Ошибка сети. Проверьте интернет-соединение и попробуйте снова.',
   [AUTH_ERROR_CODES.POPUP_CLOSED]:
     'Окно авторизации было закрыто до завершения входа.',
+  [AUTH_ERROR_CODES.POPUP_BLOCKED]:
+    'Всплывающее окно заблокировано браузером. Разрешите всплывающие окна для продолжения.',
+  [AUTH_ERROR_CODES.TOO_MANY_REQUESTS]:
+    'Слишком много попыток. Пожалуйста, подождите немного и повторите снова.',
   [AUTH_ERROR_CODES.UNKNOWN]:
     'Произошла непредвиденная ошибка. Пожалуйста, попробуйте позже.',
 });

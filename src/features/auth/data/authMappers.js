@@ -12,6 +12,8 @@ const FIREBASE_TO_DOMAIN_ERROR_MAP = {
   'auth/network-request-failed': AUTH_ERROR_CODES.NETWORK,
   'auth/popup-closed-by-user': AUTH_ERROR_CODES.POPUP_CLOSED,
   'auth/cancelled-popup-request': AUTH_ERROR_CODES.POPUP_CLOSED,
+  'auth/popup-blocked': AUTH_ERROR_CODES.POPUP_BLOCKED,
+  'auth/too-many-requests': AUTH_ERROR_CODES.TOO_MANY_REQUESTS,
 };
 
 export function mapFirebaseUserToAuthUser(firebaseUser) {

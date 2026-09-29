@@ -15,6 +15,20 @@ describe('authErrors domain', () => {
     expect(error instanceof Error).toBe(true);
   });
 
+  it('instantiates AuthError for too-many-requests and popup-blocked', () => {
+    const tooMany = new AuthError(AUTH_ERROR_CODES.TOO_MANY_REQUESTS);
+    expect(tooMany.code).toBe('too-many-requests');
+    expect(tooMany.message).toBe(
+      'Слишком много попыток. Пожалуйста, подождите немного и повторите снова.'
+    );
+
+    const popupBlocked = new AuthError(AUTH_ERROR_CODES.POPUP_BLOCKED);
+    expect(popupBlocked.code).toBe('popup-blocked');
+    expect(popupBlocked.message).toBe(
+      'Всплывающее окно заблокировано браузером. Разрешите всплывающие окна для продолжения.'
+    );
+  });
+
   it('supports custom messages', () => {
     const error = new AuthError(
       AUTH_ERROR_CODES.NETWORK,
