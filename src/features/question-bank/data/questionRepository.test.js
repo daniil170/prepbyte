@@ -9,6 +9,14 @@ describe('questionRepository', () => {
     expect(await repo.getQuestionById(null)).toBeNull();
   });
 
+  it('returns empty array when getQuestionsByIds receives empty or invalid list', async () => {
+    const repo = createQuestionRepository({});
+
+    expect(await repo.getQuestionsByIds([])).toEqual([]);
+    expect(await repo.getQuestionsByIds(null)).toEqual([]);
+    expect(await repo.getQuestionsByIds(undefined)).toEqual([]);
+  });
+
   it('rejects getQuestionsByTopics with empty topicIds', async () => {
     const repo = createQuestionRepository({});
 

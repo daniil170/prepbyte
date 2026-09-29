@@ -1,13 +1,16 @@
 import {
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
   query,
   where,
 } from 'firebase/firestore';
 import { db as defaultDb } from '@infrastructure/firebase/firestore';
+import { chunk } from '@shared/lib/chunk';
 import { documentToQuestion } from './questionMappers';
+import { orderQuestionsByIds } from './questionOrdering';
 
 export function createQuestionRepository(firestore = defaultDb) {
   const collectionName = 'questions';
@@ -56,8 +59,32 @@ export function createQuestionRepository(firestore = defaultDb) {
     );
   }
 
+  async function getQuestionsByIds(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return [];
+    }
+
+    const uniqueIds = [...new Set(ids)];
+    const chunks = chunk(uniqueIds, 30);
+    const questionsRef = collection(firestore, collectionName);
+
+    const chunkResults = await Promise.all(
+      chunks.map(async (idChunk) => {
+        const q = query(questionsRef, where(documentId(), 'in', idChunk));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((docSnap) =>
+          documentToQuestion(docSnap.id, docSnap.data())
+        );
+      })
+    );
+
+    const foundQuestions = chunkResults.flat();
+    return orderQuestionsByIds(foundQuestions, ids);
+  }
+
   return {
     getQuestionById,
+    getQuestionsByIds,
     getQuestionsByTopics,
     getAllQuestions,
   };
