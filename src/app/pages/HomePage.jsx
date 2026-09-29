@@ -1,13 +1,16 @@
 import { useAuth } from '@features/auth';
+import { Logo } from '@shared/ui/Logo/Logo';
 import styles from './HomePage.module.css';
 
 export default function HomePage() {
   const { user, signOut } = useAuth();
 
   return (
-    <div>
+    <div className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.brand}>PrepByte</div>
+        <div className={styles.brand}>
+          <Logo variant="mark" size={24} />
+        </div>
         <div className={styles.userNav}>
           <span className={styles.email}>{user?.email || 'Пользователь'}</span>
           <button
