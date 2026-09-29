@@ -21,7 +21,7 @@ export function validateCredentials({
     errors.password = 'Пароль должен содержать минимум 6 символов.';
   }
 
-  if (isRegister || confirmPassword !== undefined) {
+  if (isRegister) {
     if (!confirmPassword) {
       errors.confirmPassword = 'Подтвердите пароль.';
     } else if (password !== confirmPassword) {
