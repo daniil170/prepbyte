@@ -1,0 +1,110 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 0.4s ease-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+.overlayFading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.grid {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+}
+
+.cell {
+  position: absolute;
+  left: calc(var(--col) * 14px);
+  top: calc(var(--row) * 14px);
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 1px;
+  animation: cellDriftAndFlip 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--delay);
+}
+
+@keyframes cellDriftAndFlip {
+  0% {
+    transform: translate(var(--dx), var(--dy));
+    opacity: 0;
+    background-color: transparent;
+    color: var(--color-text-muted);
+  }
+  20% {
+    opacity: 1;
+    background-color: transparent;
+    color: var(--color-text);
+  }
+  65% {
+    transform: translate(0, 0);
+    background-color: transparent;
+    color: var(--color-text);
+  }
+  75% {
+    transform: translate(0, 0) scale(1.1);
+    background-color: var(--color-text);
+    color: transparent;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    background-color: var(--color-text);
+    color: transparent;
+  }
+}
+
+.wordmarkWrapper {
+  display: flex;
+  align-items: center;
+  min-width: 140px;
+  height: 36px;
+}
+
+.wordmark {
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.95em;
+  margin-left: 3px;
+  background-color: var(--color-text);
+  animation: cursorBlink 0.6s steps(2, start) infinite;
+  vertical-align: middle;
+}
+
+@keyframes cursorBlink {
+  to {
+    visibility: hidden;
+  }
+}
