@@ -12,6 +12,7 @@ export {
   TOPICS,
 } from './domain/topics';
 export { validateQuestion } from './domain/questionValidation';
+export { parseQuestionText } from './domain/questionText';
 export {
   createQuestionRepository,
   questionRepository,
