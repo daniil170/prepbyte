@@ -149,6 +149,28 @@ export default [
                 'Domain layer must not depend on external infrastructure.',
             },
             {
+              group: ['@features', '@features/*', '@features/**'],
+              message:
+                'Domain layer must not import from any other feature (received as plain data).',
+            },
+            {
+              group: [
+                '../../**',
+                '../../auth',
+                '../../auth/**',
+                '../../question-bank',
+                '../../question-bank/**',
+                '../../testing',
+                '../../testing/**',
+                '../../analytics',
+                '../../analytics/**',
+                '../../*',
+                '../../*/**',
+              ],
+              message:
+                'Domain layer must not import from any other feature via relative path.',
+            },
+            {
               group: [
                 '@features/*/data',
                 '@features/*/data/**',
