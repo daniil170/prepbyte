@@ -19,20 +19,6 @@ export function validateFirebaseConfig(env = import.meta.env) {
 }
 
 export function initFirebaseApp(env = import.meta.env) {
-  if (env?.MODE === 'test') {
-    if (getApps().length > 0) {
-      return getApp();
-    }
-    return initializeApp({
-      apiKey: env.VITE_FIREBASE_API_KEY || 'test-api-key',
-      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'test.firebaseapp.com',
-      projectId: env.VITE_FIREBASE_PROJECT_ID || 'test-project',
-      storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || 'test.appspot.com',
-      messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '12345678',
-      appId: env.VITE_FIREBASE_APP_ID || '1:12345678:web:abcdef',
-    });
-  }
-
   validateFirebaseConfig(env);
 
   if (getApps().length > 0) {
@@ -46,7 +32,7 @@ export function initFirebaseApp(env = import.meta.env) {
     storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
     appId: env.VITE_FIREBASE_APP_ID,
-    ...(env.VITE_FIREBASE_MEASUREMENT_ID
+    ...(env?.VITE_FIREBASE_MEASUREMENT_ID
       ? { measurementId: env.VITE_FIREBASE_MEASUREMENT_ID }
       : {}),
   });
