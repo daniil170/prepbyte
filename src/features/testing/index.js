@@ -25,3 +25,5 @@ export {
 
 export { TestingProvider } from './hooks/TestingProvider';
 export { useTestingDependencies } from './hooks/useTestingDependencies';
+export { useRemainingSeconds } from './hooks/useRemainingSeconds';
+export { useTestSession } from './hooks/useTestSession';
