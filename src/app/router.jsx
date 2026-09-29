@@ -1,8 +1,10 @@
 import { createBrowserRouter } from 'react-router-dom';
-import { ProtectedRoute } from '@features/auth/ui/ProtectedRoute';
-import { PublicOnlyRoute } from '@features/auth/ui/PublicOnlyRoute';
-import LoginPage from '@features/auth/ui/LoginPage';
-import RegisterPage from '@features/auth/ui/RegisterPage';
+import {
+  LoginPage,
+  ProtectedRoute,
+  PublicOnlyRoute,
+  RegisterPage,
+} from '@features/auth';
 import HomePage from './pages/HomePage';
 
 export const routes = [

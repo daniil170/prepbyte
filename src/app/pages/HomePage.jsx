@@ -1,4 +1,4 @@
-import { useAuth } from '@features/auth/hooks/useAuth';
+import { useAuth } from '@features/auth';
 import styles from './HomePage.module.css';
 
 export default function HomePage() {
