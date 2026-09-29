@@ -5,6 +5,27 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import prettierConfig from 'eslint-config-prettier';
 
+const DEEP_FEATURE_IMPORT_PATTERNS = [
+  {
+    group: [
+      '@features/*/*',
+      '@features/*/**',
+      '../features/*/*',
+      '../features/*/**',
+      '../../features/*/*',
+      '../../features/*/**',
+      '../../auth/**',
+      '../../question-bank/**',
+      '../../testing/**',
+      '../../analytics/**',
+      '../../*/*/**',
+      '../../*/*',
+    ],
+    message:
+      'Deep imports into features are forbidden. Import only from the feature public API: @features/<name>.',
+  },
+];
+
 export default [
   { ignores: ['dist'] },
   js.configs.recommended,
@@ -47,20 +68,25 @@ export default [
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            {
-              name: 'firebase',
-              message:
-                'Firebase SDK is only allowed in infrastructure/firebase and features/*/data.',
-            },
-          ],
           patterns: [
             {
-              group: ['firebase/*'],
+              group: ['firebase', 'firebase/*'],
               message:
                 'Firebase SDK is only allowed in infrastructure/firebase and features/*/data.',
             },
+            ...DEEP_FEATURE_IMPORT_PATTERNS,
           ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/features/*/data/**/*.{js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [...DEEP_FEATURE_IMPORT_PATTERNS],
         },
       ],
     },
@@ -71,16 +97,9 @@ export default [
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            {
-              name: 'firebase',
-              message:
-                'Firebase SDK is only allowed in infrastructure/firebase and features/*/data.',
-            },
-          ],
           patterns: [
             {
-              group: ['firebase/*'],
+              group: ['firebase', 'firebase/*'],
               message:
                 'Firebase SDK is only allowed in infrastructure/firebase and features/*/data.',
             },
@@ -96,6 +115,7 @@ export default [
               message:
                 'UI layer must not directly import from data layer. Use hooks instead.',
             },
+            ...DEEP_FEATURE_IMPORT_PATTERNS,
           ],
         },
       ],
@@ -107,24 +127,6 @@ export default [
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            {
-              name: 'react',
-              message: 'Domain layer must be pure JS (no React).',
-            },
-            {
-              name: 'react-dom',
-              message: 'Domain layer must be pure JS (no React DOM).',
-            },
-            {
-              name: 'react-router-dom',
-              message: 'Domain layer must be pure JS (no router).',
-            },
-            {
-              name: 'firebase',
-              message: 'Domain layer must be pure JS (no Firebase).',
-            },
-          ],
           patterns: [
             {
               group: [
@@ -138,7 +140,7 @@ export default [
               message: 'Domain layer must be pure JS (no React).',
             },
             {
-              group: ['firebase/*'],
+              group: ['firebase', 'firebase/*'],
               message: 'Domain layer must be pure JS (no Firebase).',
             },
             {
@@ -170,6 +172,7 @@ export default [
               message:
                 'Domain layer is the core and cannot import from data, hooks, or ui.',
             },
+            ...DEEP_FEATURE_IMPORT_PATTERNS,
           ],
         },
       ],
