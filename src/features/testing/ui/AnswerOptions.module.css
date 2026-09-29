@@ -1,0 +1,85 @@
+.fieldset {
+  margin: 24px 0 0 0;
+  padding: 0;
+  border: none;
+}
+
+.legend {
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.hint {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.optionLabel {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 12px 16px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.optionLabel:hover {
+  border-color: var(--color-border-strong);
+}
+
+.selected {
+  border-color: var(--color-text);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.input {
+  /* Keep native input accessible but visually integrated */
+  width: 18px;
+  height: 18px;
+  margin: 0 12px 0 0;
+  accent-color: var(--color-text);
+  cursor: pointer;
+}
+
+.optionLetter {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-right: 12px;
+  min-width: 20px;
+}
+
+.selected .optionLetter {
+  color: var(--color-text);
+}
+
+.optionText {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.selectedIndicator {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  margin-left: 8px;
+}

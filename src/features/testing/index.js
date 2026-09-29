@@ -29,3 +29,9 @@ export { useRemainingSeconds } from './hooks/useRemainingSeconds';
 export { useTestSession } from './hooks/useTestSession';
 export { useStartTest } from './hooks/useStartTest';
 export { useActiveSession } from './hooks/useActiveSession';
+
+export { QuestionContent } from './ui/QuestionContent';
+export { AnswerOptions } from './ui/AnswerOptions';
+export { QuestionNavigator } from './ui/QuestionNavigator';
+export { TestTimer } from './ui/TestTimer';
+export { SaveIndicator } from './ui/SaveIndicator';

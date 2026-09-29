@@ -1,0 +1,25 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  user-select: none;
+}
+
+.saved {
+  color: var(--color-text-muted);
+}
+
+.saving {
+  color: var(--color-text);
+}
+
+.error {
+  color: var(--color-error);
+}
+
+.icon {
+  font-size: 0.75rem;
+  line-height: 1;
+}

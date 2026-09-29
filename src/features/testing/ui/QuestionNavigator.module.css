@@ -1,0 +1,102 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 4px;
+  background-color: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.button:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+/* Answered state: solid border and text */
+.answered {
+  border-style: solid;
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Current question: inverted background and high contrast */
+.current {
+  border: 2px solid var(--color-text);
+  color: var(--color-bg);
+  background-color: var(--color-text);
+  font-weight: 700;
+}
+
+.flagIcon {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 0.625rem;
+  line-height: 1;
+}
+
+.current .flagIcon {
+  color: var(--color-bg);
+}
+
+.answeredDot {
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--color-text);
+}
+
+.current .answeredDot {
+  background-color: var(--color-bg);
+}
+
+.legendList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
