@@ -1,0 +1,21 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.mark {
+  display: block;
+  flex-shrink: 0;
+}
+
+.wordmark {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  line-height: 1;
+}
