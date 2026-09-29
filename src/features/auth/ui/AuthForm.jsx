@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Logo } from '@shared/ui/Logo/Logo';
 import { validateCredentials } from '../domain/credentialsValidation';
 import styles from './AuthForm.module.css';
 
@@ -62,6 +63,10 @@ export function AuthForm({
 
   return (
     <div className={styles.card}>
+      <div className={styles.logoWrapper}>
+        <Logo variant="full" size={28} />
+      </div>
+
       <h1 className={styles.title}>
         {isRegister ? 'Регистрация' : 'Вход в PrepByte'}
       </h1>
@@ -73,7 +78,10 @@ export function AuthForm({
 
       {errorMessage ? (
         <div className={styles.generalError} role="alert">
-          {errorMessage}
+          <span className={styles.errorIcon} aria-hidden="true">
+            [!]
+          </span>
+          <span>{errorMessage}</span>
         </div>
       ) : null}
 
@@ -93,7 +101,12 @@ export function AuthForm({
             placeholder="student@example.com"
           />
           {fieldErrors.email ? (
-            <span className={styles.fieldError}>{fieldErrors.email}</span>
+            <span className={styles.fieldError}>
+              <span className={styles.errorIcon} aria-hidden="true">
+                [!]
+              </span>
+              <span>{fieldErrors.email}</span>
+            </span>
           ) : null}
         </div>
 
@@ -112,7 +125,12 @@ export function AuthForm({
             placeholder="••••••••"
           />
           {fieldErrors.password ? (
-            <span className={styles.fieldError}>{fieldErrors.password}</span>
+            <span className={styles.fieldError}>
+              <span className={styles.errorIcon} aria-hidden="true">
+                [!]
+              </span>
+              <span>{fieldErrors.password}</span>
+            </span>
           ) : null}
         </div>
 
@@ -133,7 +151,10 @@ export function AuthForm({
             />
             {fieldErrors.confirmPassword ? (
               <span className={styles.fieldError}>
-                {fieldErrors.confirmPassword}
+                <span className={styles.errorIcon} aria-hidden="true">
+                  [!]
+                </span>
+                <span>{fieldErrors.confirmPassword}</span>
               </span>
             ) : null}
           </div>
@@ -164,7 +185,13 @@ export function AuthForm({
             disabled={isPending}
             className={styles.googleButton}
           >
-            <svg width="18" height="18" viewBox="0 0 18 18">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              aria-hidden="true"
+              className={styles.googleIcon}
+            >
               <path
                 fill="#4285F4"
                 d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"
