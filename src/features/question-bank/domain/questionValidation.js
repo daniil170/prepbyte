@@ -1,4 +1,4 @@
-import { isValidTopic } from './topics';
+import { isValidTopic } from './topics.js';
 
 const VALID_DIFFICULTIES = new Set(['easy', 'medium', 'hard']);
 

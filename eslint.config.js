@@ -199,5 +199,13 @@ export default [
       },
     },
   },
+  {
+    files: ['scripts/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
   prettierConfig,
 ];
