@@ -1,4 +1,5 @@
 import { useAuth } from '@features/auth';
+import { StartTestPanel } from '@features/testing';
 import { Logo } from '@shared/ui/Logo/Logo';
 import styles from './HomePage.module.css';
 
@@ -28,6 +29,8 @@ export default function HomePage() {
         <p className={styles.description}>
           Adaptive preparation platform for ENT Computer Science.
         </p>
+
+        <StartTestPanel />
       </main>
     </div>
   );
