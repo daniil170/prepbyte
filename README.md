@@ -241,7 +241,8 @@ Import restrictions are automatically enforced by ESLint via `no-restricted-impo
 
 - **Domain Layer (`src/features/*/domain/**`)**:
   - Forbidden: `react`, `react-dom`, `react-router-dom`, `firebase/*`, `@infrastructure/*`.
-  - Forbidden: imports from sibling feature layers (`@features/*/data`, `*/hooks`, `*/ui`, `../data`, `../hooks`, `../ui`).
+  - Forbidden: `@features/*` and cross-feature relative imports (`../../<feature>/**`, `../../*`). Domain must remain pure JS and must not import from any other feature (all dependencies/IDs are injected as plain data).
+  - Forbidden: imports from own-feature data, hooks, or UI layers (`@features/*/data`, `*/hooks`, `*/ui`, `../data`, `../hooks`, `../ui`).
 - **UI Layer (`src/features/*/ui/**`)**:
   - Forbidden: `firebase/*`.
   - Forbidden: direct imports from any data layer (`@features/*/data`, `../data`). All data interactions must go through hooks.
@@ -321,6 +322,48 @@ The script writes documents to the `questions` collection using document IDs mat
 
 ---
 
+---
+
+## 📝 Testing & Exam Simulation Feature
+
+The testing feature simulates official ENT Computer Science exams with balanced question variants, real-time countdown timers, autosave, and question navigation.
+
+### Test Session Entity Model
+
+Test sessions are persisted in the `test_sessions` collection:
+
+| Property           | Type                                          | Description                                                       |
+| ------------------ | --------------------------------------------- | ----------------------------------------------------------------- |
+| `id`               | `string`                                      | Unique session UUID                                               |
+| `userId`           | `string`                                      | UID of the authenticated student                                  |
+| `status`           | `'in_progress' \| 'completed' \| 'abandoned'` | Lifecycle state of the test attempt                               |
+| `questionIds`      | `string[]`                                    | Exactly 40 assembled question IDs ordered for this variant        |
+| `answers`          | `Record<string, number[]>`                    | Map of question ID to array of selected zero-based option indices |
+| `flagged`          | `string[]`                                    | Question IDs bookmarked for review                                |
+| `currentIndex`     | `number`                                      | Zero-based index of the currently active question (0–39)          |
+| `durationLimitSec` | `number`                                      | Fixed time limit in seconds (3600 = 60 minutes)                   |
+| `startedAt`        | `number \| Timestamp`                         | Epoch timestamp in milliseconds when test was initiated           |
+| `finishedAt`       | `number \| Timestamp \| null`                 | Epoch timestamp in milliseconds when test completed               |
+| `updatedAt`        | `Timestamp`                                   | Server timestamp of the latest autosave                           |
+
+### Key Mechanics
+
+1. **One-Active-Session Rule**:
+   - A student may have at most one active (`in_progress`) test session at any time.
+   - Starting a new test variant executes an atomic batch write in Firestore that transitions any existing `in_progress` sessions for that user to `abandoned` status before creating the new session.
+2. **Deadline-Based Timer (60 min / 40 questions)**:
+   - Test duration is exactly 3600 seconds (60 minutes).
+   - Remaining time is calculated directly from the absolute deadline ($\text{startedAt} + 3600000\text{ms}$), ensuring accurate countdown across page reloads, tab pauses, or device sleep.
+   - When $\le 300\text{s}$ (5 minutes) remain, the timer enters a warning state with visual cues and a non-color indicator `[!]`.
+   - Reaching zero immediately and automatically finalizes the session (`completed`).
+3. **Autosave & Concurrency Guard**:
+   - Answer selections, flags, and navigation changes trigger an autosave debounced by 800 ms.
+   - Synchronous flush is dispatched on `visibilitychange` (`hidden`) and `pagehide` on a best-effort basis.
+   - If network persistence fails, `saveState` indicates an error and retries automatically after 5 seconds.
+   - Local monotonic version tracking ensures older in-flight network responses never overwrite newer local answers.
+
+---
+
 ## 🔒 Firestore Security Rules
 
 Firestore access control is defined in `firestore.rules`:
@@ -328,6 +371,11 @@ Firestore access control is defined in `firestore.rules`:
 - **Collection `questions`**:
   - `read`: Allowed for authenticated users (`request.auth != null`).
   - `write`: Blocked for client SDKs (`allow write: false;`). Modifications must be made via the Admin SDK / seed scripts.
+- **Collection `test_sessions`**:
+  - `read`: Restricted strictly to the session owner (`request.auth != null && resource.data.userId == request.auth.uid`).
+  - `create`: Enforces user authentication, ownership matching (`request.resource.data.userId == request.auth.uid`), initial status `'in_progress'`, question count between 1 and 60, fixed `durationLimitSec == 3600`, and `answers` map type.
+  - `update`: Permitted only to the document owner while the existing status is `'in_progress'`. Requires `userId`, `questionIds`, `startedAt`, and `durationLimitSec` to remain strictly immutable, while only allowing transitions to `'in_progress'`, `'completed'`, or `'abandoned'`.
+  - `delete`: Strictly denied for client SDKs (`allow delete: if false;`).
 - **Default Rule**: Denies all operations (`read, write: false;`) for any other document paths.
 
 ### Deploying Security Rules
