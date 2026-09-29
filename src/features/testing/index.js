@@ -35,3 +35,4 @@ export { AnswerOptions } from './ui/AnswerOptions';
 export { QuestionNavigator } from './ui/QuestionNavigator';
 export { TestTimer } from './ui/TestTimer';
 export { SaveIndicator } from './ui/SaveIndicator';
+export { TestPage } from './ui/TestPage';

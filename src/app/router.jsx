@@ -5,6 +5,7 @@ import {
   PublicOnlyRoute,
   RegisterPage,
 } from '@features/auth';
+import { TestPage } from '@features/testing';
 import HomePage from './pages/HomePage';
 
 export const routes = [
@@ -13,6 +14,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <HomePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/test/:sessionId',
+    element: (
+      <ProtectedRoute>
+        <TestPage />
       </ProtectedRoute>
     ),
   },
