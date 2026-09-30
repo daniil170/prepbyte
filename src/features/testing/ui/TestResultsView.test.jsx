@@ -178,4 +178,38 @@ describe('TestResultsView', () => {
     expect(screen.getByText('/ 3')).toBeInTheDocument();
     expect(screen.getByText('(100%)')).toBeInTheDocument();
   });
+
+  it('renders tutor action button and opens TutorDrawer on click', () => {
+    render(
+      <MemoryRouter>
+        <TestResultsView session={mockSession} questions={mockQuestions} />
+      </MemoryRouter>
+    );
+
+    // Tutor header button should be visible
+    const tutorHeaderBtn = screen.getByRole('button', {
+      name: 'Открыть ИИ-тьютор',
+    });
+    expect(tutorHeaderBtn).toBeInTheDocument();
+
+    // Expand the first question card
+    const firstCardBtn = screen.getByRole('button', {
+      name: /#1/i,
+    });
+    fireEvent.click(firstCardBtn);
+
+    // The tutor help button should appear inside expanded question card
+    const tutorHelpBtn = screen.getByRole('button', {
+      name: /Разобрать задание #1 с ИИ-тьютором/i,
+    });
+    expect(tutorHelpBtn).toBeInTheDocument();
+
+    // Click it to open TutorDrawer
+    fireEvent.click(tutorHelpBtn);
+
+    // Drawer should open and show dialog
+    expect(
+      screen.getByRole('dialog', { name: 'ИИ-Тьютор PrepByte' })
+    ).toBeInTheDocument();
+  });
 });

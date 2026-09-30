@@ -46,8 +46,11 @@ export function TutorDrawer({ isOpen, onClose, chatHook }) {
 
   // Auto-scroll to latest message
   useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (
+      isOpen &&
+      typeof messagesEndRef.current?.scrollIntoView === 'function'
+    ) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isOpen, isLoading]);
 

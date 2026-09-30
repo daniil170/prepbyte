@@ -224,7 +224,7 @@ export function AdminVariantsPage() {
       {activeTab === 'generator' && (
         <section
           className={styles.tabContent}
-          aria-label="ИИ-Генератор вариантов"
+          aria-label="Панель генератора вариантов"
           id="ai-generator-panel"
         >
           <AiVariantGenerator />
