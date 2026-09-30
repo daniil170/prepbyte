@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '@features/auth';
+import { isUserAdmin, useAuth } from '@features/auth';
 import { StartTestPanel } from '@features/testing';
 import { Logo } from '@shared/ui/Logo/Logo';
 import styles from './HomePage.module.css';
@@ -60,6 +60,9 @@ const CORE_FEATURES = [
 
 export default function HomePage() {
   const { user, signOut } = useAuth();
+  const isAdmin =
+    (import.meta.env?.DEV && import.meta.env?.VITE_ADMIN_ALL === 'true') ||
+    isUserAdmin(user, import.meta.env?.VITE_ADMIN_EMAILS || '');
 
   return (
     <div className={styles.page}>
@@ -70,6 +73,11 @@ export default function HomePage() {
             <Link to="/analytics" className={styles.navLink}>
               Дашборд
             </Link>
+            {isAdmin && (
+              <Link to="/admin/variants" className={styles.navLink}>
+                Админ-панель
+              </Link>
+            )}
           </nav>
         </div>
 

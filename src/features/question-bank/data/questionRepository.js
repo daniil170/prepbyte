@@ -6,6 +6,7 @@ import {
   getDocs,
   query,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { db as defaultDb } from '@infrastructure/firebase/firestore';
 import { chunk } from '@shared/lib/chunk';
@@ -82,11 +83,40 @@ export function createQuestionRepository(firestore = defaultDb) {
     return orderQuestionsByIds(foundQuestions, ids);
   }
 
+  async function saveQuestionsBatch(questions) {
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return { writtenCount: 0 };
+    }
+
+    const chunks = chunk(questions, 500);
+    for (const batchChunk of chunks) {
+      const batch = writeBatch(firestore);
+      for (const q of batchChunk) {
+        if (!q || !q.id) continue;
+        const docRef = doc(firestore, collectionName, q.id);
+        const dataToSave = {
+          topic: q.topic,
+          questionText: q.questionText,
+          options: q.options,
+          correctAnswers: q.correctAnswers,
+          explanation: q.explanation,
+          difficulty: q.difficulty,
+          version: q.version || 1,
+        };
+        batch.set(docRef, dataToSave, { merge: true });
+      }
+      await batch.commit();
+    }
+
+    return { writtenCount: questions.length };
+  }
+
   return {
     getQuestionById,
     getQuestionsByIds,
     getQuestionsByTopics,
     getAllQuestions,
+    saveQuestionsBatch,
   };
 }
 

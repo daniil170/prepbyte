@@ -36,4 +36,10 @@ describe('questionRepository', () => {
       'Запрос Firestore "in" поддерживает максимум 30 тем, получено: 31.'
     );
   });
+
+  it('handles saveQuestionsBatch with empty or invalid input', async () => {
+    const repo = createQuestionRepository({});
+    expect(await repo.saveQuestionsBatch([])).toEqual({ writtenCount: 0 });
+    expect(await repo.saveQuestionsBatch(null)).toEqual({ writtenCount: 0 });
+  });
 });

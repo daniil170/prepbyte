@@ -23,3 +23,8 @@ export {
   buildAiVariantPrompt,
   VARIANT_SPECIFICATION,
 } from './domain/aiPromptTemplates';
+export { validateVariantPayload } from './domain/variantValidation';
+export { useVariantUploader } from './hooks/useVariantUploader';
+export { AdminVariantsPage } from './ui/AdminVariantsPage';
+export { VariantDropzone } from './ui/VariantDropzone';
+export { VariantValidationSummary } from './ui/VariantValidationSummary';
