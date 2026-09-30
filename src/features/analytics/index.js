@@ -14,3 +14,5 @@ export {
 } from './data/analyticsRepository';
 
 export { useStudentAnalytics } from './hooks/useStudentAnalytics';
+
+export { AnalyticsDashboard } from './ui/AnalyticsDashboard';

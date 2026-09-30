@@ -5,6 +5,7 @@ import {
   PublicOnlyRoute,
   RegisterPage,
 } from '@features/auth';
+import { AnalyticsDashboard } from '@features/analytics';
 import { TestPage } from '@features/testing';
 import HomePage from './pages/HomePage';
 
@@ -14,6 +15,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <HomePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/analytics',
+    element: (
+      <ProtectedRoute>
+        <AnalyticsDashboard />
       </ProtectedRoute>
     ),
   },
