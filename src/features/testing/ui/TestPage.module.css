@@ -15,7 +15,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 24px;
-  background-color: rgba(10, 10, 10, 0.95);
+  background-color: var(--color-header-bg, rgba(10, 10, 10, 0.95));
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--color-border);
   box-sizing: border-box;
@@ -65,7 +65,7 @@
 
 .scratchpadButton {
   padding: 8px 14px;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--color-surface);
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -80,14 +80,14 @@
 }
 
 .scratchpadButton:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--color-surface-hover, rgba(255, 255, 255, 0.15));
   border-color: var(--color-border-strong);
 }
 
 .scratchpadActive {
-  background-color: #ffffff;
-  color: #0a0a0a;
-  border-color: #ffffff;
+  background-color: var(--color-text);
+  color: var(--color-bg);
+  border-color: var(--color-text);
 }
 
 .mainContent {

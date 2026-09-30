@@ -6,6 +6,7 @@ import { Logo } from '@shared/ui/Logo/Logo';
 import { calculateExamScore } from '../domain/scoringEngine';
 import { QuestionContent } from './QuestionContent';
 import { TestWorkExportView } from './TestWorkExportView';
+import { ThemeToggle } from '@shared/theme';
 import styles from './TestResultsView.module.css';
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -112,6 +113,7 @@ export function TestResultsView({ session, questions = [] }) {
         </div>
 
         <div className={styles.headerRight}>
+          <ThemeToggle showLabel={false} />
           <button
             type="button"
             className={styles.exportHeaderBtn}

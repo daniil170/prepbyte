@@ -13,6 +13,7 @@ import { SaveIndicator } from './SaveIndicator';
 import { TestTimer } from './TestTimer';
 import { TestResultsView } from './TestResultsView';
 import { ScratchpadDrawer } from './ScratchpadDrawer';
+import { ThemeToggle } from '@shared/theme';
 import styles from './TestPage.module.css';
 
 export function TestPage() {
@@ -108,6 +109,7 @@ export function TestPage() {
         <div className={styles.headerRight}>
           <TestTimer remainingSeconds={remainingSeconds} />
           <SaveIndicator saveState={saveState} />
+          <ThemeToggle showLabel={false} />
           <button
             type="button"
             onClick={() => setIsScratchpadOpen((prev) => !prev)}

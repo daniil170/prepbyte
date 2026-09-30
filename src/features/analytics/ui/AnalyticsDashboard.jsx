@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '@shared/ui/Logo/Logo';
+import { ThemeToggle } from '@shared/theme';
 import { useStudentAnalytics } from '../hooks/useStudentAnalytics';
 import styles from './AnalyticsDashboard.module.css';
 
@@ -100,6 +101,7 @@ export function AnalyticsDashboard({ hook = useStudentAnalytics }) {
         </div>
 
         <div className={styles.headerRight}>
+          <ThemeToggle />
           <Link to="/" className={styles.navLink}>
             ← К тестированию
           </Link>

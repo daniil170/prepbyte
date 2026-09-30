@@ -15,7 +15,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 12px 24px;
-  background-color: rgba(10, 10, 10, 0.95);
+  background-color: var(--color-header-bg, rgba(10, 10, 10, 0.95));
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--color-border);
   box-sizing: border-box;
@@ -646,9 +646,9 @@
   font-size: 0.8125rem;
   font-weight: 700;
   padding: 6px 12px;
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -658,14 +658,14 @@
 }
 
 .exportHeaderBtn:hover {
-  background-color: #ffffff;
-  color: #0a0a0a;
-  border-color: #ffffff;
+  background-color: var(--color-text);
+  color: var(--color-bg);
+  border-color: var(--color-text);
 }
 
 .exportBanner {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 16px 20px;
   display: flex;
@@ -687,12 +687,12 @@
   font-family: var(--font-mono);
   font-size: 0.875rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--color-text);
 }
 
 .exportBannerDesc {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   line-height: 1.4;
 }
 
@@ -701,9 +701,9 @@
   font-size: 0.8125rem;
   font-weight: 700;
   padding: 8px 16px;
-  background-color: #ffffff;
-  color: #0f172a;
-  border: 1px solid #ffffff;
+  background-color: var(--color-text);
+  color: var(--color-bg);
+  border: 1px solid var(--color-text);
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -711,8 +711,7 @@
 }
 
 .exportBannerBtn:hover {
-  background-color: #e2e8f0;
-  border-color: #e2e8f0;
+  opacity: 0.85;
   transform: translateY(-1px);
 }
 

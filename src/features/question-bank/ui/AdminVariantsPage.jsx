@@ -4,6 +4,7 @@ import { useVariantUploader } from '../hooks/useVariantUploader';
 import { AiVariantGenerator } from './AiVariantGenerator';
 import { VariantDropzone } from './VariantDropzone';
 import { VariantValidationSummary } from './VariantValidationSummary';
+import { ThemeToggle } from '@shared/theme';
 import styles from './AdminVariantsPage.module.css';
 
 /**
@@ -36,7 +37,10 @@ export function AdminVariantsPage() {
           <Link to="/" className={styles.backLink}>
             ← На главную
           </Link>
-          <span className={styles.adminBadge}>[ADMIN WORKSPACE]</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ThemeToggle />
+            <span className={styles.adminBadge}>[ADMIN WORKSPACE]</span>
+          </div>
         </div>
         <h1 className={styles.title}>Управление вариантами ЕНТ</h1>
         <p className={styles.subtitle}>
