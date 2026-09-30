@@ -294,7 +294,47 @@ Exposed through `@features/question-bank`:
 
 ## 🌱 Database Seeding
 
-The seed dataset and script provide idempotent test data for development and testing.
+The seed dataset and script provide verified, idempotent test data for development and testing.
+
+### Current Bank Size
+
+The question bank contains **96 verified questions** evenly distributed across all 12 ENT Computer Science topics:
+
+- **8 questions per topic** (7 single-answer with 4 options each, 1 multiple-answer with 5–6 options).
+- **Difficulty distribution**: ~25% easy, 55% medium, 20% hard.
+- **Rich content**: 20+ questions feature fenced code blocks (Python, SQL) or algorithmic/mathematical computations.
+
+### Modular Dataset Structure
+
+The dataset is partitioned into per-group modules located in `scripts/seed/questions/`:
+
+- `python.js`: `python_loops`, `python_functions`
+- `databases_sql.js`: `sql_queries`, `sql_joins`
+- `networks.js`: `network_protocols`, `network_addressing`
+- `computer_architecture.js`: `cpu_memory`, `number_systems`
+- `spreadsheets.js`: `spreadsheet_formulas`, `spreadsheet_charts`
+- `information_security.js`: `security_basics`, `cryptography_basics`
+- `index.js`: aggregates all modules into `SEED_QUESTIONS`.
+
+### Adding Questions & ID Conventions
+
+When adding questions to a group module:
+
+1. **ID Convention**: Follow topic prefixes: `py-loop-XXX`, `py-func-XXX`, `sql-q-XXX`, `sql-j-XXX`, `net-p-XXX`, `net-a-XXX`, `arch-cpu-XXX`, `arch-num-XXX`, `ss-form-XXX`, `ss-chart-XXX`, `sec-base-XXX`, `sec-crypto-XXX`.
+2. **Format Invariants**:
+   - Single-answer: exactly 4 unique options, 1 correct index in `correctAnswers`. Balance correct answer position across A–D.
+   - Multiple-answer: 5 or 6 unique options, 2 or 3 correct indices in `correctAnswers`.
+   - Explanations must provide step-by-step reasoning for computations and explain why distractors are invalid.
+
+### Factual Verification Policy (Execute, Do Not Guess)
+
+Factual correctness is top priority in PrepByte. All questions must be verified by execution before inclusion:
+
+- **Python**: Run snippets with `python3` and assert stdout/return values match options.
+- **SQL**: Build in-memory tables in `sqlite3`, populate sample data, execute the query, and compare result sets.
+- **IP Addressing & Subnets**: Compute network addresses, host counts, and broadcasts with Python's standard `ipaddress` module.
+- **Binary/Hex & Logic**: Verify base conversions and boolean expressions with Python built-ins.
+- **Theory**: Rely exclusively on standard RFCs, official specs, and established exam curriculum facts. Never guess.
 
 ### Running Dry-Run (Local & Offline)
 
