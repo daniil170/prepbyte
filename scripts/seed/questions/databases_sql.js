@@ -46,6 +46,87 @@ export const databasesSqlQuestions = [
     difficulty: 'medium',
     version: 1,
   },
+  {
+    id: 'sql-q-004',
+    topic: 'sql_queries',
+    questionText:
+      'Что вернет следующий SQL-запрос при наличии дублирующихся городов в таблице Users?\n```sql\nSELECT DISTINCT city\nFROM Users\nORDER BY city ASC\nLIMIT 3;\n```',
+    options: [
+      'Три первых уникальных города в алфавитном порядке',
+      'Три случайные записи из таблицы пользователей',
+      'Все города, кроме первых трех в списке',
+      'Количество уникальных городов в каждом регионе',
+    ],
+    correctAnswers: [0],
+    explanation:
+      'Ключевое слово DISTINCT исключает дублирующиеся значения, ORDER BY city ASC сортирует уникальные города по возрастанию (в алфавитном порядке), а LIMIT 3 ограничивает вывод первыми тремя строками.',
+    difficulty: 'easy',
+    version: 1,
+  },
+  {
+    id: 'sql-q-005',
+    topic: 'sql_queries',
+    questionText:
+      'Какой шаблон в операторе LIKE найдет все строки, начинающиеся с буквы "K", состоящие ровно из 4 символов и оканчивающиеся на "T"?',
+    options: ["'K%T'", "'K__T'", "'K.*T'", "'K?T'"],
+    correctAnswers: [1],
+    explanation:
+      'В стандарте SQL символ подчеркивания "_" обозначает строго один любой символ, а знак процента "%" — ноль или более любых символов. Шаблон "K__T" задает букву K, ровно два любых символа и букву T, то есть ровно 4 символа.',
+    difficulty: 'medium',
+    version: 1,
+  },
+  {
+    id: 'sql-q-006',
+    topic: 'sql_queries',
+    questionText:
+      'Какое условие в предложении WHERE корректно выбирает строки, в которых значение столбца email не задано (содержит NULL)?',
+    options: [
+      'WHERE email = NULL',
+      'WHERE email == NULL',
+      'WHERE email IS NULL',
+      'WHERE email IN (NULL)',
+    ],
+    correctAnswers: [2],
+    explanation:
+      'Значение NULL обозначает отсутствие данных. Поскольку NULL не равен ничему, даже самому себе, проверка через операторы сравнения (=, !=) всегда возвращает UNKNOWN (ложь). Для проверки используется специальный предикат IS NULL.',
+    difficulty: 'medium',
+    version: 1,
+  },
+  {
+    id: 'sql-q-007',
+    topic: 'sql_queries',
+    questionText:
+      'В таблице Products есть строки: (1, "Books", 400), (2, "Books", 600) и (3, "Pen", 200). Что произойдет после запроса?\n```sql\nUPDATE Products\nSET price = price * 1.1\nWHERE category = "Books" AND price < 500;\n```',
+    options: [
+      'Цены всех товаров категории Books увеличатся на 10%',
+      'Цена товара с id=2 станет 660, а id=1 станет 440',
+      'Цены всех товаров в таблице умножатся на 1.1',
+      'Цена товара с id=1 станет 440, остальные цены не изменятся',
+    ],
+    correctAnswers: [3],
+    explanation:
+      'Условию category = "Books" AND price < 500 удовлетворяет только товар с id=1 (категория "Books", цена 400 < 500). Его новая цена: 400 * 1.1 = 440. Товар с id=2 отсекается по цене (600 не меньше 500), а id=3 — по категории.',
+    difficulty: 'hard',
+    version: 1,
+  },
+  {
+    id: 'sql-q-008',
+    topic: 'sql_queries',
+    questionText:
+      'Какие из приведенных SQL-команд относятся к подмножеству языка DML (Data Manipulation Language)?',
+    options: [
+      'INSERT (добавление строк)',
+      'UPDATE (модификация данных)',
+      'CREATE TABLE (создание таблицы)',
+      'DROP DATABASE (удаление базы данных)',
+      'ALTER TABLE (изменение структуры таблицы)',
+    ],
+    correctAnswers: [0, 1],
+    explanation:
+      'Команды манипулирования данными (DML) работают с содержимым таблиц: SELECT, INSERT, UPDATE, DELETE. Команды CREATE, ALTER, DROP относятся к языку определения данных (DDL — Data Definition Language).',
+    difficulty: 'medium',
+    version: 1,
+  },
 
   // --- DATABASES & SQL: sql_joins ---
   {
@@ -97,6 +178,93 @@ export const databasesSqlQuestions = [
     explanation:
       'AVG(), SUM(), MAX(), MIN(), COUNT() — это агрегатные функции, обрабатывающие набор строк группы. ROUND() — скалярная математическая функция.',
     difficulty: 'medium',
+    version: 1,
+  },
+  {
+    id: 'sql-j-004',
+    topic: 'sql_joins',
+    questionText:
+      'Какую главную функцию выполняет внешний ключ (Foreign Key) в реляционной базе данных?',
+    options: [
+      'Ускорение поиска и сортировки текстовых данных',
+      'Обеспечение ссылочной целостности путем связывания записей двух таблиц',
+      'Шифрование конфиденциальных полей в столбце',
+      'Автоматическое удаление всей таблицы при завершении сеанса',
+    ],
+    correctAnswers: [1],
+    explanation:
+      'Внешний ключ (Foreign Key) ссылается на первичный ключ (Primary Key) другой таблицы, обеспечивая ссылочную целостность связей и предотвращая появление «висячих» записей.',
+    difficulty: 'easy',
+    version: 1,
+  },
+  {
+    id: 'sql-j-005',
+    topic: 'sql_joins',
+    questionText:
+      'В таблице Employees отдел 1 имеет 3 сотрудников, отдел 2 — 2 сотрудников, отдел 3 — 1 сотрудника. Что выведет следующий запрос?\n```sql\nSELECT department_id, COUNT(*) AS cnt\nFROM Employees\nGROUP BY department_id\nHAVING COUNT(*) > 2;\n```',
+    options: [
+      'Все три отдела и число сотрудников в каждом',
+      'Отделы 1 и 2, так как в них более одного сотрудника',
+      'Ошибку выполнения, так как фильтрация должна выполняться только в WHERE',
+      'Только одну строку: department_id = 1 и cnt = 3',
+    ],
+    correctAnswers: [3],
+    explanation:
+      'Предложение GROUP BY группирует строки по department_id, а HAVING фильтрует сформированные группы по условию COUNT(*) > 2. Этому условию удовлетворяет только отдел 1, у которого 3 сотрудника (3 > 2).',
+    difficulty: 'medium',
+    version: 1,
+  },
+  {
+    id: 'sql-j-006',
+    topic: 'sql_joins',
+    questionText:
+      'В таблице Students есть оценки трех студентов: Али (70), Берик (90), Дана (80). Кто будет выведен следующим запросом?\n```sql\nSELECT name\nFROM Students\nWHERE score > (SELECT AVG(score) FROM Students);\n```',
+    options: [
+      'Али и Дана',
+      'Али, Берик и Дана',
+      'Только Берик',
+      'Берик и Дана',
+    ],
+    correctAnswers: [2],
+    explanation:
+      'Подзапрос (SELECT AVG(score) FROM Students) вычисляет средний балл: (70 + 90 + 80) / 3 = 80. Основной запрос отбирает студентов со строгим условием score > 80. Оценка Даны (80) не строго больше 80, поэтому в результат попадает только Берик (90 > 80).',
+    difficulty: 'hard',
+    version: 1,
+  },
+  {
+    id: 'sql-j-007',
+    topic: 'sql_joins',
+    questionText:
+      'Какое соединение следует использовать, если нужно гарантированно включить все записи из правой таблицы B, даже если для них нет соответствий в левой таблице A?',
+    options: [
+      'RIGHT JOIN (RIGHT OUTER JOIN)',
+      'INNER JOIN',
+      'CROSS JOIN',
+      'NATURAL JOIN',
+    ],
+    correctAnswers: [0],
+    explanation:
+      'RIGHT OUTER JOIN возвращает все строки из правой таблицы, дополняя несовпадающие поля левой таблицы значениями NULL. INNER JOIN отбросил бы строки без совпадений.',
+    difficulty: 'medium',
+    version: 1,
+  },
+  {
+    id: 'sql-j-008',
+    topic: 'sql_joins',
+    questionText:
+      'Какие из приведенных утверждений о группировке и фильтрации данных в SQL верны?',
+    options: [
+      'Предложение HAVING фильтрует сгруппированные результаты после агрегации',
+      'В предложении WHERE запрещено использовать вызовы агрегатных функций (например, SUM или AVG)',
+      'Столбцы выборки SELECT, не обернутые в агрегатные функции, должны перечисляться в GROUP BY',
+      'Предложение GROUP BY в запросе выполняется строго перед WHERE',
+      'Агрегатная функция COUNT(*) не подсчитывает строки, в которых есть хотя бы один NULL',
+      'Предложение HAVING может применяться только совместно с оператором LIMIT',
+    ],
+    correctAnswers: [0, 1, 2],
+    explanation:
+      'Предложение WHERE фильтрует строки до агрегации, поэтому агрегатные функции в нем недопустимы; HAVING фильтрует группы уже после агрегации; неагрегированные поля в SELECT обязаны присутствовать в GROUP BY. WHERE выполняется до GROUP BY, а COUNT(*) считает все строки группы независимо от NULL в полях.',
+    difficulty: 'hard',
     version: 1,
   },
 ];
