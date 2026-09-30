@@ -9,11 +9,11 @@ import {
 } from './topics';
 
 describe('topics domain catalog', () => {
-  it('contains exactly 12 topics, 2 per official group', () => {
-    expect(TOPICS).toHaveLength(12);
+  it('contains exactly 14 topics, 2 per official group', () => {
+    expect(TOPICS).toHaveLength(14);
 
     const groupKeys = Object.keys(TOPIC_GROUPS);
-    expect(groupKeys).toHaveLength(6);
+    expect(groupKeys).toHaveLength(7);
 
     const groupCounts = {};
     TOPICS.forEach((topic) => {
@@ -27,7 +27,7 @@ describe('topics domain catalog', () => {
 
   it('lists topics via listTopics helper', () => {
     const list = listTopics();
-    expect(list).toHaveLength(12);
+    expect(list).toHaveLength(14);
     expect(list[0]).toHaveProperty('id');
     expect(list[0]).toHaveProperty('label');
     expect(list[0]).toHaveProperty('group');

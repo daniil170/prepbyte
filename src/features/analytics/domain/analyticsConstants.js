@@ -14,6 +14,8 @@ export const UNT_TOPICS = [
   { id: 'spreadsheet_charts', label: 'Диаграммы и фильтрация данных' },
   { id: 'security_basics', label: 'Основы информационной безопасности' },
   { id: 'cryptography_basics', label: 'Криптография и защита данных' },
+  { id: 'html_css', label: 'Основы HTML и CSS верстки' },
+  { id: 'web_technologies', label: 'Веб-разработка и клиент-сервер' },
 ];
 
 export const MASTERY_THRESHOLD_PERCENT = 75;

@@ -16,7 +16,7 @@ describe('aiPromptTemplates domain module', () => {
     expect(VARIANT_SPECIFICATION.singleChoiceOptionsCount).toBe(4);
     expect(VARIANT_SPECIFICATION.multiChoiceMinOptions).toBe(5);
     expect(VARIANT_SPECIFICATION.multiChoiceMaxOptions).toBe(6);
-    expect(VARIANT_SPECIFICATION.topicsCount).toBe(12);
+    expect(VARIANT_SPECIFICATION.topicsCount).toBe(TOPICS.length);
   });
 
   it('matches JSON schema with required fields and all 12 topic enums', () => {

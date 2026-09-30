@@ -14,7 +14,7 @@ export const VARIANT_SPECIFICATION = {
   singleChoiceOptionsCount: 4,
   multiChoiceMinOptions: 5,
   multiChoiceMaxOptions: 6,
-  topicsCount: 12,
+  topicsCount: TOPICS.length,
 };
 
 /**
@@ -99,7 +99,7 @@ export const AI_VARIANT_SYSTEM_PROMPT = `
    - 5 или 6 вариантов ответа.
    - Ровно 2 или 3 правильных индекса в \`correctAnswers\` (например, [0, 2] или [1, 3, 4]).
 
-ОФИЦИАЛЬНЫЕ 12 ТЕМ СПЕЦИФИКАЦИИ ЕНТ:
+ОФИЦИАЛЬНЫЕ ТЕМЫ СПЕЦИФИКАЦИИ ЕНТ:
 1. python_loops — Циклы и условия в Python (for, while, if/elif/else, range, break, continue)
 2. python_functions — Функции и структуры данных в Python (def, return, list, dict, set, tuple, string methods)
 3. sql_queries — Основные SQL-запросы (SELECT, DISTINCT, WHERE, ORDER BY, LIKE, LIMIT, BETWEEN, IN)
@@ -112,6 +112,8 @@ export const AI_VARIANT_SYSTEM_PROMPT = `
 10. spreadsheet_charts — Диаграммы и фильтрация данных (типы диаграмм, автофильтр, сортировка, условное форматирование)
 11. security_basics — Основы информационной безопасности (конфиденциальность, целостность, доступность, фишинг, вирусы, брандмауэр)
 12. cryptography_basics — Криптография и защита данных (симметричное/асимметричное шифрование, открытый/закрытый ключ, ЭЦП, хэширование)
+13. html_css — Основы HTML и CSS верстки (теги, атрибуты, селекторы, каскад, flexbox)
+14. web_technologies — Веб-разработка и клиент-сервер (архитектура веба, стек технологий, клиент-серверное взаимодействие)
 
 ПРАВИЛО ВЕРИФИКАЦИИ ФАКТОВ (EXECUTE, DO NOT GUESS):
 - Python-код должен быть 100% синтаксически корректным для Python 3.10+.
