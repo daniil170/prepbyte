@@ -148,3 +148,27 @@ export function buildAiVariantPrompt({
 - Формат: Строго JSON по указанной схеме.
 `.trim();
 }
+
+/**
+ * Builds user prompt for a focused topic deep-dive set.
+ *
+ * @param {object} params
+ * @param {string} params.topicId
+ * @param {number} [params.count=10]
+ * @param {string} [params.difficulty="medium"]
+ * @returns {string} Prompt string.
+ */
+export function buildTopicDeepDivePrompt({
+  topicId,
+  count = 10,
+  difficulty = 'medium',
+} = {}) {
+  return `
+Сгенерируй тематический интенсив заданий ЕНТ по Информатике.
+Параметры:
+- Тема: "${topicId}"
+- Количество заданий: ${count} (задания 1-${count - 3}: одиночный выбор по 1 баллу, задания ${count - 2}-${count}: множественный выбор по 2 балла)
+- Уровень сложности: ${difficulty}
+- Формат: Строго валидный JSON по указанной схеме.
+`.trim();
+}

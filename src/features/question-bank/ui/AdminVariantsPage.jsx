@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useVariantUploader } from '../hooks/useVariantUploader';
+import { AiVariantGenerator } from './AiVariantGenerator';
 import { VariantDropzone } from './VariantDropzone';
 import { VariantValidationSummary } from './VariantValidationSummary';
 import styles from './AdminVariantsPage.module.css';
@@ -219,23 +220,14 @@ export function AdminVariantsPage() {
         </section>
       )}
 
-      {/* Tab 2: AI Generator Placeholder (built in Commit 2) */}
+      {/* Tab 2: AI Generator */}
       {activeTab === 'generator' && (
         <section
           className={styles.tabContent}
           aria-label="ИИ-Генератор вариантов"
           id="ai-generator-panel"
         >
-          <div className={styles.generatorPlaceholder}>
-            <div className={styles.generatorIcon}>[AI GENERATOR]</div>
-            <h2 className={styles.sectionHeading}>
-              Генерация вариантов через искусственный интеллект
-            </h2>
-            <p className={styles.sectionDesc}>
-              Создание тестовых заданий ЕНТ по спецификации НЦТ РК с валидацией
-              сложности и тем.
-            </p>
-          </div>
+          <AiVariantGenerator />
         </section>
       )}
     </div>

@@ -21,10 +21,14 @@ export {
   AI_VARIANT_JSON_SCHEMA,
   AI_VARIANT_SYSTEM_PROMPT,
   buildAiVariantPrompt,
+  buildTopicDeepDivePrompt,
   VARIANT_SPECIFICATION,
 } from './domain/aiPromptTemplates';
+export { generateCurriculumQuestions } from './domain/curriculumGenerator';
 export { validateVariantPayload } from './domain/variantValidation';
 export { useVariantUploader } from './hooks/useVariantUploader';
+export { useAiVariantGenerator } from './hooks/useAiVariantGenerator';
 export { AdminVariantsPage } from './ui/AdminVariantsPage';
+export { AiVariantGenerator } from './ui/AiVariantGenerator';
 export { VariantDropzone } from './ui/VariantDropzone';
 export { VariantValidationSummary } from './ui/VariantValidationSummary';
