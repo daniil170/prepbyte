@@ -51,9 +51,10 @@ export function useStartTest() {
       const questionIds = buildTestVariant(allQuestions);
       const sessionId = generateSessionId();
 
+      const userId = user.id || user.uid;
       const newSession = createSession({
         id: sessionId,
-        userId: user.uid,
+        userId,
         questionIds,
         durationLimitSec: TEST_DURATION_SEC,
         now,

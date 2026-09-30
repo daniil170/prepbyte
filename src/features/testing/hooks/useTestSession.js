@@ -186,7 +186,8 @@ export function useTestSession(sessionId) {
         }
 
         // Validate session ownership
-        if (user && loadedSession.userId !== user.uid) {
+        const currentUserId = user ? user.id || user.uid : null;
+        if (currentUserId && loadedSession.userId !== currentUserId) {
           setStatus('not-found');
           return;
         }

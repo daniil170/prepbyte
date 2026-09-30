@@ -35,7 +35,8 @@ export function useActiveSession() {
 
     async function load() {
       try {
-        const session = await sessionRepository.getActiveSession(user.uid);
+        const userId = user.id || user.uid;
+        const session = await sessionRepository.getActiveSession(userId);
         if (isCancelled) return;
 
         if (!session) {

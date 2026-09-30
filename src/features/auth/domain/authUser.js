@@ -5,6 +5,7 @@ export function createAuthUser({ id, email, displayName = null } = {}) {
 
   return Object.freeze({
     id,
+    uid: id,
     email: email || '',
     displayName: displayName || null,
   });

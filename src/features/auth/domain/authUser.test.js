@@ -11,6 +11,7 @@ describe('authUser domain', () => {
 
     expect(user).toEqual({
       id: 'usr-123',
+      uid: 'usr-123',
       email: 'student@example.com',
       displayName: 'Daniil',
     });

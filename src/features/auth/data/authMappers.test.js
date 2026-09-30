@@ -23,6 +23,7 @@ describe('authMappers', () => {
 
       expect(domainUser).toEqual({
         id: 'user-789',
+        uid: 'user-789',
         email: 'test@prepbyte.kz',
         displayName: 'Test User',
       });

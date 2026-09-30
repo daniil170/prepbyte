@@ -23,7 +23,8 @@ export function useStudentAnalytics({ repository = defaultRepo } = {}) {
   const [error, setError] = useState(null);
 
   const fetchAnalytics = useCallback(async () => {
-    if (!user || !user.uid) {
+    const userId = user ? user.id || user.uid : null;
+    if (!userId) {
       setSessions([]);
       setIsLoading(false);
       return;
@@ -33,7 +34,7 @@ export function useStudentAnalytics({ repository = defaultRepo } = {}) {
     setError(null);
 
     try {
-      const userSessions = await repository.getUserSessions(user.uid);
+      const userSessions = await repository.getUserSessions(userId);
       setSessions(userSessions);
     } catch (err) {
       setError(
@@ -50,7 +51,8 @@ export function useStudentAnalytics({ repository = defaultRepo } = {}) {
     let isCancelled = false;
 
     async function load() {
-      if (!user || !user.uid) {
+      const userId = user ? user.id || user.uid : null;
+      if (!userId) {
         if (!isCancelled) {
           setSessions([]);
           setIsLoading(false);
@@ -64,7 +66,7 @@ export function useStudentAnalytics({ repository = defaultRepo } = {}) {
       }
 
       try {
-        const userSessions = await repository.getUserSessions(user.uid);
+        const userSessions = await repository.getUserSessions(userId);
         if (!isCancelled) {
           setSessions(userSessions);
         }
