@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateQuestion } from '../../src/features/question-bank/domain/questionValidation';
 import { TOPICS } from '../../src/features/question-bank/domain/topics';
-import { SEED_QUESTIONS } from './questions';
+import { SEED_QUESTIONS } from './questions/index.js';
 
 describe('SEED_QUESTIONS dataset', () => {
   it('contains at least 36 questions', () => {

@@ -1,4 +1,4 @@
-import { SEED_QUESTIONS } from './questions.js';
+import { SEED_QUESTIONS } from './questions/index.js';
 import { validateQuestion } from '../../src/features/question-bank/domain/questionValidation.js';
 import { TOPICS } from '../../src/features/question-bank/domain/topics.js';
 
