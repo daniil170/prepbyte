@@ -7,3 +7,10 @@ export { calculateKPIs, calculateStudyStreak } from './domain/kpiCalculator';
 export { calculateTopicMastery } from './domain/topicMasteryCalculator';
 export { computeScoreTimeline } from './domain/scoreTimelineCalculator';
 export { buildStudentAnalytics } from './domain/studentAnalytics';
+
+export {
+  analyticsRepository,
+  createAnalyticsRepository,
+} from './data/analyticsRepository';
+
+export { useStudentAnalytics } from './hooks/useStudentAnalytics';
