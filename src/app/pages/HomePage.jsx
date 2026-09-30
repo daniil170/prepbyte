@@ -3,6 +3,7 @@ import { isUserAdmin, useAuth } from '@features/auth';
 import { StartTestPanel } from '@features/testing';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { HeroBackgroundAnimation } from '@shared/ui/BackgroundAnimation/HeroBackgroundAnimation';
+import { ThemeToggle } from '@shared/theme';
 import styles from './HomePage.module.css';
 
 const PLATFORM_METRICS = [
@@ -83,6 +84,7 @@ export default function HomePage() {
         </div>
 
         <div className={styles.userNav}>
+          <ThemeToggle />
           <span className={styles.email}>{user?.email || 'Пользователь'}</span>
           <button
             type="button"

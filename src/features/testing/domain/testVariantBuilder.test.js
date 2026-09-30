@@ -92,4 +92,51 @@ describe('buildTestVariant', () => {
     const set = new Set(result);
     expect(set.size).toBe(result.length);
   });
+
+  it('assembles official UNT variant with 30 single-choice (1-30) and 10 multi-choice (31-40) questions', () => {
+    // 50 single-choice questions and 20 multi-choice questions
+    const questions = [];
+    for (let i = 0; i < 50; i++) {
+      questions.push({
+        id: `single-${i}`,
+        topic: `topic_${i % 5}`,
+        correctAnswers: [0], // 1 answer = single choice
+      });
+    }
+    for (let i = 0; i < 20; i++) {
+      questions.push({
+        id: `multi-${i}`,
+        topic: `topic_${i % 5}`,
+        correctAnswers: [0, 1], // 2 answers = multiple choice
+      });
+    }
+
+    const questionMap = new Map(questions.map((q) => [q.id, q]));
+    const result = buildTestVariant(questions);
+
+    expect(result).toHaveLength(40);
+
+    // Questions 1 to 30 (indices 0 to 29) must all be single-choice
+    const first30 = result.slice(0, 30);
+    first30.forEach((id) => {
+      const q = questionMap.get(id);
+      expect(q.correctAnswers).toHaveLength(1);
+    });
+
+    // Questions 31 to 40 (indices 30 to 39) must all be multiple-choice
+    const last10 = result.slice(30, 40);
+    last10.forEach((id) => {
+      const q = questionMap.get(id);
+      expect(q.correctAnswers.length).toBeGreaterThan(1);
+    });
+
+    // Max possible score must be exactly 30*1 + 10*2 = 50 points
+    const totalMaxPoints =
+      first30.length * 1 +
+      last10.reduce((acc, id) => {
+        const q = questionMap.get(id);
+        return acc + (q.correctAnswers.length > 1 ? 2 : 1);
+      }, 0);
+    expect(totalMaxPoints).toBe(50);
+  });
 });

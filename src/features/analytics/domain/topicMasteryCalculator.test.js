@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { calculateTopicMastery } from './topicMasteryCalculator';
 
 describe('topicMasteryCalculator', () => {
-  it('returns all 12 topics with 0% mastery when no completed sessions exist', () => {
+  it('returns all 14 topics with 0% mastery when no completed sessions exist', () => {
     const result = calculateTopicMastery([]);
-    expect(result.allTopics).toHaveLength(12);
+    expect(result.allTopics).toHaveLength(14);
     expect(result.strongTopics).toHaveLength(0);
-    expect(result.growthTopics).toHaveLength(12);
+    expect(result.growthTopics).toHaveLength(14);
     expect(result.overallMastery).toBe(0);
   });
 

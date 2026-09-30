@@ -11,6 +11,10 @@ export const TOPIC_GROUPS = Object.freeze({
     id: 'information_security',
     label: 'Информационная безопасность',
   },
+  WEB_TECHNOLOGIES: {
+    id: 'web_technologies',
+    label: 'Веб-технологии и HTML/CSS',
+  },
 });
 
 export const TOPICS = Object.freeze([
@@ -73,6 +77,16 @@ export const TOPICS = Object.freeze([
     id: 'cryptography_basics',
     label: 'Криптография и защита данных',
     group: 'information_security',
+  },
+  {
+    id: 'html_css',
+    label: 'Основы HTML и CSS верстки',
+    group: 'web_technologies',
+  },
+  {
+    id: 'web_technologies',
+    label: 'Веб-разработка и клиент-сервер',
+    group: 'web_technologies',
   },
 ]);
 

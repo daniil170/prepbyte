@@ -22,7 +22,7 @@ describe('curriculumGenerator domain module', () => {
 
     // Check topic coverage
     const topicsSet = new Set(questions.map((q) => q.topic));
-    expect(topicsSet.size).toBe(12);
+    expect(topicsSet.size).toBe(14);
   });
 
   it('generates a topic deep-dive set for a specific topic', () => {

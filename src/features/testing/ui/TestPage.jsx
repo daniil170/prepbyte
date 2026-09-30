@@ -12,6 +12,8 @@ import { QuestionNavigator } from './QuestionNavigator';
 import { SaveIndicator } from './SaveIndicator';
 import { TestTimer } from './TestTimer';
 import { TestResultsView } from './TestResultsView';
+import { ScratchpadDrawer } from './ScratchpadDrawer';
+import { ThemeToggle } from '@shared/theme';
 import styles from './TestPage.module.css';
 
 export function TestPage() {
@@ -27,6 +29,7 @@ export function TestPage() {
   } = useTestSession(sessionId);
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
 
   const remainingSeconds = useRemainingSeconds(session, {
     onExpire: actions.finish,
@@ -106,6 +109,19 @@ export function TestPage() {
         <div className={styles.headerRight}>
           <TestTimer remainingSeconds={remainingSeconds} />
           <SaveIndicator saveState={saveState} />
+          <ThemeToggle showLabel={false} />
+          <button
+            type="button"
+            onClick={() => setIsScratchpadOpen((prev) => !prev)}
+            className={`${styles.scratchpadButton} ${
+              isScratchpadOpen ? styles.scratchpadActive : ''
+            }`}
+            aria-label="Белый лист и черновик"
+            title="Открыть белый лист / черновик для вычислений"
+          >
+            <span aria-hidden="true">📝</span>
+            <span>Черновик</span>
+          </button>
           <button
             type="button"
             onClick={() => setIsConfirmOpen(true)}
@@ -193,6 +209,12 @@ export function TestPage() {
           await actions.finish();
         }}
         onCancel={() => setIsConfirmOpen(false)}
+      />
+
+      <ScratchpadDrawer
+        isOpen={isScratchpadOpen}
+        onClose={() => setIsScratchpadOpen(false)}
+        sessionId={session?.id}
       />
     </div>
   );

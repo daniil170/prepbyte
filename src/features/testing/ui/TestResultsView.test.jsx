@@ -212,4 +212,27 @@ describe('TestResultsView', () => {
       screen.getByRole('dialog', { name: 'ИИ-Тьютор PrepByte' })
     ).toBeInTheDocument();
   });
+
+  it('renders export buttons and opens TestWorkExportView on click', () => {
+    render(
+      <MemoryRouter>
+        <TestResultsView session={mockSession} questions={mockQuestions} />
+      </MemoryRouter>
+    );
+
+    const exportBtn = screen.getByRole('button', {
+      name: 'Открыть официальный бланк и экспорт работы',
+    });
+    expect(exportBtn).toBeInTheDocument();
+
+    fireEvent.click(exportBtn);
+
+    expect(
+      screen.getByRole('dialog', { name: 'Бланк работы ЕНТ' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('ПРОТОКОЛ РЕЗУЛЬТАТОВ ПРОБНОГО ТЕСТИРОВАНИЯ')
+    ).toBeInTheDocument();
+  });
 });
+

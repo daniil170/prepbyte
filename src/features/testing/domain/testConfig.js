@@ -1,2 +1,6 @@
 export const TEST_QUESTION_COUNT = 40;
 export const TEST_DURATION_SEC = 3600;
+export const SINGLE_CHOICE_QUESTION_COUNT = 30;
+export const MULTI_CHOICE_QUESTION_COUNT = 10;
+export const MAX_EXAM_SCORE = 50;
+

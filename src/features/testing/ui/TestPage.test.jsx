@@ -129,4 +129,57 @@ describe('TestPage Integration', () => {
       '/'
     );
   });
+
+  it('toggles the white sheet scratchpad drawer during testing', async () => {
+    const currentSession = createSession({
+      id: 'sess-123',
+      userId: 'u1',
+      questionIds: ['q-1', 'q-2'],
+      durationLimitSec: 3600,
+      now: 1700000000000,
+    });
+
+    const sessionRepo = {
+      getSessionById: vi.fn().mockResolvedValue(currentSession),
+      saveProgress: vi.fn(),
+      finishSession: vi.fn(),
+    };
+
+    const questionRepo = {
+      getQuestionsByIds: vi.fn().mockResolvedValue(mockQuestions),
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/test/sess-123']}>
+        <AuthProvider repository={mockAuthRepo}>
+          <TestingProvider
+            sessionRepository={sessionRepo}
+            questionRepository={questionRepo}
+            now={() => 1700000000000}
+          >
+            <Routes>
+              <Route path="/test/:sessionId" element={<TestPage />} />
+            </Routes>
+          </TestingProvider>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Что такое цикл for?')).toBeInTheDocument();
+
+    const scratchpadBtn = screen.getByRole('button', {
+      name: 'Белый лист и черновик',
+    });
+    expect(scratchpadBtn).toBeInTheDocument();
+
+    // Open scratchpad
+    fireEvent.click(scratchpadBtn);
+    expect(screen.getByText('Белый лист / Черновик')).toBeInTheDocument();
+
+    // Close scratchpad
+    const closeBtn = screen.getByRole('button', { name: 'Скрыть черновик' });
+    fireEvent.click(closeBtn);
+    expect(screen.queryByText('Белый лист / Черновик')).not.toBeInTheDocument();
+  });
 });
+

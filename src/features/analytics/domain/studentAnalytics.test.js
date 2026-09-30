@@ -7,7 +7,7 @@ describe('studentAnalytics facade', () => {
     expect(analytics.hasAttempts).toBe(false);
     expect(analytics.hasCompletedAttempts).toBe(false);
     expect(analytics.kpis.totalTests).toBe(0);
-    expect(analytics.topicMastery.allTopics).toHaveLength(12);
+    expect(analytics.topicMastery.allTopics).toHaveLength(14);
     expect(analytics.scoreTimeline).toEqual([]);
     expect(analytics.recentAttempts).toEqual([]);
   });
