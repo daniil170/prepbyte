@@ -592,3 +592,51 @@
     padding: 0 16px 16px;
   }
 }
+
+.tutorHeaderBtn {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  background-color: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tutorHeaderBtn:hover {
+  background-color: rgba(96, 165, 250, 0.2);
+  border-color: #60a5fa;
+}
+
+.tutorActionRow {
+  margin-top: 12px;
+  display: flex;
+}
+
+.tutorHelpButton {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  background-color: #141414;
+  color: #ffffff;
+  border: 1px solid var(--color-border-strong, #404040);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.tutorHelpButton:hover {
+  background-color: #1f2937;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}

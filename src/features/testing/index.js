@@ -14,10 +14,7 @@ export {
   toggleFlag,
 } from './domain/testSession';
 
-export {
-  calculateExamScore,
-  evaluateQuestion,
-} from './domain/scoringEngine';
+export { calculateExamScore, evaluateQuestion } from './domain/scoringEngine';
 
 export {
   createTestSessionRepository,

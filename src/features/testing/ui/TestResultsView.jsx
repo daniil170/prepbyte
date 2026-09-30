@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getTopicLabel } from '@features/question-bank';
+import { TutorDrawer, useTutorChat } from '@features/tutor';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { calculateExamScore } from '../domain/scoringEngine';
 import { QuestionContent } from './QuestionContent';
@@ -11,6 +12,20 @@ const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 export function TestResultsView({ session, questions = [] }) {
   const [filter, setFilter] = useState('all'); // 'all' | 'mistakes' | 'partial' | 'correct'
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [isTutorOpen, setIsTutorOpen] = useState(false);
+  const tutorChat = useTutorChat();
+
+  const handleAskTutor = (result) => {
+    setIsTutorOpen(true);
+    tutorChat.reviewQuestionMistake({
+      questionText: result.questionText,
+      options: result.options,
+      studentAnswerIndices: result.userAnswers || [],
+      correctAnswerIndices: result.correctAnswers || [],
+      explanation: result.explanation || '',
+      topicLabel: getTopicLabel(result.topic) || result.topic,
+    });
+  };
 
   // Derive complete score evaluation
   const scoreData = useMemo(() => {
@@ -95,6 +110,14 @@ export function TestResultsView({ session, questions = [] }) {
         </div>
 
         <div className={styles.headerRight}>
+          <button
+            type="button"
+            className={styles.tutorHeaderBtn}
+            onClick={() => setIsTutorOpen(true)}
+            aria-label="Открыть ИИ-тьютор"
+          >
+            🤖 ИИ-Тьютор
+          </button>
           <Link to="/" className={styles.backHomeButton}>
             ← На главную
           </Link>
@@ -156,8 +179,7 @@ export function TestResultsView({ session, questions = [] }) {
 
             <div className={styles.topicsGrid}>
               {topicEntries.map((topicData) => {
-                const label =
-                  getTopicLabel(topicData.topic) || topicData.topic;
+                const label = getTopicLabel(topicData.topic) || topicData.topic;
                 const isStrong = topicData.percentage >= 75;
                 const isWeak = topicData.percentage < 50;
 
@@ -277,8 +299,7 @@ export function TestResultsView({ session, questions = [] }) {
                   ? `+${result.pointsAwarded} / ${result.maxPoints} б.`
                   : `0 / ${result.maxPoints} б.`;
 
-              const topicTitle =
-                getTopicLabel(result.topic) || result.topic;
+              const topicTitle = getTopicLabel(result.topic) || result.topic;
 
               return (
                 <article key={result.id} className={styles.reviewCard}>
@@ -289,18 +310,14 @@ export function TestResultsView({ session, questions = [] }) {
                     aria-expanded={isExpanded}
                   >
                     <div className={styles.reviewHeaderLeft}>
-                      <span className={styles.questionNumber}>
-                        #{idx + 1}
-                      </span>
+                      <span className={styles.questionNumber}>#{idx + 1}</span>
                       <span className={styles.reviewTopicBadge}>
                         {topicTitle}
                       </span>
                     </div>
 
                     <div className={styles.reviewHeaderRight}>
-                      <span
-                        className={`${styles.pointsBadge} ${pointsClass}`}
-                      >
+                      <span className={`${styles.pointsBadge} ${pointsClass}`}>
                         {pointsText}
                       </span>
                       <span
@@ -383,6 +400,18 @@ export function TestResultsView({ session, questions = [] }) {
                           </p>
                         </div>
                       ) : null}
+
+                      <div className={styles.tutorActionRow}>
+                        <button
+                          type="button"
+                          className={styles.tutorHelpButton}
+                          onClick={() => handleAskTutor(result)}
+                          aria-label={`Разобрать задание #${idx + 1} с ИИ-тьютором`}
+                        >
+                          <span aria-hidden="true">🤖</span>
+                          <span>Разобрать ошибку с ИИ-тьютором</span>
+                        </button>
+                      </div>
                     </div>
                   ) : null}
                 </article>
@@ -391,6 +420,12 @@ export function TestResultsView({ session, questions = [] }) {
           </div>
         </section>
       </main>
+
+      <TutorDrawer
+        isOpen={isTutorOpen}
+        onClose={() => setIsTutorOpen(false)}
+        chatHook={tutorChat}
+      />
     </div>
   );
 }

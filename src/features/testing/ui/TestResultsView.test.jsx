@@ -141,8 +141,12 @@ describe('TestResultsView', () => {
     // Expand the card
     fireEvent.click(questionCardBtn);
 
-    expect(screen.getByText('Network protocol multi-choice')).toBeInTheDocument();
-    expect(screen.queryByText('Python loop question text')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Network protocol multi-choice')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Python loop question text')
+    ).not.toBeInTheDocument();
 
     // Check explanation presence in expanded card
     expect(

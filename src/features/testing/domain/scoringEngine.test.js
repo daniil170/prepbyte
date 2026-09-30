@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  calculateExamScore,
-  evaluateQuestion,
-} from './scoringEngine';
+import { calculateExamScore, evaluateQuestion } from './scoringEngine';
 
 describe('scoringEngine', () => {
   describe('evaluateQuestion - Single Choice', () => {
@@ -312,7 +309,9 @@ describe('scoringEngine', () => {
       expect(result.percentage).toBe(0);
       expect(result.passed).toBe(false);
       expect(result.detailedResults).toHaveLength(4);
-      expect(result.detailedResults.every((r) => r.pointsAwarded === 0)).toBe(true);
+      expect(result.detailedResults.every((r) => r.pointsAwarded === 0)).toBe(
+        true
+      );
     });
 
     it('throws error when questions parameter is not an array', () => {
