@@ -117,10 +117,14 @@ describe('TestPage Integration', () => {
     const confirmButton = screen.getByRole('button', { name: 'Да, завершить' });
     fireEvent.click(confirmButton);
 
-    // 6. Verify completed screen is rendered
-    expect(await screen.findByText('Вариант завершён')).toBeInTheDocument();
-    expect(screen.getByText('Отвечено вопросов: 1 из 2.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'На главную' })).toHaveAttribute(
+    // 6. Verify completed results screen is rendered
+    expect(
+      await screen.findByText('Результаты тестирования')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Итоговый балл (ЕНТ Информатика)')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /На главную/i })).toHaveAttribute(
       'href',
       '/'
     );

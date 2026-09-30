@@ -84,6 +84,15 @@ export function documentToSession(id, data) {
       ? data.durationLimitSec
       : 3600;
 
+  const score =
+    data.score && typeof data.score === 'object' && !Array.isArray(data.score)
+      ? data.score
+      : null;
+
+  const questionSnapshots = Array.isArray(data.questionSnapshots)
+    ? data.questionSnapshots
+    : null;
+
   return {
     id,
     userId,
@@ -95,6 +104,8 @@ export function documentToSession(id, data) {
     durationLimitSec,
     startedAt,
     finishedAt,
+    score,
+    questionSnapshots,
   };
 }
 
@@ -126,6 +137,10 @@ export function sessionToDocument(
     durationLimitSec: session.durationLimitSec ?? 3600,
     startedAt: startedAtTimestamp ?? session.startedAt,
     finishedAt: finishedAtTimestamp ?? session.finishedAt ?? null,
+    ...(session.score ? { score: session.score } : {}),
+    ...(session.questionSnapshots
+      ? { questionSnapshots: session.questionSnapshots }
+      : {}),
     ...(updatedAtTimestamp !== undefined
       ? { updatedAt: updatedAtTimestamp }
       : {}),

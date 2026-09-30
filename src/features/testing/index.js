@@ -15,6 +15,11 @@ export {
 } from './domain/testSession';
 
 export {
+  calculateExamScore,
+  evaluateQuestion,
+} from './domain/scoringEngine';
+
+export {
   createTestSessionRepository,
   testSessionRepository,
 } from './data/testSessionRepository';
@@ -35,5 +40,6 @@ export { AnswerOptions } from './ui/AnswerOptions';
 export { QuestionNavigator } from './ui/QuestionNavigator';
 export { TestTimer } from './ui/TestTimer';
 export { SaveIndicator } from './ui/SaveIndicator';
+export { TestResultsView } from './ui/TestResultsView';
 export { TestPage } from './ui/TestPage';
 export { StartTestPanel } from './ui/StartTestPanel';

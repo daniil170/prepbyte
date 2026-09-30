@@ -11,6 +11,7 @@ import { QuestionContent } from './QuestionContent';
 import { QuestionNavigator } from './QuestionNavigator';
 import { SaveIndicator } from './SaveIndicator';
 import { TestTimer } from './TestTimer';
+import { TestResultsView } from './TestResultsView';
 import styles from './TestPage.module.css';
 
 export function TestPage() {
@@ -81,22 +82,7 @@ export function TestPage() {
   const isCompleted = session?.status === 'completed';
 
   if (isCompleted) {
-    const answeredTotal = countAnswered(session);
-    const totalCount = questions.length;
-
-    return (
-      <div className={styles.container}>
-        <div className={styles.statusCard}>
-          <h1 className={styles.statusTitle}>Вариант завершён</h1>
-          <p className={styles.statusDescription}>
-            Отвечено вопросов: {answeredTotal} из {totalCount}.
-          </p>
-          <Link to="/" className={styles.primaryLink}>
-            На главную
-          </Link>
-        </div>
-      </div>
-    );
+    return <TestResultsView session={session} questions={questions} />;
   }
 
   const currentIndex = session?.currentIndex ?? 0;

@@ -28,6 +28,8 @@ describe('testSessionMappers', () => {
       durationLimitSec: 3600,
       startedAt: 1700000000000,
       finishedAt: null,
+      score: null,
+      questionSnapshots: null,
     });
   });
 
@@ -56,6 +58,22 @@ describe('testSessionMappers', () => {
       durationLimitSec: 3600,
       startedAt: 1700000000000,
       finishedAt: 1700002500000,
+      score: {
+        totalScore: 40,
+        maxPossibleScore: 50,
+        percentage: 80,
+      },
+      questionSnapshots: [
+        {
+          id: 'q-a',
+          questionText: 'Prompt A',
+          options: ['1', '2'],
+          userAnswers: [1],
+          correctAnswers: [1],
+          explanation: 'Exp',
+          pointsAwarded: 1,
+        },
+      ],
     };
 
     const docData = sessionToDocument(originalSession);

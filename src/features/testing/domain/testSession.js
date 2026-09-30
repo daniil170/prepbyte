@@ -50,6 +50,8 @@ export function createSession({
     durationLimitSec,
     startedAt,
     finishedAt: null,
+    score: null,
+    questionSnapshots: null,
   });
 }
 
@@ -171,9 +173,16 @@ export function goToQuestion(session, index) {
  *
  * @param {object} session
  * @param {number|(() => number)} [now=Date.now]
+ * @param {object} [options]
+ * @param {object|null} [options.score=null]
+ * @param {Array<object>|null} [options.questionSnapshots=null]
  * @returns {object} New session object.
  */
-export function finishSession(session, now = Date.now) {
+export function finishSession(
+  session,
+  now = Date.now,
+  { score = null, questionSnapshots = null } = {}
+) {
   if (!session || session.status !== 'in_progress') {
     return session;
   }
@@ -182,6 +191,8 @@ export function finishSession(session, now = Date.now) {
     ...session,
     status: 'completed',
     finishedAt: resolveTime(now),
+    score: score || session.score || null,
+    questionSnapshots: questionSnapshots || session.questionSnapshots || null,
   });
 }
 

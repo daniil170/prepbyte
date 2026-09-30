@@ -8,6 +8,7 @@ import {
   selectAnswer as domainSelectAnswer,
   toggleFlag as domainToggleFlag,
 } from '../domain/testSession';
+import { calculateExamScore } from '../domain/scoringEngine';
 import { useTestingDependencies } from './useTestingDependencies';
 
 /**
@@ -111,6 +112,11 @@ export function useTestSession(sessionId) {
     [doSave]
   );
 
+  const questionsRef = useRef(questions);
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
+
   // Finish session handler
   const finish = useCallback(async () => {
     const current = sessionRef.current;
@@ -125,7 +131,26 @@ export function useTestSession(sessionId) {
       clearTimeout(retryTimerRef.current);
     }
 
-    const completed = domainFinishSession(current, now);
+    const currentQuestions = questionsRef.current || [];
+    let score = null;
+    let questionSnapshots = null;
+
+    if (currentQuestions.length > 0) {
+      const evaluation = calculateExamScore(current, currentQuestions);
+      score = {
+        totalScore: evaluation.totalScore,
+        maxPossibleScore: evaluation.maxPossibleScore,
+        percentage: evaluation.percentage,
+        passed: evaluation.passed,
+        byTopicBreakdown: evaluation.byTopicBreakdown,
+      };
+      questionSnapshots = evaluation.detailedResults;
+    }
+
+    const completed = domainFinishSession(current, now, {
+      score,
+      questionSnapshots,
+    });
     sessionRef.current = completed;
     setSession(completed);
 
@@ -166,25 +191,66 @@ export function useTestSession(sessionId) {
           return;
         }
 
+        // Load questions: prefer immutable questionSnapshots if session is completed
+        let loadedQuestions = [];
+        if (
+          loadedSession.status === 'completed' &&
+          Array.isArray(loadedSession.questionSnapshots) &&
+          loadedSession.questionSnapshots.length > 0
+        ) {
+          loadedQuestions = loadedSession.questionSnapshots;
+        } else {
+          loadedQuestions = await questionRepository.getQuestionsByIds(
+            loadedSession.questionIds
+          );
+        }
+
+        if (isCancelled) return;
+
         // Auto-finish if already expired on load
         if (
           loadedSession.status === 'in_progress' &&
           isExpired(loadedSession, now)
         ) {
-          loadedSession = domainFinishSession(loadedSession, now);
+          const evaluation = calculateExamScore(loadedSession, loadedQuestions);
+          const score = {
+            totalScore: evaluation.totalScore,
+            maxPossibleScore: evaluation.maxPossibleScore,
+            percentage: evaluation.percentage,
+            passed: evaluation.passed,
+            byTopicBreakdown: evaluation.byTopicBreakdown,
+          };
+          const questionSnapshots = evaluation.detailedResults;
+
+          loadedSession = domainFinishSession(loadedSession, now, {
+            score,
+            questionSnapshots,
+          });
           await sessionRepository.finishSession(loadedSession);
+        } else if (
+          loadedSession.status === 'completed' &&
+          !loadedSession.score &&
+          loadedQuestions.length > 0
+        ) {
+          // Backward compatibility for existing completed sessions without score
+          const evaluation = calculateExamScore(loadedSession, loadedQuestions);
+          loadedSession = {
+            ...loadedSession,
+            score: {
+              totalScore: evaluation.totalScore,
+              maxPossibleScore: evaluation.maxPossibleScore,
+              percentage: evaluation.percentage,
+              passed: evaluation.passed,
+              byTopicBreakdown: evaluation.byTopicBreakdown,
+            },
+            questionSnapshots: evaluation.detailedResults,
+          };
         }
-
-        // Fetch questions
-        const loadedQuestions = await questionRepository.getQuestionsByIds(
-          loadedSession.questionIds
-        );
-
-        if (isCancelled) return;
 
         setSession(loadedSession);
         sessionRef.current = loadedSession;
         setQuestions(loadedQuestions);
+        questionsRef.current = loadedQuestions;
         setStatus('ready');
         setSaveState('saved');
       } catch (err) {

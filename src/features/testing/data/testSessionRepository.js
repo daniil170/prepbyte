@@ -107,7 +107,7 @@ export function createTestSessionRepository(firestore = defaultDb) {
     });
   }
 
-  async function finishSession(session) {
+  async function finishSession(session, options = {}) {
     if (!session || !session.id) {
       throw new Error('Не указан идентификатор сессии для завершения.');
     }
@@ -116,11 +116,19 @@ export function createTestSessionRepository(firestore = defaultDb) {
     const finishedAtMs =
       typeof session.finishedAt === 'number' ? session.finishedAt : Date.now();
 
-    await updateDoc(docRef, {
+    const score = options.score || session.score || null;
+    const questionSnapshots =
+      options.questionSnapshots || session.questionSnapshots || null;
+
+    const payload = {
       status: 'completed',
       finishedAt: Timestamp.fromMillis(finishedAtMs),
       updatedAt: serverTimestamp(),
-    });
+      ...(score ? { score } : {}),
+      ...(questionSnapshots ? { questionSnapshots } : {}),
+    };
+
+    await updateDoc(docRef, payload);
   }
 
   async function abandonSession(session) {
