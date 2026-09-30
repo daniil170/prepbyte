@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { isUserAdmin, useAuth } from '@features/auth';
 import { StartTestPanel } from '@features/testing';
 import { Logo } from '@shared/ui/Logo/Logo';
+import { HeroBackgroundAnimation } from '@shared/ui/BackgroundAnimation/HeroBackgroundAnimation';
 import styles from './HomePage.module.css';
 
 const PLATFORM_METRICS = [
@@ -95,30 +96,41 @@ export default function HomePage() {
 
       <main className={styles.main}>
         {/* Hero Section */}
-        <section className={styles.hero} aria-labelledby="hero-heading">
-          <div className={styles.heroBadge}>
-            <span className={styles.pulseDot} aria-hidden="true" />
-            <span>ЕНТ 2026 • Информатика</span>
+        <section
+          className={styles.heroSection}
+          aria-labelledby="hero-heading"
+        >
+          <HeroBackgroundAnimation />
+
+          <div className={styles.hero}>
+            <div className={styles.heroContent}>
+              <div className={styles.heroBadge}>
+                <span className={styles.pulseDot} aria-hidden="true" />
+                <span>ЕНТ 2026 • Информатика</span>
+              </div>
+
+              <h1 id="hero-heading" className={styles.heroTitle}>
+                PrepByte
+              </h1>
+
+              <p className={styles.heroSubtitle}>
+                Адаптивная среда подготовки к Единому национальному тестированию
+                (ЕНТ / ҰБТ) по информатике. 40 сбалансированных заданий, официальный
+                регламент оценивания до 50 баллов и глубокий разбор ошибок.
+              </p>
+
+              <div className={styles.ctaGroup}>
+                <Link to="/analytics" className={styles.dashboardCta}>
+                  <span>Перейти в дашборд</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className={styles.heroAction}>
+              <StartTestPanel />
+            </div>
           </div>
-
-          <h1 id="hero-heading" className={styles.heroTitle}>
-            PrepByte
-          </h1>
-
-          <p className={styles.heroSubtitle}>
-            Адаптивная среда подготовки к Единому национальному тестированию
-            (ЕНТ / ҰБТ) по информатике. 40 сбалансированных заданий, официальный
-            регламент оценивания до 50 баллов и глубокий разбор ошибок.
-          </p>
-
-          <div className={styles.ctaGroup}>
-            <Link to="/analytics" className={styles.dashboardCta}>
-              <span>Перейти в дашборд</span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-
-          <StartTestPanel />
         </section>
 
         {/* Platform Metrics */}
