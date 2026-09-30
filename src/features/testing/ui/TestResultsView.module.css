@@ -640,3 +640,79 @@
   border-color: #60a5fa;
   color: #60a5fa;
 }
+
+.exportHeaderBtn {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.exportHeaderBtn:hover {
+  background-color: #ffffff;
+  color: #0a0a0a;
+  border-color: #ffffff;
+}
+
+.exportBanner {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.exportBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.exportBannerTitle {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.exportBannerDesc {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.exportBannerBtn {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #ffffff;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.exportBannerBtn:hover {
+  background-color: #e2e8f0;
+  border-color: #e2e8f0;
+  transform: translateY(-1px);
+}
+

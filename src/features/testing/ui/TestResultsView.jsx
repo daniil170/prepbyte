@@ -5,6 +5,7 @@ import { TutorDrawer, useTutorChat } from '@features/tutor';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { calculateExamScore } from '../domain/scoringEngine';
 import { QuestionContent } from './QuestionContent';
+import { TestWorkExportView } from './TestWorkExportView';
 import styles from './TestResultsView.module.css';
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -13,6 +14,7 @@ export function TestResultsView({ session, questions = [] }) {
   const [filter, setFilter] = useState('all'); // 'all' | 'mistakes' | 'partial' | 'correct'
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [isTutorOpen, setIsTutorOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const tutorChat = useTutorChat();
 
   const handleAskTutor = (result) => {
@@ -112,6 +114,14 @@ export function TestResultsView({ session, questions = [] }) {
         <div className={styles.headerRight}>
           <button
             type="button"
+            className={styles.exportHeaderBtn}
+            onClick={() => setIsExportOpen(true)}
+            aria-label="Открыть официальный бланк и экспорт работы"
+          >
+            📄 Бланк ЕНТ / Экспорт
+          </button>
+          <button
+            type="button"
             className={styles.tutorHeaderBtn}
             onClick={() => setIsTutorOpen(true)}
             aria-label="Открыть ИИ-тьютор"
@@ -166,6 +176,24 @@ export function TestResultsView({ session, questions = [] }) {
               <span className={styles.metricTitle}>Ошибки</span>
               <span className={styles.metricValue}>{mistakeCount}</span>
             </div>
+          </div>
+
+          <div className={styles.exportBanner}>
+            <div className={styles.exportBannerText}>
+              <span className={styles.exportBannerTitle}>
+                📄 Бланк ответов ЕНТ (Белая страница) & Экспорт работы
+              </span>
+              <span className={styles.exportBannerDesc}>
+                Официальный протокол с разбором всех 40 заданий (Часть 1: 1–30, Часть 2: 31–40). Доступна печать в PDF и выгрузка автономного HTML-файла.
+              </span>
+            </div>
+            <button
+              type="button"
+              className={styles.exportBannerBtn}
+              onClick={() => setIsExportOpen(true)}
+            >
+              Открыть бланк и разбор →
+            </button>
           </div>
         </section>
 
@@ -426,6 +454,15 @@ export function TestResultsView({ session, questions = [] }) {
         onClose={() => setIsTutorOpen(false)}
         chatHook={tutorChat}
       />
+
+      {isExportOpen ? (
+        <TestWorkExportView
+          session={session}
+          questions={questions}
+          scoreData={scoreData}
+          onClose={() => setIsExportOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
