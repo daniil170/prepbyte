@@ -1,0 +1,523 @@
+{
+  "variantId": "unt-cs-2026-v1",
+  "title": "Демонстрационный вариант ЕНТ 2026 (Информатика)",
+  "questions": [
+    {
+      "id": "var1-py-001",
+      "topic": "python_loops",
+      "questionText": "Какое значение выведет следующий фрагмент программы на Python?\n```python\ncount = 0\nfor x in [3, 7, 2, 8, 5]:\n    if x > 4:\n        count += 1\nprint(count)\n```",
+      "options": ["2", "3", "4", "5"],
+      "correctAnswers": [1],
+      "explanation": "Элементы больше 4: 7, 8, 5. Всего таких элементов 3. Переменная count будет равна 3.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-py-002",
+      "topic": "python_loops",
+      "questionText": "Сколько раз выполнится тело цикла `while` в данном фрагменте кода?\n```python\ni = 10\nwhile i > 0:\n    i -= 3\n```",
+      "options": ["3", "4", "5", "Бесконечно"],
+      "correctAnswers": [1],
+      "explanation": "Значения i перед проверкой: 10 (1 раз), 7 (2 раз), 4 (3 раз), 1 (4 раз). Затем i становится -2 <= 0. Итого 4 итерации.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-py-003",
+      "topic": "python_loops",
+      "questionText": "Какой оператор используется для перехода к следующей итерации цикла без выполнения оставшейся части тела цикла?",
+      "options": ["break", "continue", "pass", "skip"],
+      "correctAnswers": [1],
+      "explanation": "Оператор continue немедленно передает управление на следующую итерацию текущего цикла.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-py-004",
+      "topic": "python_functions",
+      "questionText": "Что вернет вызов функции `len({\"apple\": 3, \"banana\": 5, \"cherry\": 2})`?",
+      "options": ["3", "10", "6", "1"],
+      "correctAnswers": [0],
+      "explanation": "Функция len() для словаря возвращает количество пар ключ-значение (ключей). В данном словаре 3 ключа.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-py-005",
+      "topic": "python_functions",
+      "questionText": "Какой результат выведет следующий код?\n```python\ndef modify_list(lst):\n    lst.append(99)\nnums = [1, 2]\nmodify_list(nums)\nprint(len(nums))\n```",
+      "options": ["2", "3", "None", "Ошибка выполнения"],
+      "correctAnswers": [1],
+      "explanation": "Списки в Python передаются по ссылке на изменяемый объект. Метод append изменяет исходный список, его длина становится равной 3.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-py-006",
+      "topic": "python_functions",
+      "questionText": "Каким методом строки можно разделить текст на список подстрок по заданному разделителю?",
+      "options": ["split()", "join()", "slice()", "divide()"],
+      "correctAnswers": [0],
+      "explanation": "Метод str.split() разбивает строку на список подстрок по переданному разделителю (по умолчанию по пробелам).",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-sql-001",
+      "topic": "sql_queries",
+      "questionText": "Какое ключевое слово SQL используется для исключения дубликатов в результирующей выборке?",
+      "options": ["UNIQUE", "DISTINCT", "DIFFERENT", "REMOVE_DUPLICATES"],
+      "correctAnswers": [1],
+      "explanation": "Ключевое слово SELECT DISTINCT отфильтровывает повторяющиеся строки из результата выборки.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-sql-002",
+      "topic": "sql_queries",
+      "questionText": "Какой оператор SQL позволяет проверить вхождение значения столбца в заданный диапазон включая границы?",
+      "options": ["BETWEEN ... AND ...", "IN (...)", "LIKE", "EXISTS"],
+      "correctAnswers": [0],
+      "explanation": "Конструкция WHERE column BETWEEN a AND b проверяет принадлежность интервалу [a, b], включая границы.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-sql-003",
+      "topic": "sql_queries",
+      "questionText": "Укажите шаблон SQL LIKE для поиска строк, начинающихся на букву \"A\":",
+      "options": ["'A%'", "'%A'", "'_A%'", "'%A%'"],
+      "correctAnswers": [0],
+      "explanation": "Символ '%' соответствует нулю или более произвольным символам. Шаблон 'A%' обозначает начало строки с буквы 'A'.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-sql-004",
+      "topic": "sql_joins",
+      "questionText": "Какой тип соединения возвращает все записи из левой таблицы и только совпадающие записи из правой?",
+      "options": ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "CROSS JOIN"],
+      "correctAnswers": [1],
+      "explanation": "LEFT OUTER JOIN (или LEFT JOIN) сохраняет все строки из таблицы слева, дополняя несовпадающие справа значениями NULL.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-sql-005",
+      "topic": "sql_joins",
+      "questionText": "Какое предложение SQL используется для фильтрации результатов группировки `GROUP BY`?",
+      "options": ["WHERE", "HAVING", "FILTER", "ORDER BY"],
+      "correctAnswers": [1],
+      "explanation": "Предложение HAVING применяется к уже сгруппированным строкам агрегатными функциями, в отличие от WHERE.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-net-001",
+      "topic": "network_protocols",
+      "questionText": "На каком уровне эталонной модели OSI функционирует протокол HTTP/HTTPS?",
+      "options": [
+        "Прикладной (Application)",
+        "Транспортный (Transport)",
+        "Сетевой (Network)",
+        "Канальный (Data Link)"
+      ],
+      "correctAnswers": [0],
+      "explanation": "HTTP и HTTPS являются протоколами 7-го прикладного уровня (Application Layer) модели OSI.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-net-002",
+      "topic": "network_protocols",
+      "questionText": "Какой протокол транспортного уровня обеспечивает надежную доставку с подтверждением приема и установлением соединения?",
+      "options": ["UDP", "TCP", "IP", "ICMP"],
+      "correctAnswers": [1],
+      "explanation": "TCP (Transmission Control Protocol) ориентирован на надежную доставку пакетов с контролем целостности и подтверждением квитанциями.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-net-003",
+      "topic": "network_addressing",
+      "questionText": "Сколько бит содержит стандартный сетевой адрес формата IPv4?",
+      "options": ["16 бит", "32 бита", "64 бита", "128 бит"],
+      "correctAnswers": [1],
+      "explanation": "IPv4 адрес состоит ровно из 32 бит (4 октета по 8 бит). 128 бит используется в стандарте IPv6.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-net-004",
+      "topic": "network_addressing",
+      "questionText": "Какой широковещательный адрес (Broadcast) у подсети с IP 192.168.1.0 и маской 255.255.255.0 (/24)?",
+      "options": [
+        "192.168.1.0",
+        "192.168.1.1",
+        "192.168.1.254",
+        "192.168.1.255"
+      ],
+      "correctAnswers": [3],
+      "explanation": "При маске /24 последний октет диапазона 0-255 отведен под хосты. Адрес 192.168.1.255 является широковещательным.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-cpu-001",
+      "topic": "cpu_memory",
+      "questionText": "Какой вид памяти в современной ЭВМ обладает наименьшим временем доступа (наивысшей скоростью)?",
+      "options": [
+        "Регистры процессора",
+        "Кэш L1",
+        "Оперативная память (RAM)",
+        "Твердотельный накопитель (SSD)"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Регистры процессора расположены непосредственно на кристалле ядра и имеют задержку доступа менее 1 такта.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-cpu-002",
+      "topic": "cpu_memory",
+      "questionText": "Какой компонент центрального процессора выполняет арифметические и побитовые логические операции?",
+      "options": [
+        "Устройство управления (CU)",
+        "Арифметико-логическое устройство (ALU)",
+        "Шина данных",
+        "Кэш инструкций"
+      ],
+      "correctAnswers": [1],
+      "explanation": "АЛУ (ALU - Arithmetic Logic Unit) отвечает за проведение математических и логических операций процессора.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-num-001",
+      "topic": "number_systems",
+      "questionText": "Переведите двоичное число 1101 в десятичную систему счисления:",
+      "options": ["11", "13", "15", "9"],
+      "correctAnswers": [1],
+      "explanation": "1*2^3 + 1*2^2 + 0*2^1 + 1*2^0 = 8 + 4 + 0 + 1 = 13.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-num-002",
+      "topic": "number_systems",
+      "questionText": "Какое логическое выражение истинно тогда и только тогда, когда оба операнда истинны?",
+      "options": [
+        "Конъюнкция (И, AND)",
+        "Дизъюнкция (ИЛИ, OR)",
+        "Импликация (СЛЕДОВАНИЕ)",
+        "Эквиваленция (ТОЖДЕСТВО)"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Конъюнкция (логическое И) принимает значение 1 (True) только при истинности обоих высказываний.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-num-003",
+      "topic": "number_systems",
+      "questionText": "Чему равно шестнадцатеричное число 2F в десятичной системе счисления?",
+      "options": ["45", "47", "32", "64"],
+      "correctAnswers": [1],
+      "explanation": "В шестнадцатеричной системе F = 15. 2 * 16^1 + 15 * 16^0 = 32 + 15 = 47.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-spr-001",
+      "topic": "spreadsheet_formulas",
+      "questionText": "Какая формула в электронной таблице вычисляет среднее арифметическое диапазона ячеек A1:A10?",
+      "options": [
+        "=СРЗНАЧ(A1:A10)",
+        "=СУММ(A1:A10)/10",
+        "=МЕДИАНА(A1:A10)",
+        "=ИТОГ(A1:A10)"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Стандартная встроенная функция =СРЗНАЧ(...) (AVERAGE) вычисляет среднее арифметическое указанного диапазона.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-spr-002",
+      "topic": "spreadsheet_formulas",
+      "questionText": "Что означает символ `$` в адресе ячейки `$A$1` в формуле электронной таблицы?",
+      "options": [
+        "Абсолютная ссылка (значение не меняется при копировании)",
+        "Относительная ссылка",
+        "Денежный формат данных",
+        "Текстовая константа"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Знак $ фиксирует строку и столбец при копировании формулы, превращая ссылку в абсолютную.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-spr-003",
+      "topic": "spreadsheet_charts",
+      "questionText": "Какой тип диаграммы лучше всего подходит для отображения долей компонентов в общем объеме (100%)?",
+      "options": [
+        "Круговая диаграмма",
+        "Гистограмма с группировкой",
+        "Точечная диаграмма",
+        "Лепестковая диаграмма"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Круговая диаграмма (Pie Chart) предназначена для наглядной демонстрации процентных долей от целого.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-spr-004",
+      "topic": "spreadsheet_charts",
+      "questionText": "Для чего в электронных таблицах используется инструмент \"Автофильтр\"?",
+      "options": [
+        "Для отображения строк, удовлетворяющих заданным критериям",
+        "Для автоматического построения графиков",
+        "Для проверки орфографии в ячейках",
+        "Для шифрования данных файла"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Автофильтр скрывает строки, не удовлетворяющие выбранным пользователем условиям фильтрации.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-sec-001",
+      "topic": "security_basics",
+      "questionText": "Какая триада является классической фундаментальной моделью информационной безопасности?",
+      "options": [
+        "Конфиденциальность, целостность, доступность (CIA)",
+        "Аутентификация, авторизация, аудит (AAA)",
+        "Скорость, отказоустойчивость, надежность",
+        "Шифрование, архивация, проверка"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Классическая триада информационной безопасности (CIA Triad) включает Confidentiality, Integrity, Availability.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-sec-002",
+      "topic": "security_basics",
+      "questionText": "Как называется вид интернет-мошенничества с целью получения доступа к конфиденциальным данным путем поддельных писем и сайтов?",
+      "options": [
+        "Фишинг (Phishing)",
+        "Спуфинг (Spoofing)",
+        "Фарминг (Pharming)",
+        "Ддос (DDoS)"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Фишинг (Phishing) — метод социальной инженерии, направленный на кражу паролей и номеров карт через поддельные интерфейсы.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-sec-003",
+      "topic": "security_basics",
+      "questionText": "Какое программное или аппаратное средство контролирует и фильтрует сетевой трафик на основе правил безопасности?",
+      "options": [
+        "Межсетевой экран (Брандмауэр / Firewall)",
+        "Антивирусный сканер",
+        "Прокси-сервер",
+        "Криптопровайдер"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Межсетевой экран (Firewall / Брандмауэр) осуществляет фильтрацию входящих и исходящих сетевых пакетов по заданным правилам.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-cry-001",
+      "topic": "cryptography_basics",
+      "questionText": "Какой ключ используется для расшифровки сообщения в алгоритмах асимметричного шифрования (RSA)?",
+      "options": [
+        "Закрытый (приватный) ключ получателя",
+        "Открытый ключ отправителя",
+        "Общий секретный ключ",
+        "Сессионный ключ"
+      ],
+      "correctAnswers": [0],
+      "explanation": "В асимметричной криптографии открытый ключ шифрует данные, а закрытый (хранящийся в тайне у владельца) расшифровывает их.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-cry-002",
+      "topic": "cryptography_basics",
+      "questionText": "Какое свойство криптографической хэш-функции гарантирует, что по значению хэша невозможно восстановить исходные данные?",
+      "options": [
+        "Однонаправленность (необратимость)",
+        "Коллизионная стойкость",
+        "Лавинный эффект",
+        "Симметричность"
+      ],
+      "correctAnswers": [0],
+      "explanation": "Свойство однонаправленности (pre-image resistance) означает вычислительную невозможность нахождения прообраза по хэш-коду.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-cry-003",
+      "topic": "cryptography_basics",
+      "questionText": "Что подтверждает электронная цифровая подпись (ЭЦП)?",
+      "options": [
+        "Авторство документа и неизменность его содержимого",
+        "Скорость передачи документа",
+        "Размер файла на диске",
+        "Формат текстового редактора"
+      ],
+      "correctAnswers": [0],
+      "explanation": "ЭЦП обеспечивает аутентификацию источника данных (авторство) и контроль целостности документа с момента подписания.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-py-multi-031",
+      "topic": "python_loops",
+      "questionText": "Какие ключевые слова в Python используются для организации циклического выполнения кода?",
+      "options": ["for", "while", "loop", "repeat", "iterate"],
+      "correctAnswers": [0, 1],
+      "explanation": "В Python синтаксически предусмотрены только два оператора циклов: for и while.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-py-multi-032",
+      "topic": "python_functions",
+      "questionText": "Какие из перечисленных типов данных в Python являются неизменяемыми (immutable)?",
+      "options": [
+        "tuple (кортеж)",
+        "str (строка)",
+        "list (список)",
+        "dict (словарь)",
+        "int (целое число)"
+      ],
+      "correctAnswers": [0, 1, 4],
+      "explanation": "Кортежи (tuple), строки (str) и числа (int/float) в Python неизменяемы. Списки (list) и словари (dict) являются изменяемыми.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-sql-multi-033",
+      "topic": "sql_queries",
+      "questionText": "Какие из перечисленных команд относятся к группе языка манипулирования данными (DML в SQL)?",
+      "options": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "CREATE TABLE",
+        "DROP DATABASE"
+      ],
+      "correctAnswers": [0, 1, 2],
+      "explanation": "SELECT, INSERT, UPDATE, DELETE относятся к DML (Data Manipulation Language). CREATE и DROP относятся к DDL (Data Definition Language).",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-sql-multi-034",
+      "topic": "sql_joins",
+      "questionText": "Какие агрегатные функции стандартного SQL возвращают сводные математические значения по столбцу?",
+      "options": ["COUNT()", "SUM()", "AVG()", "CONCAT()", "SUBSTRING()"],
+      "correctAnswers": [0, 1, 2],
+      "explanation": "COUNT, SUM, AVG являются стандартными агрегатными функциями. CONCAT и SUBSTRING — скалярные строковые функции.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-net-multi-035",
+      "topic": "network_protocols",
+      "questionText": "Какие из перечисленных протоколов работают на транспортном уровне модели OSI/TCP-IP?",
+      "options": ["TCP", "UDP", "IP", "HTTP", "FTP"],
+      "correctAnswers": [0, 1],
+      "explanation": "TCP и UDP — основные протоколы транспортного уровня. IP функционирует на сетевом уровне, HTTP и FTP — на прикладном.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-net-multi-036",
+      "topic": "network_addressing",
+      "questionText": "Какие из следующих диапазонов IPv4 адресов зарезервированы для частных локальных сетей (RFC 1918)?",
+      "options": [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "8.8.8.0/24",
+        "1.1.1.0/24"
+      ],
+      "correctAnswers": [0, 1, 2],
+      "explanation": "RFC 1918 определяет три блока частных адресов: 10.0.0.0/8, 172.16.0.0/12 и 192.168.0.0/16. Адреса 8.8.8.8 и 1.1.1.1 публичные DNS.",
+      "difficulty": "hard",
+      "version": 1
+    },
+    {
+      "id": "var1-cpu-multi-037",
+      "topic": "cpu_memory",
+      "questionText": "Какие утверждения справедливы в отношении оперативной памяти (RAM) компьютера?",
+      "options": [
+        "Является энергозависимой памятью",
+        "Обеспечивает прямой доступ к произвольной ячейке (Random Access)",
+        "Хранит данные постоянно даже при полном выключении питания",
+        "Скорость работы выше кэша L1",
+        "Служит для временного хранения исполняемого кода и данных программ"
+      ],
+      "correctAnswers": [0, 1, 4],
+      "explanation": "ОЗУ энергозависима (теряет данные при выключении питания), допускает произвольный доступ и хранит активные данные запущенных процессов.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-num-multi-038",
+      "topic": "number_systems",
+      "questionText": "Какие из следующих равенств верны в двоичной арифметике?",
+      "options": [
+        "1 + 0 = 1",
+        "1 + 1 = 10 (в двоичной)",
+        "1 * 0 = 0",
+        "1 + 1 = 2 (в двоичной)",
+        "0 - 1 = 1 (без заема)"
+      ],
+      "correctAnswers": [0, 1, 2],
+      "explanation": "В двоичной системе 1+0=1, 1+1=10_2 (десятичная двойка), 1*0=0. Цифры \"2\" в двоичном алфавите нет.",
+      "difficulty": "medium",
+      "version": 1
+    },
+    {
+      "id": "var1-spr-multi-039",
+      "topic": "spreadsheet_formulas",
+      "questionText": "Какие логические функции присутствуют в большинстве табличных процессоров (Excel / Google Sheets)?",
+      "options": [
+        "ЕСЛИ (IF)",
+        "И (AND)",
+        "ИЛИ (OR)",
+        "КВАДРАТ",
+        "РАСПРЕДЕЛИТЬ"
+      ],
+      "correctAnswers": [0, 1, 2],
+      "explanation": "ЕСЛИ (IF), И (AND), ИЛИ (OR), НЕ (NOT) — стандартные встроенные логические функции табличных процессоров.",
+      "difficulty": "easy",
+      "version": 1
+    },
+    {
+      "id": "var1-sec-multi-040",
+      "topic": "security_basics",
+      "questionText": "Какие меры предосторожности защищают учетную запись пользователя от несанкционированного доступа?",
+      "options": [
+        "Использование двухфакторной аутентификации (2FA)",
+        "Применение сложных и уникальных паролей",
+        "Передача пароля коллегам через открытый чат",
+        "Регулярное обновление ПО и браузера",
+        "Отключение брандмауэра и антивируса"
+      ],
+      "correctAnswers": [0, 1, 3],
+      "explanation": "2FA, надежные уникальные пароли и своевременные обновления безопасности предотвращают несанкционированный вход. Передача паролей и отключение защиты недопустимы.",
+      "difficulty": "easy",
+      "version": 1
+    }
+  ]
+}

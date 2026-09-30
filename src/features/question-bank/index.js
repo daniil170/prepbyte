@@ -17,3 +17,9 @@ export {
   createQuestionRepository,
   questionRepository,
 } from './data/questionRepository';
+export {
+  AI_VARIANT_JSON_SCHEMA,
+  AI_VARIANT_SYSTEM_PROMPT,
+  buildAiVariantPrompt,
+  VARIANT_SPECIFICATION,
+} from './domain/aiPromptTemplates';
