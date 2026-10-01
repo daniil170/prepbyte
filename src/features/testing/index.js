@@ -45,6 +45,7 @@ export { useRemainingSeconds } from './hooks/useRemainingSeconds';
 export { useTestSession } from './hooks/useTestSession';
 export { useStartTest } from './hooks/useStartTest';
 export { useActiveSession } from './hooks/useActiveSession';
+export { useQuestionCoverage } from './hooks/useQuestionCoverage';
 
 export { QuestionContent } from './ui/QuestionContent';
 export { AnswerOptions } from './ui/AnswerOptions';

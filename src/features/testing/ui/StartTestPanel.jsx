@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog/ConfirmDialog';
+import { pluralize } from '@shared/lib/pluralize';
 import { countAnswered, getRemainingSeconds } from '../domain/testSession';
 import { useActiveSession } from '../hooks/useActiveSession';
 import { useStartTest } from '../hooks/useStartTest';
+import { useQuestionCoverage } from '../hooks/useQuestionCoverage';
 import { useTestingDependencies } from '../hooks/useTestingDependencies';
 import styles from './StartTestPanel.module.css';
 
@@ -21,6 +23,13 @@ export function StartTestPanel() {
   const navigate = useNavigate();
   const { activeSession, isLoading } = useActiveSession();
   const { startTest, isStarting, error } = useStartTest();
+  const {
+    total,
+    seen,
+    unseen,
+    isLoading: isCoverageLoading,
+    error: coverageError,
+  } = useQuestionCoverage();
   const { now } = useTestingDependencies();
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -66,6 +75,18 @@ export function StartTestPanel() {
         Сбалансированный вариант из всех ключевых тем информатики в формате
         национального экзамена.
       </p>
+
+      {isCoverageLoading ? (
+        <div
+          className={styles.coverageSkeleton}
+          aria-label="Загрузка статистики банка вопросов"
+        />
+      ) : !coverageError && total > 0 ? (
+        <div className={styles.coverageStats}>
+          Вы видели {seen} из {total}{' '}
+          {pluralize(total, ['вопроса', 'вопросов', 'вопросов'])} банка
+        </div>
+      ) : null}
 
       {hasActiveSession ? (
         <div className={styles.activeInfo}>
@@ -119,6 +140,19 @@ export function StartTestPanel() {
           </button>
         )}
       </div>
+
+      {!isCoverageLoading && !coverageError && total > 0 && unseen < 40 ? (
+        <p className={styles.coverageNotice}>
+          В банке осталось {unseen}{' '}
+          {pluralize(unseen, [
+            'новый вопрос',
+            'новых вопроса',
+            'новых вопросов',
+          ])}
+          . Остальные в следующем варианте будут повторами тех, что вы видели
+          давнее всего.
+        </p>
+      ) : null}
 
       {error ? <div className={styles.errorMessage}>{error}</div> : null}
 

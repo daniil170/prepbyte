@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   documentId,
+  getCountFromServer,
   getDoc,
   getDocs,
   query,
@@ -111,11 +112,18 @@ export function createQuestionRepository(firestore = defaultDb) {
     return { writtenCount: questions.length };
   }
 
+  async function getQuestionCount() {
+    const questionsRef = collection(firestore, collectionName);
+    const snapshot = await getCountFromServer(questionsRef);
+    return snapshot.data().count;
+  }
+
   return {
     getQuestionById,
     getQuestionsByIds,
     getQuestionsByTopics,
     getAllQuestions,
+    getQuestionCount,
     saveQuestionsBatch,
   };
 }
