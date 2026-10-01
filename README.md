@@ -323,11 +323,69 @@ Pure domain algorithms in `src/features/question-bank/domain/questionSimilarity.
 - `findNearDuplicates(questions, { threshold = 0.8 })`: Detects near-duplicate questions using Jaccard similarity over word 3-shingles.
 - `auditBank(questions, { single = 30, multiple = 10 })`: Computes topic distributions, difficulty breakdowns, disjoint variant capacity, and missing question counts for 5 and 10 disjoint variants.
 
-### Admin Variants & Question Generation
+### Admin Variants & Document Import
 
-The `/admin/variants` route provides an administrative workspace (`AdminVariantsPage`):
+The `/admin/variants` route provides an administrative workspace (`AdminVariantsPage`) supporting multi-format question import and AI generation:
 
-- **JSON Import**: `VariantDropzone` supports drag-and-drop JSON upload with domain validation (`validateVariantPayload`).
+#### Supported Ingestion Formats
+
+1. **JSON Variants**:
+   - Accepts standardized ENT variant JSON (`Array<Question>` or `{ questions: Question[] }`).
+   - Validated against schema invariants via `validateVariantPayload`.
+
+2. **DOCX & PDF Documents**:
+   - Ingested and parsed entirely **in-browser** (zero server-side document transmission).
+   - Parsing libraries (`mammoth` for DOCX, `pdfjs-dist` for PDF) are loaded dynamically via lazy chunks, keeping student bundles compact.
+   - Normalizes text (`normalizeDocumentText`), segments question blocks (`parseQuestionBlocks`), extracts options and answers, and matches against existing questions in the bank for exact and near duplicate detection (`buildImportedQuestions`).
+   - Interactive preview & editor (`QuestionPreviewEditor`) allows inline distractor edits, option additions/removals, topic/difficulty adjustments, and include/exclude selection before batch saving.
+
+#### Expected Document Layout Example
+
+Documents should follow standard exam layout conventions:
+
+```text
+1. Какой протокол обеспечивает надёжную доставку данных с установлением соединения?
+A) UDP
+B) TCP
+C) ICMP
+D) ARP
+Ответ: B
+Пояснение: Протокол TCP (Transmission Control Protocol) ориентирован на установление соединения и гарантирует доставку пакетов.
+
+2. Выберите устройства ввода информации:
+A) Монитор
+B) Клавиатура
+C) Мышь
+D) Принтер
+Ответ: B, C
+Пояснение: Клавиатура и мышь передают данные в компьютер, тогда как монитор и принтер являются устройствами вывода.
+```
+
+_Note: Answer keys may also appear in a consolidated block at the end of the document, e.g.:_
+
+```text
+Ключи к тесту:
+1-B, 2-BC, 3-A, 4-D
+```
+
+#### Duplicate Detection & Exclusion
+
+- **Exact duplicates**: Questions with matching normalized text are flagged (`[ТОЧНЫЙ ДУБЛИКАТ]`) and excluded from import by default.
+- **Near duplicates**: Questions with Jaccard 3-shingle similarity $\ge 80\%$ are highlighted with a warning badge (`[! ВНИМАНИЕ]`).
+- **Bulk actions**: Administrators can quickly toggle inclusion with "Выбрать все" or "Исключить дубликаты".
+
+#### Document Import Limitations
+
+- **Scanned Documents (OCR)**: Files containing images of pages without a selectable text layer cannot be parsed; OCR is not supported.
+- **Legacy `.doc`**: Binary `.doc` format is unsupported. Re-save as `.docx` in Word, LibreOffice, or Google Docs prior to uploading.
+- **Embedded Images & Tables**: Diagrams, schematics, and complex nested tables are stripped during raw text extraction.
+- **Matching Tasks (Соответствие)**: Matching tasks are not yet parsed as structured ENT questions; only standard single-choice and multiple-choice questions are ingested.
+- **Two-Column PDF Layouts**: Highly customized multi-column PDF layouts may interleave text lines. Single-column layouts are strongly recommended.
+
+#### ⚠️ Copyright & Content Policy
+
+Import only pedagogical materials, tests, and mock exams that you have the explicit legal right, license, or authorization to use and distribute. Never import protected proprietary assessments without permission.
+
 - **AI Variant Generator**: `AiVariantGenerator` generates ENT questions aligned with curriculum topics using prompt templates and structured JSON schema (`buildAiVariantPrompt`, `AI_VARIANT_JSON_SCHEMA`).
 
 ---
