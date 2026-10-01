@@ -41,4 +41,17 @@ describe('testSessionRepository', () => {
       'Не указан идентификатор сессии для отмены.'
     );
   });
+
+  it('returns empty sessions list when getAllSessionsForExposure is called with empty or invalid userId', async () => {
+    const repo = createTestSessionRepository({});
+
+    expect(await repo.getAllSessionsForExposure('')).toEqual({
+      sessions: [],
+      skippedCount: 0,
+    });
+    expect(await repo.getAllSessionsForExposure(null)).toEqual({
+      sessions: [],
+      skippedCount: 0,
+    });
+  });
 });

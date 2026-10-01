@@ -143,6 +143,43 @@ export function createTestSessionRepository(firestore = defaultDb) {
     });
   }
 
+  /**
+   * Retrieves all sessions for a user to calculate or backfill question exposure.
+   * Uses equality filter on userId only (no composite index needed).
+   * Unreadable session documents are skipped and counted.
+   *
+   * @param {string} userId
+   * @returns {Promise<{ sessions: object[], skippedCount: number }>}
+   */
+  async function getAllSessionsForExposure(userId) {
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+      return { sessions: [], skippedCount: 0 };
+    }
+
+    const sessionsRef = collection(firestore, collectionName);
+    const q = query(sessionsRef, where('userId', '==', userId.trim()));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return { sessions: [], skippedCount: 0 };
+    }
+
+    const sessions = [];
+    let skippedCount = 0;
+
+    for (const docSnap of snapshot.docs) {
+      try {
+        const session = documentToSession(docSnap.id, docSnap.data());
+        sessions.push(session);
+      } catch {
+        skippedCount++;
+      }
+    }
+
+    sessions.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+    return { sessions, skippedCount };
+  }
+
   return {
     startSession,
     getSessionById,
@@ -150,6 +187,7 @@ export function createTestSessionRepository(firestore = defaultDb) {
     saveProgress,
     finishSession,
     abandonSession,
+    getAllSessionsForExposure,
   };
 }
 

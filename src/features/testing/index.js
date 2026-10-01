@@ -24,6 +24,20 @@ export {
   documentToSession,
   sessionToDocument,
 } from './data/testSessionMappers';
+export {
+  applyAssignment,
+  buildExposureFromSessions,
+  getEngagedQuestionIds,
+  releaseUnengaged,
+} from './domain/questionExposure';
+export {
+  createQuestionExposureRepository,
+  questionExposureRepository,
+} from './data/questionExposureRepository';
+export {
+  documentToExposure,
+  exposureToDocument,
+} from './data/questionExposureMappers';
 
 export { TestingProvider } from './hooks/TestingProvider';
 export { useTestingDependencies } from './hooks/useTestingDependencies';
