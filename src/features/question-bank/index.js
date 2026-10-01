@@ -32,3 +32,11 @@ export { AdminVariantsPage } from './ui/AdminVariantsPage';
 export { AiVariantGenerator } from './ui/AiVariantGenerator';
 export { VariantDropzone } from './ui/VariantDropzone';
 export { VariantValidationSummary } from './ui/VariantValidationSummary';
+export {
+  auditBank,
+  calculateJaccardSimilarity,
+  extractWordShingles,
+  findExactDuplicates,
+  findNearDuplicates,
+  normalizeQuestionText,
+} from './domain/questionSimilarity';
