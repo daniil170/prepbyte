@@ -66,15 +66,16 @@ npm install
 
 ### Available Scripts
 
-| Command           | Description                                                                |
-| ----------------- | -------------------------------------------------------------------------- |
-| `npm run dev`     | Starts the Vite local development server with Hot Module Replacement (HMR) |
-| `npm run build`   | Builds the optimized production assets into `dist/`                        |
-| `npm run preview` | Previews the production build locally                                      |
-| `npm run lint`    | Runs ESLint across the codebase                                            |
-| `npm run format`  | Formats code with Prettier according to `.prettierrc`                      |
-| `npm test`        | Executes the Vitest test suite once                                        |
-| `npm run seed`    | Seeds questions to Firestore (supports `-- --dry-run`)                     |
+| Command              | Description                                                                |
+| -------------------- | -------------------------------------------------------------------------- |
+| `npm run dev`        | Starts the Vite local development server with Hot Module Replacement (HMR) |
+| `npm run build`      | Builds the optimized production assets into `dist/`                        |
+| `npm run preview`    | Previews the production build locally                                      |
+| `npm run lint`       | Runs ESLint across the codebase                                            |
+| `npm run format`     | Formats code with Prettier according to `.prettierrc`                      |
+| `npm test`           | Executes the Vitest test suite once                                        |
+| `npm run seed`       | Seeds questions to Firestore (supports `-- --dry-run`)                     |
+| `npm run bank:audit` | Audits question bank coverage, duplicates, and variant capacity            |
 
 ---
 
@@ -85,11 +86,14 @@ PrepByte follows a **Feature-Driven Clean Architecture** to maintain high cohesi
 ```text
 prepByte/
 ├── public/                 # Static public assets (favicon, etc.)
+├── scripts/                # Database administration and audit CLI scripts
+│   ├── audit/              # Bank audit CLI (auditBank.js)
+│   └── seed/               # Question seed dataset and importer
 ├── src/
 │   ├── app/                # Application root (App.jsx, router, providers, top-level pages)
-│   │   ├── pages/          # Top-level routed views (HomePage, etc.)
+│   │   ├── pages/          # Top-level routed views (HomePage, AdminVariantsPage, etc.)
 │   │   ├── App.jsx         # Root app wiring
-│   │   ├── providers.jsx   # Top-level context providers (AuthProvider)
+│   │   ├── providers.jsx   # Top-level context providers (AuthProvider, ThemeProvider)
 │   │   └── router.jsx      # Route tree definition (protected & public routes)
 │   ├── features/           # Domain-driven feature slices
 │   │   ├── auth/           # Authentication feature
@@ -97,32 +101,39 @@ prepByte/
 │   │   │   ├── domain/     # Pure business logic, errors, and validation
 │   │   │   ├── hooks/      # AuthProvider, useAuth hook
 │   │   │   └── ui/         # AuthForm, LoginPage, RegisterPage, ProtectedRoute
-│   │   ├── question-bank/  # Question database, filtering, catalog
-│   │   │   ├── data/
-│   │   │   ├── domain/
-│   │   │   ├── hooks/
-│   │   │   └── ui/
-│   │   ├── testing/        # Exam simulations, timing, answer evaluation
-│   │   │   ├── data/
-│   │   │   ├── domain/
-│   │   │   ├── hooks/
-│   │   │   └── ui/
-│   │   └── analytics/      # Performance metrics, score projections, history
-│   │       ├── data/
-│   │       ├── domain/
-│   │       ├── hooks/
-│   │       └── ui/
+│   │   ├── question-bank/  # Question database, similarity, admin generator
+│   │   │   ├── data/       # Firestore question repository
+│   │   │   ├── domain/     # Pure domain, topics, similarity, validation
+│   │   │   ├── hooks/      # Hooks for variants and uploading
+│   │   │   └── ui/         # Admin variants page, AI generator, dropzone
+│   │   ├── testing/        # Exam simulations, novelty variant builder, timer
+│   │   │   ├── data/       # Session & exposure repositories & mappers
+│   │   │   ├── domain/     # Variant builder, scoring engine, session & exposure
+│   │   │   ├── hooks/      # Session, coverage, timer, and testing provider
+│   │   │   └── ui/         # TestPage, QuestionContent, Scratchpad, StartTestPanel
+│   │   ├── analytics/      # Performance metrics, score projections, history
+│   │   │   ├── data/       # Analytics repository
+│   │   │   ├── domain/     # KPI calculator, mastery models
+│   │   │   ├── hooks/      # Analytics hooks
+│   │   │   └── ui/         # Dashboard widgets, mastery charts
+│   │   └── tutor/          # AI ENT tutor feature slice
+│   │       ├── data/       # AI client communication
+│   │       ├── domain/     # System prompts, prompt builders, chat models
+│   │       ├── hooks/      # useTutorChat hook
+│   │       └── ui/         # TutorDrawer, message view
 │   ├── shared/             # Cross-cutting reusable utilities & UI
 │   │   ├── config/         # App constants, shared configs
-│   │   ├── lib/            # Pure helper utilities
+│   │   ├── lib/            # Pure helper utilities (pluralize, chunk, etc.)
+│   │   ├── theme/          # Light/dark theme provider and toggle
 │   │   └── ui/             # Reusable UI components (buttons, modals, inputs)
 │   ├── infrastructure/     # External infrastructure services
 │   │   └── firebase/       # Firebase SDK initialization and client instances
 │   ├── test/               # Vitest environment setup and test utilities
-│   ├── index.css           # Global CSS reset and typography
+│   ├── index.css           # Global CSS reset, design tokens, typography
 │   └── main.jsx            # React root mount entrypoint
 ├── .env.example            # Template for environment variables
 ├── eslint.config.js        # ESLint flat configuration (with architectural boundaries)
+├── firestore.rules         # Security rules for questions, test_sessions, question_exposure
 ├── jsconfig.json           # IDE path alias resolution
 ├── package.json            # Dependencies and npm scripts
 ├── vite.config.js          # Vite build, aliases, and Vitest configuration
@@ -206,6 +217,15 @@ The `BrandIntro` component (`src/app/BrandIntro/BrandIntro.jsx`) renders a non-b
 - **Skip Controls**: Pressing <kbd>Escape</kbd>, clicking anywhere on the overlay, or pressing any key instantly dismisses the intro.
 - **Accessibility & Reduced Motion**: When `prefers-reduced-motion: reduce` is enabled in system settings, the animation is bypassed automatically without rendering the overlay.
 
+### Light & Dark Theme Switching
+
+PrepByte defaults to a dark developer terminal theme while supporting a crisp, high-contrast light theme:
+
+- **State Management**: `ThemeProvider` and `useTheme` hook (`src/shared/theme/`).
+- **DOM Integration**: Sets `data-theme="light"` or `data-theme="dark"` on the `document.documentElement` element, dynamically switching CSS token variables without layout shifts.
+- **Persistence**: Remembers the student's theme preference in `localStorage` under `prepbyte_theme`.
+- **Toggle Component**: Accessible `ThemeToggle` button rendered in the application header.
+
 ---
 
 ## 🏛 Architecture Rules
@@ -273,7 +293,7 @@ A valid Question object adheres to the following contract:
 
 ### Syllabus Topics
 
-12 official ENT topics partitioned across 6 foundational areas:
+14 official ENT topics partitioned across 7 foundational areas:
 
 1. **Python Programming**: `python_loops` (Loops & Conditions), `python_functions` (Functions & Data Structures)
 2. **Databases & SQL**: `sql_queries` (SELECT, WHERE, ORDER BY), `sql_joins` (JOIN, GROUP BY)
@@ -281,28 +301,48 @@ A valid Question object adheres to the following contract:
 4. **Computer Architecture**: `cpu_memory` (CPU & Memory), `number_systems` (Number Systems & Boolean Logic)
 5. **Spreadsheets**: `spreadsheet_formulas` (Formulas & Functions), `spreadsheet_charts` (Charts & Data Filtering)
 6. **Information Security**: `security_basics` (Security Foundations), `cryptography_basics` (Encryption & Data Protection)
+7. **Web Technologies**: `html_css` (HTML & CSS Fundamentals), `web_technologies` (Web Development & Client-Server Architecture)
 
 ### Question Repository API
 
 Exposed through `@features/question-bank`:
 
 - `getQuestionById(id)`: Fetches a single question entity by ID from Firestore.
+- `getQuestionsByIds(ids)`: Fetches questions matching an array of IDs in chunks (preserving requested order).
 - `getQuestionsByTopics(topics)`: Fetches questions matching specified topic IDs, chunking queries into Firestore `in` batches (≤ 30 topics).
 - `getAllQuestions()`: Fetches all questions from the Firestore `questions` collection.
+- `getQuestionCount()`: Fast, low-overhead count of total questions in the bank using Firestore `getCountFromServer`.
+- `saveQuestionsBatch(questions)`: Idempotently upserts questions in batches of ≤ 500.
+
+### Question Similarity & Bank Audit Domain
+
+Pure domain algorithms in `src/features/question-bank/domain/questionSimilarity.js`:
+
+- `normalizeQuestionText(text)`: Normalizes text by lowercasing, collapsing whitespace, and stripping code fence markers.
+- `findExactDuplicates(questions)`: Groups question IDs by identical normalized text.
+- `findNearDuplicates(questions, { threshold = 0.8 })`: Detects near-duplicate questions using Jaccard similarity over word 3-shingles.
+- `auditBank(questions, { single = 30, multiple = 10 })`: Computes topic distributions, difficulty breakdowns, disjoint variant capacity, and missing question counts for 5 and 10 disjoint variants.
+
+### Admin Variants & Question Generation
+
+The `/admin/variants` route provides an administrative workspace (`AdminVariantsPage`):
+
+- **JSON Import**: `VariantDropzone` supports drag-and-drop JSON upload with domain validation (`validateVariantPayload`).
+- **AI Variant Generator**: `AiVariantGenerator` generates ENT questions aligned with curriculum topics using prompt templates and structured JSON schema (`buildAiVariantPrompt`, `AI_VARIANT_JSON_SCHEMA`).
 
 ---
 
-## 🌱 Database Seeding
+## 🌱 Database Seeding & Bank Audit
 
-The seed dataset and script provide verified, idempotent test data for development and testing.
+The seed dataset, importer, and audit tools ensure verified data integrity and test variant capacity.
 
 ### Current Bank Size
 
-The question bank contains **96 verified questions** evenly distributed across all 12 ENT Computer Science topics:
+The question bank contains **119 verified questions** (89 single-answer, 30 multiple-answer) across all 14 ENT Computer Science topics:
 
-- **8 questions per topic** (7 single-answer with 4 options each, 1 multiple-answer with 5–6 options).
-- **Difficulty distribution**: ~25% easy, 55% medium, 20% hard.
-- **Rich content**: 20+ questions feature fenced code blocks (Python, SQL) or algorithmic/mathematical computations.
+- **Difficulty distribution**: ~26% easy, 54% medium, 20% hard.
+- **Rich content**: 25+ questions feature fenced code blocks (Python, SQL, HTML/CSS) or algorithmic/mathematical computations.
+- **Variant Capacity**: Supports 2 fully disjoint 40-question variants (limited by the 30 multiple-choice questions requiring 10 per variant).
 
 ### Modular Dataset Structure
 
@@ -314,13 +354,29 @@ The dataset is partitioned into per-group modules located in `scripts/seed/quest
 - `computer_architecture.js`: `cpu_memory`, `number_systems`
 - `spreadsheets.js`: `spreadsheet_formulas`, `spreadsheet_charts`
 - `information_security.js`: `security_basics`, `cryptography_basics`
+- `html_css.js`: `html_css`, `web_technologies`
 - `index.js`: aggregates all modules into `SEED_QUESTIONS`.
+
+### Question Bank Audit CLI Tool
+
+Audits the question bank for coverage, duplicate text, and variant generation limits:
+
+```bash
+# Audit seed dataset (offline, no credentials needed)
+npm run bank:audit
+
+# Enforce zero exact duplicates (fails with exit code 1 if duplicates exist)
+npm run bank:audit -- --strict
+
+# Audit live Firestore database
+GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/service-account.json" npm run bank:audit -- --firestore
+```
 
 ### Adding Questions & ID Conventions
 
 When adding questions to a group module:
 
-1. **ID Convention**: Follow topic prefixes: `py-loop-XXX`, `py-func-XXX`, `sql-q-XXX`, `sql-j-XXX`, `net-p-XXX`, `net-a-XXX`, `arch-cpu-XXX`, `arch-num-XXX`, `ss-form-XXX`, `ss-chart-XXX`, `sec-base-XXX`, `sec-crypto-XXX`.
+1. **ID Convention**: Follow topic prefixes: `py-loop-XXX`, `py-func-XXX`, `sql-q-XXX`, `sql-j-XXX`, `net-p-XXX`, `net-a-XXX`, `arch-cpu-XXX`, `arch-num-XXX`, `ss-form-XXX`, `ss-chart-XXX`, `sec-base-XXX`, `sec-crypto-XXX`, `web-html-XXX`, `web-tech-XXX`.
 2. **Format Invariants**:
    - Single-answer: exactly 4 unique options, 1 correct index in `correctAnswers`. Balance correct answer position across A–D.
    - Multiple-answer: 5 or 6 unique options, 2 or 3 correct indices in `correctAnswers`.
@@ -372,19 +428,21 @@ The testing feature simulates official ENT Computer Science exams with balanced 
 
 Test sessions are persisted in the `test_sessions` collection:
 
-| Property           | Type                                          | Description                                                       |
-| ------------------ | --------------------------------------------- | ----------------------------------------------------------------- |
-| `id`               | `string`                                      | Unique session UUID                                               |
-| `userId`           | `string`                                      | UID of the authenticated student                                  |
-| `status`           | `'in_progress' \| 'completed' \| 'abandoned'` | Lifecycle state of the test attempt                               |
-| `questionIds`      | `string[]`                                    | Exactly 40 assembled question IDs ordered for this variant        |
-| `answers`          | `Record<string, number[]>`                    | Map of question ID to array of selected zero-based option indices |
-| `flagged`          | `string[]`                                    | Question IDs bookmarked for review                                |
-| `currentIndex`     | `number`                                      | Zero-based index of the currently active question (0–39)          |
-| `durationLimitSec` | `number`                                      | Fixed time limit in seconds (3600 = 60 minutes)                   |
-| `startedAt`        | `number \| Timestamp`                         | Epoch timestamp in milliseconds when test was initiated           |
-| `finishedAt`       | `number \| Timestamp \| null`                 | Epoch timestamp in milliseconds when test completed               |
-| `updatedAt`        | `Timestamp`                                   | Server timestamp of the latest autosave                           |
+| Property            | Type                                          | Description                                                          |
+| ------------------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| `id`                | `string`                                      | Unique session UUID                                                  |
+| `userId`            | `string`                                      | UID of the authenticated student                                     |
+| `status`            | `'in_progress' \| 'completed' \| 'abandoned'` | Lifecycle state of the test attempt                                  |
+| `questionIds`       | `string[]`                                    | Exactly 40 assembled question IDs ordered for this variant           |
+| `answers`           | `Record<string, number[]>`                    | Map of question ID to array of selected zero-based option indices    |
+| `flagged`           | `string[]`                                    | Question IDs bookmarked for review                                   |
+| `currentIndex`      | `number`                                      | Zero-based index of the currently active question (0–39)             |
+| `durationLimitSec`  | `number`                                      | Fixed time limit in seconds (3600 = 60 minutes)                      |
+| `startedAt`         | `number \| Timestamp`                         | Epoch timestamp in milliseconds when test was initiated              |
+| `finishedAt`        | `number \| Timestamp \| null`                 | Epoch timestamp in milliseconds when test completed                  |
+| `updatedAt`         | `Timestamp`                                   | Server timestamp of the latest autosave                              |
+| `score`             | `object \| null`                              | Exam score object (`totalPoints`, `maxPoints` [50], `byTopic`, etc.) |
+| `questionSnapshots` | `object[] \| null`                            | Frozen question snapshots at completion for immutable review         |
 
 ### Key Mechanics
 
@@ -401,6 +459,39 @@ Test sessions are persisted in the `test_sessions` collection:
    - Synchronous flush is dispatched on `visibilitychange` (`hidden`) and `pagehide` on a best-effort basis.
    - If network persistence fails, `saveState` indicates an error and retries automatically after 5 seconds.
    - Local monotonic version tracking ensures older in-flight network responses never overwrite newer local answers.
+4. **Novelty-Aware Variant Builder**:
+   - Assembles 40 questions while strictly preserving the official exam structure:
+     - **Part 1 (Questions 1–30)**: 30 single-choice questions (1 point each).
+     - **Part 2 (Questions 31–40)**: 10 multiple-choice questions (up to 2 points each, max 50 points total).
+   - Questions for each section are selected using a **4-phase novelty algorithm**:
+     - **Phase (a)**: Never-seen questions only, with a per-topic cap of $\lceil\text{quota} / \text{topics}\rceil + 1$, selected round-robin across shuffled topics.
+     - **Phase (b)**: Never-seen questions with the per-topic cap relaxed.
+     - **Phase (c)**: Seen questions ordered by least-seen (`timesSeen` ascending) and oldest (`lastSeenAt` ascending), with the per-topic cap.
+     - **Phase (d)**: Seen questions with the per-topic cap relaxed.
+   - Returns `{ questionIds, newQuestionCount }`. Ties are broken randomly.
+5. **Per-User Exposure Tracking (`question_exposure`)**:
+   - Persisted under `question_exposure/{userId}`: `{ userId, questions: { [questionId]: { timesSeen, lastSeenAt } } }`.
+   - **Engaged vs Released Semantics**: On test start, all 40 questions are recorded in exposure. If a session is abandoned before completion, `releaseUnengaged` releases unengaged questions (questions where the student neither provided an answer nor toggled a flag) by decrementing their `timesSeen`. Only questions the student actually viewed/answered remain counted as seen.
+   - **Backfill on First Start**: If an exposure document does not yet exist, `useStartTest` automatically reconstructs exposure from all past completed/abandoned sessions before assembling the variant.
+   - **Resilience**: Exposure writes are strictly non-blocking (best-effort); exposure read failures fall back to `{}` so starting a test is never blocked.
+   - **Bank Coverage Indicator**: `StartTestPanel` displays "Вы видели N из M вопросов банка". When $\text{unseen} < 40$, it informs the student that repeated questions in the next variant will be drawn from those seen longest ago.
+6. **In-Test Scratchpad (`ScratchpadDrawer`)**:
+   - Accessible from the test header for rough work, calculations, and logic truth tables during testing.
+7. **Official Work Export (`TestWorkExportView`)**:
+   - Formatted plain-text export for printing or saving test submissions with answer keys and explanations.
+
+---
+
+## 🤖 AI Tutor Feature
+
+The AI tutor feature slice (`src/features/tutor/`) provides personalized, contextual assistance for students:
+
+- **Tutor Drawer (`TutorDrawer`)**: Non-intrusive sliding panel available during question review.
+- **Contextual Prompts**:
+  - `buildMistakeReviewPrompt`: Focuses on explaining misconceptions for incorrectly answered questions without giving away answers immediately.
+  - `buildCheatSheetPrompt`: Summarizes key ENT formulas, rules, and syntax for the relevant topic.
+  - `buildCodeWalkthroughPrompt`: Provides line-by-line breakdown of algorithmic Python snippets and SQL queries.
+- **Model Integration**: Structured communication layer (`sendTutorChatMessage`) formatting system prompts and conversation history for Gemini LLM endpoints.
 
 ---
 
@@ -415,6 +506,11 @@ Firestore access control is defined in `firestore.rules`:
   - `read`: Restricted strictly to the session owner (`request.auth != null && resource.data.userId == request.auth.uid`).
   - `create`: Enforces user authentication, ownership matching (`request.resource.data.userId == request.auth.uid`), initial status `'in_progress'`, question count between 1 and 60, fixed `durationLimitSec == 3600`, and `answers` map type.
   - `update`: Permitted only to the document owner while the existing status is `'in_progress'`. Requires `userId`, `questionIds`, `startedAt`, and `durationLimitSec` to remain strictly immutable, while only allowing transitions to `'in_progress'`, `'completed'`, or `'abandoned'`.
+  - `delete`: Strictly denied for client SDKs (`allow delete: if false;`).
+- **Collection `question_exposure`**:
+  - `read`: Restricted strictly to the authenticated exposure owner (`request.auth != null && request.auth.uid == userId`).
+  - `create`: Enforces user authentication, ownership matching (`request.auth.uid == userId && request.resource.data.userId == userId`), and `questions` map type.
+  - `update`: Permitted only to the authenticated owner with matching `userId` and `questions` map type.
   - `delete`: Strictly denied for client SDKs (`allow delete: if false;`).
 - **Default Rule**: Denies all operations (`read, write: false;`) for any other document paths.
 
