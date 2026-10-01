@@ -37,6 +37,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Question exposure collection: tracks per-user question novelty and exposure history
+    match /question_exposure/{userId} {
+      // Allow read only to the authenticated exposure owner
+      allow read: if request.auth != null
+        && request.auth.uid == userId;
+
+      // Allow creation only by the authenticated owner with valid userId and questions map
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.questions is map;
+
+      // Allow updates only by the authenticated owner with valid userId and questions map
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.questions is map;
+
+      // Client deletions are strictly denied
+      allow delete: if false;
+    }
+
     // Default deny for all other documents
     match /{document=**} {
       allow read, write: if false;
