@@ -52,3 +52,11 @@ export {
   normalizeLabel,
 } from './domain/questionBlockParser';
 export { buildImportedQuestions } from './domain/questionImportMapper';
+export {
+  readDocumentText,
+  readDocxText,
+  readPdfText,
+  extractPageTextFromItems,
+  MAX_DOCUMENT_SIZE_BYTES,
+  MAX_PDF_PAGES,
+} from './data/documentReaders';
