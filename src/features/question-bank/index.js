@@ -51,3 +51,4 @@ export {
   resolveAnswerIndices,
   normalizeLabel,
 } from './domain/questionBlockParser';
+export { buildImportedQuestions } from './domain/questionImportMapper';
