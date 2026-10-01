@@ -44,3 +44,10 @@ export {
   normalizeDocumentText,
   isStructuralStart,
 } from './domain/documentNormalization';
+export {
+  parseQuestionBlocks,
+  parseAnswerLabels,
+  parseAnswerKeySection,
+  resolveAnswerIndices,
+  normalizeLabel,
+} from './domain/questionBlockParser';
