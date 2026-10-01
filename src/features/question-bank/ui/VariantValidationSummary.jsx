@@ -108,19 +108,19 @@ export function VariantValidationSummary({ validationResult, fileName }) {
             <h4 className={styles.subHeading}>Баланс сложности:</h4>
             <div className={styles.difficultyPills}>
               <span className={`${styles.diffPill} ${styles.diffEasy}`}>
-                Easy: {stats.difficultyCounts.easy || 0}
+                Лёгкий: {stats.difficultyCounts.easy || 0}
               </span>
               <span className={`${styles.diffPill} ${styles.diffMedium}`}>
-                Medium: {stats.difficultyCounts.medium || 0}
+                Средний: {stats.difficultyCounts.medium || 0}
               </span>
               <span className={`${styles.diffPill} ${styles.diffHard}`}>
-                Hard: {stats.difficultyCounts.hard || 0}
+                Сложный: {stats.difficultyCounts.hard || 0}
               </span>
             </div>
           </div>
 
           <div className={styles.distributionBlock}>
-            <h4 className={styles.subHeading}>Распределение по 12 темам:</h4>
+            <h4 className={styles.subHeading}>Распределение по темам:</h4>
             <div className={styles.topicGrid}>
               {TOPICS.map((topic) => {
                 const count = stats.topicCounts[topic.id] || 0;

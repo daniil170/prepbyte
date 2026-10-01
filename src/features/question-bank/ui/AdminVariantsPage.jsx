@@ -39,7 +39,7 @@ export function AdminVariantsPage() {
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <ThemeToggle />
-            <span className={styles.adminBadge}>[ADMIN WORKSPACE]</span>
+            <span className={styles.adminBadge}>[ПАНЕЛЬ АДМИНИСТРАТОРА]</span>
           </div>
         </div>
         <h1 className={styles.title}>Управление вариантами ЕНТ</h1>

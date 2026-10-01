@@ -98,10 +98,7 @@ export default function HomePage() {
 
       <main className={styles.main}>
         {/* Hero Section */}
-        <section
-          className={styles.heroSection}
-          aria-labelledby="hero-heading"
-        >
+        <section className={styles.heroSection} aria-labelledby="hero-heading">
           <HeroBackgroundAnimation />
 
           <div className={styles.hero}>
@@ -117,8 +114,9 @@ export default function HomePage() {
 
               <p className={styles.heroSubtitle}>
                 Адаптивная среда подготовки к Единому национальному тестированию
-                (ЕНТ / ҰБТ) по информатике. 40 сбалансированных заданий, официальный
-                регламент оценивания до 50 баллов и глубокий разбор ошибок.
+                (ЕНТ / ҰБТ) по информатике. 40 сбалансированных заданий,
+                официальный регламент оценивания до 50 баллов и глубокий разбор
+                ошибок.
               </p>
 
               <div className={styles.ctaGroup}>
@@ -188,7 +186,7 @@ export default function HomePage() {
               <span className={styles.authorBadge}>Разработчик</span>
               <span className={styles.authorStatus}>
                 <span className={styles.pulseDot} aria-hidden="true" />
-                <span>Production Ready</span>
+                <span>Готов к использованию</span>
               </span>
             </div>
             <h2 className={styles.authorName}>Ivakin Daniil</h2>

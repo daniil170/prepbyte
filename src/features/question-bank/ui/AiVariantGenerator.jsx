@@ -301,9 +301,9 @@ export function AiVariantGenerator() {
                               })
                             }
                           >
-                            <option value="easy">Easy</option>
-                            <option value="medium">Medium</option>
-                            <option value="hard">Hard</option>
+                            <option value="easy">Лёгкий</option>
+                            <option value="medium">Средний</option>
+                            <option value="hard">Сложный</option>
                           </select>
                         </div>
                       </div>
