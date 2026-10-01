@@ -36,7 +36,16 @@ export function VariantDropzone({ onFileSelect, disabled = false }) {
       const droppedFiles = e.dataTransfer?.files;
       if (droppedFiles && droppedFiles.length > 0) {
         const file = droppedFiles[0];
-        if (file.name.endsWith('.json') || file.type === 'application/json') {
+        const lower = (file.name || '').toLowerCase();
+        if (
+          lower.endsWith('.json') ||
+          lower.endsWith('.docx') ||
+          lower.endsWith('.pdf') ||
+          file.type === 'application/json' ||
+          file.type === 'application/pdf' ||
+          file.type ===
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ) {
           onFileSelect(file);
         }
       }
@@ -80,25 +89,26 @@ export function VariantDropzone({ onFileSelect, disabled = false }) {
           handleClick();
         }
       }}
-      aria-label="Загрузить JSON файл варианта"
+      aria-label="Загрузить файл варианта (JSON, DOCX, PDF)"
     >
       <input
         ref={inputRef}
         type="file"
-        accept=".json,application/json"
+        accept=".json,application/json,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
         className={styles.hiddenInput}
         onChange={handleInputChange}
         disabled={disabled}
       />
       <div className={styles.iconContainer}>
-        <span className={styles.icon}>[JSON]</span>
+        <span className={styles.icon}>[DOC / JSON]</span>
       </div>
       <p className={styles.prompt}>
         Перетащите файл варианта сюда или{' '}
         <span className={styles.browseLink}>выберите файл</span>
       </p>
       <p className={styles.hint}>
-        Поддерживается формат JSON спецификации ЕНТ (40 заданий, 50 баллов)
+        Поддерживаются форматы JSON (спецификация ЕНТ), DOCX и PDF (с текстовым
+        слоем)
       </p>
     </div>
   );
