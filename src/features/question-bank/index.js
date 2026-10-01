@@ -40,3 +40,7 @@ export {
   findNearDuplicates,
   normalizeQuestionText,
 } from './domain/questionSimilarity';
+export {
+  normalizeDocumentText,
+  isStructuralStart,
+} from './domain/documentNormalization';
