@@ -233,7 +233,7 @@ export function AdminVariantsPage() {
 
                 {/* Toolbar */}
                 <div className={styles.docToolbar}>
-                  <div className={styles.toolbarRow}>
+                  <div className={styles.toolbarGrid}>
                     <div className={styles.toolbarField}>
                       <label className={styles.toolbarLabel}>
                         Префикс ID (вариант):
@@ -251,54 +251,32 @@ export function AdminVariantsPage() {
                       <label className={styles.toolbarLabel}>
                         Тема по умолчанию:
                       </label>
-                      <div className={styles.inlineInputGroup}>
-                        <select
-                          className={styles.toolbarSelect}
-                          value={defaultTopic}
-                          onChange={(e) => setDefaultTopic(e.target.value)}
-                        >
-                          {TOPICS.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.label}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          className={styles.smallBtn}
-                          onClick={() => applyDefaultTopicToAll(defaultTopic)}
-                          title="Установить эту тему для всех заданий"
-                        >
-                          Применить ко всем
-                        </button>
-                      </div>
+                      <select
+                        className={styles.toolbarSelect}
+                        value={defaultTopic}
+                        onChange={(e) => setDefaultTopic(e.target.value)}
+                      >
+                        {TOPICS.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className={styles.toolbarField}>
                       <label className={styles.toolbarLabel}>
                         Сложность по умолчанию:
                       </label>
-                      <div className={styles.inlineInputGroup}>
-                        <select
-                          className={styles.toolbarSelect}
-                          value={defaultDifficulty}
-                          onChange={(e) => setDefaultDifficulty(e.target.value)}
-                        >
-                          <option value="easy">Лёгкий (easy)</option>
-                          <option value="medium">Средний (medium)</option>
-                          <option value="hard">Сложный (hard)</option>
-                        </select>
-                        <button
-                          type="button"
-                          className={styles.smallBtn}
-                          onClick={() =>
-                            applyDefaultDifficultyToAll(defaultDifficulty)
-                          }
-                          title="Установить эту сложность для всех заданий"
-                        >
-                          Применить ко всем
-                        </button>
-                      </div>
+                      <select
+                        className={styles.toolbarSelect}
+                        value={defaultDifficulty}
+                        onChange={(e) => setDefaultDifficulty(e.target.value)}
+                      >
+                        <option value="easy">Лёгкий (easy)</option>
+                        <option value="medium">Средний (medium)</option>
+                        <option value="hard">Сложный (hard)</option>
+                      </select>
                     </div>
                   </div>
 
@@ -308,14 +286,32 @@ export function AdminVariantsPage() {
                     </span>
                     <button
                       type="button"
-                      className={styles.smallBtn}
+                      className={styles.actionBtn}
+                      onClick={() => applyDefaultTopicToAll(defaultTopic)}
+                      title="Установить выбранную тему для всех заданий в списке"
+                    >
+                      Применить тему ко всем
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() =>
+                        applyDefaultDifficultyToAll(defaultDifficulty)
+                      }
+                      title="Установить выбранную сложность для всех заданий в списке"
+                    >
+                      Применить сложность ко всем
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
                       onClick={includeAll}
                     >
                       Выбрать все
                     </button>
                     <button
                       type="button"
-                      className={styles.smallBtn}
+                      className={styles.actionBtn}
                       onClick={excludeDuplicates}
                     >
                       Исключить дубликаты
