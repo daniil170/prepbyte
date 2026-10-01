@@ -48,7 +48,7 @@ export function useStartTest() {
     try {
       // Note: getAllQuestions is acceptable while bank fits in memory
       const allQuestions = await questionRepository.getAllQuestions();
-      const questionIds = buildTestVariant(allQuestions);
+      const { questionIds } = buildTestVariant(allQuestions);
       const sessionId = generateSessionId();
 
       const userId = user.id || user.uid;
