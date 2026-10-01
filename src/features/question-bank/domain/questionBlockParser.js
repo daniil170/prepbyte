@@ -19,13 +19,13 @@ export function normalizeLabel(label) {
 }
 
 const QUESTION_START_REGEX =
-  /^(?:(?:№|задание|вопрос)\s*)?(\d+)[.):-](?:\s+(.*)|$)/i;
+  /^(?:[○●•*▪▫◦–—\s-]*)?(?:(?:№|задание|вопрос)\s*)?(\d+)[.):-](?:\s+(.*)|$)/i;
 
 const OPTION_PREFIX_REGEX =
-  /^(?:\(([A-Fa-fА-Еа-е])\)|\[([A-Fa-fА-Еа-е])\]|([A-Fa-fА-Еа-е])[.):-])\s*(.*)$/;
+  /^(?:[○●•*▪▫◦–—\s-]*)?(?:\(\s*([A-Za-zА-Яа-я])\s*\)|\[\s*([A-Za-zА-Яа-я])\s*\]|([A-Za-zА-Яа-я])\s*[.):-])(?:\s+(.*)|$)/;
 
 const MULTI_OPTION_LINE_REGEX =
-  /(?:^|\s{2,}|\t+)(?:\(([A-Fa-fА-Еа-е])\)|\[([A-Fa-fА-Еа-е])\]|([A-Fa-fА-Еа-е])[.):-])\s+([^\t\n\r]*?)(?=(?:\s{2,}|\t+)(?:\([A-Fa-fА-Еа-е]\)|\[[A-Fa-fА-Еа-е]\]|[A-Fa-fА-Еа-е][.):-])|$)/g;
+  /(?:^|\s{2,}|\t+)(?:[○●•*▪▫◦–—\s-]*)?(?:\(\s*([A-Za-zА-Яа-я])\s*\)|\[\s*([A-Za-zА-Яа-я])\s*\]|([A-Za-zА-Яа-я])\s*[.):-])\s+([^\t\n\r]*?)(?=(?:\s{2,}|\t+)(?:[○●•*▪▫◦–—\s-]*)?(?:\([A-Za-zА-Яа-я]\)|\[[A-Za-zА-Яа-я]\]|[A-Za-zА-Яа-я][.):-])|$)/g;
 
 const ANSWER_MARKER_REGEX =
   /^(?:правильный\s+)?(?:ответ(?:ы)?|ключ(?:и)?|answers?|key)\s*[:.-]\s*(.*)$/i;
@@ -34,7 +34,7 @@ const EXPLANATION_MARKER_REGEX =
   /^(?:пояснение|решение|объяснение|explanation)\s*[:.-]\s*(.*)$/i;
 
 const KEY_SECTION_HEADER_REGEX =
-  /^(?:правильные\s+)?(?:ответы(?:\s+к\s+тесту|\s+к\s+заданиям)?|ключи(?:\s+к\s+тесту)?|answers?|keys?)\s*[:.-]?$/i;
+  /^(?:правильные\s+ответы|ключи\s+правильных\s+ответов|ответы(?:\s+к\s+тесту|\s+к\s+заданиям)?|ключи(?:\s+к\s+тесту|\s+ответов)?|answers?|keys?)(?:\s*\([^)]*\))?(?:\s+задания|\s+правильные\s+ответы)?\s*[:.-]?$/i;
 
 /**
  * Checks if question text describes an unsupported format (matching task or image/table).
@@ -47,6 +47,7 @@ export function checkSkippedReason(text) {
   const lower = text.toLowerCase();
 
   if (
+    lower.includes('соотнесите') ||
     lower.includes('установите соответствие') ||
     lower.includes('установить соответствие') ||
     lower.includes('соответствие между') ||
@@ -61,18 +62,26 @@ export function checkSkippedReason(text) {
     lower.includes('на изображении') ||
     lower.includes('см. рисунок') ||
     lower.includes('приведенном рисунке') ||
+    lower.includes('приведённом рисунке') ||
     lower.includes('изображен на рисунке') ||
+    lower.includes('изображён на рисунке') ||
     lower.includes('суретте') ||
-    lower.includes('суретке')
+    lower.includes('суретке') ||
+    lower.includes('сурет бойынша')
   ) {
     return 'Задание ссылается на изображение или схему';
   }
 
   if (
-    lower.includes('в таблице') ||
-    lower.includes('из таблицы') ||
-    lower.includes('приведенной таблиц') ||
-    lower.includes('кестеде')
+    lower.includes('в приведенной таблиц') ||
+    lower.includes('в приведённой таблиц') ||
+    lower.includes('согласно таблице') ||
+    lower.includes('по таблице') ||
+    lower.includes('рассмотрите таблицу') ||
+    lower.includes('по данным таблицы') ||
+    lower.includes('в таблице ниже') ||
+    lower.includes('кесте бойынша') ||
+    lower.includes('төмендегі кесте')
   ) {
     return 'Задание ссылается на внешнюю таблицу';
   }
@@ -102,10 +111,12 @@ export function parseAnswerLabels(raw) {
   let parts = cleaned
     .split(/[,;\s]+/)
     .map((s) => s.trim())
-    .filter((s) => Boolean(s) && s.toLowerCase() !== 'и' && s.toLowerCase() !== 'and');
+    .filter(
+      (s) => Boolean(s) && s.toLowerCase() !== 'и' && s.toLowerCase() !== 'and'
+    );
 
   // If it's a single part with multiple concatenated letters like "AC" or "BCD"
-  if (parts.length === 1 && /^[A-Fa-fА-Еа-е]{2,6}$/.test(parts[0])) {
+  if (parts.length === 1 && /^[A-Za-zА-Яа-я]{2,6}$/.test(parts[0])) {
     parts = parts[0].split('');
   }
 
@@ -114,7 +125,7 @@ export function parseAnswerLabels(raw) {
 
 /**
  * Extracts external answer keys from an answer key section text.
- * Supports "1. B", "1) B", "1-B", "1: B", "1B 2C 3A", compact tables.
+ * Supports "1. B", "1) B", "1-B", "1: B", "36: A, B, D | 37: A, B, D", "1B 2C 3A", compact tables.
  *
  * @param {string} keysText
  * @returns {Map<number, string[]>} Map of question number to answer labels.
@@ -123,39 +134,41 @@ export function parseAnswerKeySection(keysText) {
   const keysMap = new Map();
   if (!keysText || typeof keysText !== 'string') return keysMap;
 
-  const lines = keysText
+  // Strip table range headers like "1 - 10", "36 - 40"
+  const cleaned = keysText
+    .replace(/\b\d+\s*[-–—]\s*\d+\b/g, ' ')
     .split('\n')
     .map((l) => l.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .join(' ');
 
-  for (const line of lines) {
-    // 1. Try single line: "1. A, C", "1) B", "1-B", "1: B"
-    const singleMatch = line.match(
-      /^(\d+)[\s.):-]+([A-Fa-fА-Еа-е\s,;иand]+)$/i
-    );
-    if (singleMatch) {
-      const qNum = parseInt(singleMatch[1], 10);
-      const labels = parseAnswerLabels(singleMatch[2]);
+  // Match pipe/semicolon/comma separated items like "36: A, B, D | 37: A, B, D", "1 - B, 2 - B", "1. A", "2) C, D"
+  const regex =
+    /(?:^|[|;\s]+)(\d+)\s*[.):-]\s*([A-Za-zА-Яа-я\s,;иand]+?)(?=(?:[|;\s]+\d+\s*[.):-])|$)/g;
+  let match;
+  while ((match = regex.exec(cleaned)) !== null) {
+    const qNum = parseInt(match[1], 10);
+    const rawVal = match[2].trim();
+    const labels = rawVal
+      .split(/[,;\s]+/)
+      .filter((s) => /^[A-Za-zА-Яа-я]$/.test(s));
+    if (labels.length > 0) {
+      keysMap.set(qNum, labels);
+    }
+  }
+
+  // Also support compact formats like "1B 2C 3A" or "1. B 2. C 3. A"
+  const compactMatches = [
+    ...cleaned.matchAll(
+      /(?:^|[\s,;]+)(\d+)(?:[.):\-\s]*)([A-Za-zА-Яа-я]+)(?=[\s,;]+|$)/gi
+    ),
+  ];
+  for (const m of compactMatches) {
+    const qNum = parseInt(m[1], 10);
+    if (!keysMap.has(qNum)) {
+      const labels = parseAnswerLabels(m[2]);
       if (labels.length > 0) {
         keysMap.set(qNum, labels);
-        continue;
-      }
-    }
-
-    // 2. Try compact format on one line: "1. B 2. C 3. A" or "1B 2C 3A" or "1-A, 2-B"
-    const compactMatches = [
-      ...line.matchAll(
-        /(?:^|[\s,;]+)(\d+)(?:[.):\-\s]*)([A-Fa-fА-Еа-е]+)(?=[\s,;]+|$)/gi
-      ),
-    ];
-    if (compactMatches.length > 0) {
-      for (const m of compactMatches) {
-        const qNum = parseInt(m[1], 10);
-        const rawLabel = m[2];
-        const labels = parseAnswerLabels(rawLabel);
-        if (labels.length > 0) {
-          keysMap.set(qNum, labels);
-        }
       }
     }
   }
@@ -281,11 +294,15 @@ export function parseQuestionBlocks(text) {
 
     // Validate options count
     if (current.options.length < 2) {
-      current.status = 'error';
-      current.issues.push('Менее 2 вариантов ответа');
+      if (!skippedReason) {
+        current.status = 'error';
+        current.issues.push('Менее 2 вариантов ответа');
+      }
     } else if (current.options.length > 6) {
-      current.status = 'error';
-      current.issues.push('Более 6 вариантов ответа');
+      if (!skippedReason) {
+        current.status = 'error';
+        current.issues.push('Более 6 вариантов ответа');
+      }
     }
 
     // Validate answer keys

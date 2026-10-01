@@ -167,17 +167,29 @@ export function useVariantUploader({
             existingQuestions: existingBank,
             defaultTopic: 'cpu_memory',
             defaultDifficulty: 'medium',
+            defaultExplanation: 'Пояснение к заданию',
             variantSlug: slug,
           });
 
-          const initialQuestions = rawImported.map((item, idx) => ({
-            ...item.question,
-            number: parsedItems[idx]?.number || idx + 1,
-            status: item.status,
-            issues: item.issues,
-            duplicateOf: item.duplicateOf,
-            included: !item.duplicateOf,
-          }));
+          const initialQuestions = rawImported.map((item, idx) => {
+            const isSkippedOrUnsupported = item.issues.some(
+              (i) =>
+                i.includes('не поддерживается') ||
+                i.includes('ссылается на') ||
+                i.includes('соответстви')
+            );
+            return {
+              ...item.question,
+              number: parsedItems[idx]?.number || idx + 1,
+              status: isSkippedOrUnsupported ? 'warning' : item.status,
+              issues: item.issues,
+              duplicateOf: item.duplicateOf,
+              included:
+                !item.duplicateOf &&
+                item.status !== 'error' &&
+                !isSkippedOrUnsupported,
+            };
+          });
 
           setDocumentQuestions(initialQuestions);
           setDocumentWarnings(parseWarnings);

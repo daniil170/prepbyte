@@ -103,13 +103,30 @@ B. 30
     expect(isStructuralStart('Задание 5:')).toBe(true);
     expect(isStructuralStart('A. Вариант')).toBe(true);
     expect(isStructuralStart('А) Вариант')).toBe(true);
+    expect(isStructuralStart('С) Вариант')).toBe(true);
+    expect(isStructuralStart('○ А) Вариант')).toBe(true);
+    expect(isStructuralStart('● B. Вариант')).toBe(true);
+    expect(isStructuralStart('* C) Вариант')).toBe(true);
     expect(isStructuralStart('(B) Вариант')).toBe(true);
     expect(isStructuralStart('[C] Вариант')).toBe(true);
     expect(isStructuralStart('Ответ: A')).toBe(true);
     expect(isStructuralStart('Правильный ответ: B, C')).toBe(true);
+    expect(isStructuralStart('Ключи правильных ответов (Вариант 8)')).toBe(
+      true
+    );
+    expect(isStructuralStart('Часть 1. Одиночный выбор')).toBe(true);
     expect(isStructuralStart('1. A')).toBe(true);
     expect(isStructuralStart('1) B')).toBe(true);
     expect(isStructuralStart('1-C')).toBe(true);
     expect(isStructuralStart('Обычная строка продолжения текста')).toBe(false);
+  });
+
+  it('unifies private-use PDF characters for brackets, colons, and dashes', () => {
+    const raw =
+      '1. Вопрос\n○ А \uE082 Текст\nКлючи правильных ответов \uE081 Вариант 8 \uE082\n36 \uE092 A, B | 1 \uE088 B';
+    const normalized = normalizeDocumentText(raw);
+    expect(normalized).toContain('○ А ) Текст');
+    expect(normalized).toContain('Ключи правильных ответов ( Вариант 8 )');
+    expect(normalized).toContain('36 : A, B | 1 - B');
   });
 });

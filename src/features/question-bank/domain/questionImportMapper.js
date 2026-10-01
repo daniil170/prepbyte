@@ -1,9 +1,9 @@
-import { validateQuestion } from './questionValidation';
+import { validateQuestion } from './questionValidation.js';
 import {
   calculateJaccardSimilarity,
   extractWordShingles,
   normalizeQuestionText,
-} from './questionSimilarity';
+} from './questionSimilarity.js';
 
 /**
  * Builds imported question entities from raw parsed document blocks, performs
@@ -29,6 +29,7 @@ export function buildImportedQuestions(
     variantSlug = 'imported-var',
     defaultTopic = '',
     defaultDifficulty = 'medium',
+    defaultExplanation = '',
     existingQuestions = [],
   } = {}
 ) {
@@ -63,13 +64,18 @@ export function buildImportedQuestions(
       questionText: item.questionText || '',
       options: item.options || [],
       correctAnswers: item.correctAnswers || [],
-      explanation: item.explanation || '',
+      explanation: item.explanation || defaultExplanation || '',
       difficulty: item.difficulty || defaultDifficulty || 'medium',
       version: 1,
     };
 
     const issues = [...(item.issues || [])];
-    let status = item.status === 'error' ? 'error' : 'ok';
+    let status =
+      item.status === 'error'
+        ? 'error'
+        : item.status === 'warning'
+          ? 'warning'
+          : 'ok';
     let duplicateOf = null;
 
     // Check explanation presence

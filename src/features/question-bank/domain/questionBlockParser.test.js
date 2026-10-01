@@ -256,4 +256,80 @@ D. Ошибка
     expect(res.isValid).toBe(true);
     expect(res.indices).toEqual([1]);
   });
+
+  it('parses bulleted options and Cyrillic С correctly', () => {
+    const text = `
+1. Какая шина связывает процессор с оперативной памятью?
+○ А) Южный мост
+○ В) Северный мост
+○ С) SATA
+○ D) USB
+
+Ключи правильных ответов (Вариант 8)
+1 - В
+`;
+    const { items } = parseQuestionBlocks(text);
+    expect(items).toHaveLength(1);
+    expect(items[0].options).toEqual([
+      'Южный мост',
+      'Северный мост',
+      'SATA',
+      'USB',
+    ]);
+    expect(items[0].correctAnswers).toEqual([1]);
+    expect(items[0].status).toBe('ok');
+  });
+
+  it('parses pipe-separated multi-answer keys across table lines', () => {
+    const text = `
+36. Вопрос 36
+A) Вариант 1
+B) Вариант 2
+C) Вариант 3
+D) Вариант 4
+
+37. Вопрос 37
+A) Вариант 1
+B) Вариант 2
+C) Вариант 3
+D) Вариант 4
+
+Ключи правильных ответов:
+36 - 40
+36: A, B, D | 37: A, B, D
+`;
+    const { items } = parseQuestionBlocks(text);
+    expect(items).toHaveLength(2);
+    expect(items[0].correctAnswers).toEqual([0, 1, 3]);
+    expect(items[1].correctAnswers).toEqual([0, 1, 3]);
+  });
+
+  it('does not skip SQL questions containing "из таблицы" as visual tables', () => {
+    const text = `
+17. Какой оператор SQL удаляет строки из таблицы с сохранением структуры?
+A) DROP
+B) DELETE
+C) REMOVE
+D) TRUNCATE
+Ответ: B
+`;
+    const { items } = parseQuestionBlocks(text);
+    expect(items).toHaveLength(1);
+    expect(items[0].status).toBe('ok');
+    expect(items[0].issues).toHaveLength(0);
+  });
+
+  it('skips "Соотнесите" matching tasks with descriptive reason', () => {
+    const text = `
+31. Соотнесите логические операции с их элементами:
+A) И
+B) НЕ
+Ответ: A
+`;
+    const { items } = parseQuestionBlocks(text);
+    expect(items).toHaveLength(1);
+    expect(items[0].issues).toContain(
+      'Задание на установление соответствия не поддерживается'
+    );
+  });
 });

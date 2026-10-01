@@ -7,18 +7,25 @@ const BARE_PAGE_NUM_REGEX =
 
 // Matches question starts like "1.", "1)", "№1", "№ 1.", "Вопрос 1.", "Задание 1:"
 const QUESTION_START_REGEX =
-  /^(?:(?:№|задание|вопрос)\s*)?\d+[.):-](?:\s+|$)/i;
+  /^(?:[○●•*▪▫◦–—\s-]*)?(?:(?:№|задание|вопрос)\s*)?\d+[.):-](?:\s+|$)/i;
 
-// Matches option starts like "A.", "A)", "(A)", "[A]", "А.", "Б)", "В.", "Г)", "Д.", "Е."
+// Matches option starts like "A.", "A)", "(A)", "[A]", "А.", "Б)", "В.", "Г)", "○ А)", "● B."
 const OPTION_START_REGEX =
-  /^(?:\(?[A-Fa-fА-Еа-е]\)|\[[A-Fa-fА-Еа-е]\]|[A-Fa-fА-Еа-е][.):-])\s+/;
+  /^(?:[○●•*▪▫◦–—\s-]*)?(?:\(\s*[A-Za-zА-Яа-я]\s*\)|\[\s*[A-Za-zА-Яа-я]\s*\]|[A-Za-zА-Яа-я]\s*[.):-])(?:\s+|$)/;
 
 // Matches inline answer markers like "Ответ:", "Правильный ответ:", "Ответы:"
 const ANSWER_MARKER_REGEX =
   /^(?:правильный\s+)?(?:ответ(?:ы)?|ключ(?:и)?|answers?|key)\s*[:.-]/i;
 
+// Matches answer key section headers like "Ключи правильных ответов (Вариант 8)", "Ответы:"
+const KEY_SECTION_HEADER_REGEX =
+  /^(?:правильные\s+ответы|ключи\s+правильных\s+ответов|ответы(?:\s+к\s+тесту|\s+к\s+заданиям)?|ключи(?:\s+к\s+тесту|\s+ответов)?|answers?|keys?)(?:\s*\([^)]*\))?(?:\s+задания|\s+правильные\s+ответы)?\s*[:.-]?$/i;
+
+// Matches section headers like "Часть 1. Одиночный выбор", "Раздел 2"
+const SECTION_HEADER_REGEX = /^(?:часть\s+\d+|раздел\s+\d+)/i;
+
 // Matches answer key line starts like "1. A", "1) B", "1-C", "1: D"
-const KEY_LINE_REGEX = /^\d+[.):\-\s]+[A-Fa-fА-Еа-е](?:[\s,;иA-Fa-fА-Еа-е]|$)/;
+const KEY_LINE_REGEX = /^\d+[.):\-\s]+[A-Za-zА-Яа-я](?:[\s,;иA-Za-zА-Яа-я]|$)/;
 
 /**
  * Checks if a line initiates a new structural block in an ENT question document.
@@ -30,6 +37,8 @@ export function isStructuralStart(line) {
   const trimmed = line.trim();
   if (!trimmed) return false;
   if (trimmed.startsWith('```')) return true;
+  if (KEY_SECTION_HEADER_REGEX.test(trimmed)) return true;
+  if (SECTION_HEADER_REGEX.test(trimmed)) return true;
   if (QUESTION_START_REGEX.test(trimmed)) return true;
   if (OPTION_START_REGEX.test(trimmed)) return true;
   if (ANSWER_MARKER_REGEX.test(trimmed)) return true;
@@ -54,11 +63,15 @@ export function normalizeDocumentText(raw) {
     return '';
   }
 
-  // 1. Unify line endings, spaces, zero-width chars, form feeds
+  // 1. Unify line endings, spaces, zero-width chars, form feeds, and private-use symbols from PDF fonts
   const sanitized = raw
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/[\u00A0\u202F\u1680\u2000-\u200A\u205F\u3000]/g, ' ')
+    .replace(/\uE081/g, '(')
+    .replace(/\uE082/g, ')')
+    .replace(/[\uE088\uE089]/g, '-')
+    .replace(/\uE092/g, ':')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/\f/g, '\n');
 
@@ -136,8 +149,10 @@ export function normalizeDocumentText(raw) {
 
     const prevIndex = processedLines.length - 1;
     const prev = processedLines[prevIndex];
+    const prevIsHeader =
+      KEY_SECTION_HEADER_REGEX.test(prev) || SECTION_HEADER_REGEX.test(prev);
 
-    if (prev === '' || isStructuralStart(current)) {
+    if (prev === '' || isStructuralStart(current) || prevIsHeader) {
       processedLines.push(current);
     } else {
       // Continuation line: join with previous line

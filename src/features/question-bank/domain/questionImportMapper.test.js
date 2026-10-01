@@ -120,4 +120,23 @@ describe('questionImportMapper', () => {
     expect(results[0].status).toBe('warning');
     expect(results[0].issues[0]).toContain('Похож на вопрос existing-q-10');
   });
+
+  it('uses defaultExplanation when item explanation is empty', () => {
+    const itemWithoutExplanation = {
+      ...validParsedItem,
+      explanation: '',
+    };
+
+    const results = buildImportedQuestions([itemWithoutExplanation], {
+      variantSlug: 'var1',
+      defaultTopic: 'python_loops',
+      defaultExplanation: 'Пояснение к заданию по умолчанию',
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0].status).toBe('ok');
+    expect(results[0].question.explanation).toBe(
+      'Пояснение к заданию по умолчанию'
+    );
+  });
 });
