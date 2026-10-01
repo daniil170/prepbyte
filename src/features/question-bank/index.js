@@ -30,6 +30,7 @@ export { useVariantUploader } from './hooks/useVariantUploader';
 export { useAiVariantGenerator } from './hooks/useAiVariantGenerator';
 export { AdminVariantsPage } from './ui/AdminVariantsPage';
 export { AiVariantGenerator } from './ui/AiVariantGenerator';
+export { QuestionPreviewEditor } from './ui/QuestionPreviewEditor';
 export { VariantDropzone } from './ui/VariantDropzone';
 export { VariantValidationSummary } from './ui/VariantValidationSummary';
 export {
