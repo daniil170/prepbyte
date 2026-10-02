@@ -112,10 +112,15 @@ export function GoogleDriveImportModal({
           Google Документы автоматически конвертируются в формат DOCX перед парсингом.
         </p>
 
+        <div className={styles.fastAlternative}>
+          💡 <strong>Быстрый способ без авторизации:</strong> в Google Документе нажмите{' '}
+          <code>Файл → Скачать → Microsoft Word (.docx)</code> и перетащите файл в окно загрузки.
+        </div>
+
         {!isConnected ? (
           <div className={styles.authNotice}>
             <p className={styles.authNoticeText}>
-              Для чтения ваших файлов с Google Диска требуется однократное подтверждение доступа.
+              Для прямого чтения файлов с вашего Google Диска требуется авторизация через Google:
             </p>
             <div>
               <button
@@ -126,6 +131,14 @@ export function GoogleDriveImportModal({
               >
                 <span>🔑</span> Подключить Google Диск
               </button>
+            </div>
+            <div className={styles.googleWarningNotice}>
+              <strong>[!] Если Google пишет «Приложение не проверено»:</strong>
+              <span>
+                Так как проект находится в стадии разработки, в окне Google нажмите{' '}
+                <strong>«Дополнительно» (Advanced)</strong> внизу слева, затем{' '}
+                <strong>«Перейти на страницу prepbyte... (небезопасно)»</strong> и «Продолжить».
+              </span>
             </div>
           </div>
         ) : (

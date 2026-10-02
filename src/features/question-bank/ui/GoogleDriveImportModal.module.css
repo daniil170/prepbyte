@@ -91,6 +91,42 @@
   margin: 0;
 }
 
+.googleWarningNotice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background-color: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #fbbf24;
+}
+
+.googleWarningNotice strong {
+  font-family: var(--font-mono);
+  color: #fde68a;
+}
+
+.fastAlternative {
+  padding: 10px 12px;
+  background-color: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.fastAlternative code {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  background-color: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
 .connectButton {
   display: inline-flex;
   align-items: center;
