@@ -53,7 +53,6 @@ export function ScratchpadDrawer({ isOpen, onClose, sessionId }) {
     <aside className={styles.drawer} role="complementary" aria-label="Черновик для вычислений">
       <div className={styles.header}>
         <div className={styles.titleGroup}>
-          <span className={styles.icon} aria-hidden="true">📝</span>
           <h2 className={styles.title}>Белый лист / Черновик</h2>
         </div>
         <button
