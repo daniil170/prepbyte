@@ -14,15 +14,14 @@ describe('adminAuthorization domain module', () => {
     expect(isUserAdmin({ id: 'u3', email: 'other@test.kz' }, env)).toBe(false);
   });
 
-  it('authorizes standard built-in admin patterns', () => {
-    expect(isUserAdmin({ id: 'u4', email: 'admin@prepbyte.kz' })).toBe(true);
-    expect(isUserAdmin({ id: 'u5', email: 'admin@school.kz' })).toBe(true);
-    expect(isUserAdmin({ id: 'u6', email: 'ivakindaniil@gmail.com' })).toBe(
-      true
-    );
-    expect(isUserAdmin({ id: 'u7', email: 'abishev.ernar@pifagor.kz' })).toBe(
-      true
-    );
+  it('authorizes user if customClaims.admin is true', () => {
+    expect(
+      isUserAdmin({
+        id: 'u4',
+        email: 'user@example.com',
+        customClaims: { admin: true },
+      })
+    ).toBe(true);
   });
 
   it('rejects regular users, empty emails, or invalid objects', () => {

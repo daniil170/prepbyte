@@ -26,8 +26,32 @@ describe('authMappers', () => {
         uid: 'user-789',
         email: 'test@prepbyte.kz',
         displayName: 'Test User',
+        isAdmin: false,
+        customClaims: {},
       });
       expect(Object.isFrozen(domainUser)).toBe(true);
+    });
+
+    it('maps tokenResult admin claim to isAdmin true and customClaims', () => {
+      const firebaseUser = {
+        uid: 'admin-123',
+        email: 'admin@prepbyte.kz',
+        displayName: 'Admin User',
+      };
+      const tokenResult = {
+        claims: {
+          admin: true,
+          role: 'superadmin',
+        },
+      };
+
+      const domainUser = mapFirebaseUserToAuthUser(firebaseUser, tokenResult);
+
+      expect(domainUser.isAdmin).toBe(true);
+      expect(domainUser.customClaims).toEqual({
+        admin: true,
+        role: 'superadmin',
+      });
     });
 
     it('handles missing displayName and email safely', () => {
@@ -40,6 +64,7 @@ describe('authMappers', () => {
       expect(domainUser.id).toBe('user-000');
       expect(domainUser.email).toBe('');
       expect(domainUser.displayName).toBeNull();
+      expect(domainUser.isAdmin).toBe(false);
     });
   });
 

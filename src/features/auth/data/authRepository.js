@@ -15,6 +15,21 @@ import {
 export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
   const googleProvider = new GoogleAuthProvider();
 
+  async function resolveAuthUser(firebaseUser) {
+    if (!firebaseUser) {
+      return null;
+    }
+    try {
+      if (typeof firebaseUser.getIdTokenResult === 'function') {
+        const tokenResult = await firebaseUser.getIdTokenResult();
+        return mapFirebaseUserToAuthUser(firebaseUser, tokenResult);
+      }
+    } catch {
+      // Fallback to basic mapping if token inspection fails
+    }
+    return mapFirebaseUserToAuthUser(firebaseUser);
+  }
+
   async function signInWithEmail({ email, password }) {
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -22,7 +37,7 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
         email,
         password
       );
-      return mapFirebaseUserToAuthUser(userCredential.user);
+      return await resolveAuthUser(userCredential.user);
     } catch (error) {
       throw mapFirebaseErrorToAuthError(error);
     }
@@ -35,7 +50,7 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
         email,
         password
       );
-      return mapFirebaseUserToAuthUser(userCredential.user);
+      return await resolveAuthUser(userCredential.user);
     } catch (error) {
       throw mapFirebaseErrorToAuthError(error);
     }
@@ -47,7 +62,7 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
         firebaseAuth,
         googleProvider
       );
-      return mapFirebaseUserToAuthUser(userCredential.user);
+      return await resolveAuthUser(userCredential.user);
     } catch (error) {
       throw mapFirebaseErrorToAuthError(error);
     }
@@ -62,8 +77,9 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
   }
 
   function subscribeToAuthState(callback) {
-    return onAuthStateChanged(firebaseAuth, (firebaseUser) => {
-      callback(mapFirebaseUserToAuthUser(firebaseUser));
+    return onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
+      const authUser = await resolveAuthUser(firebaseUser);
+      callback(authUser);
     });
   }
 

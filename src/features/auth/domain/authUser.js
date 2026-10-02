@@ -1,4 +1,10 @@
-export function createAuthUser({ id, email, displayName = null } = {}) {
+export function createAuthUser({
+  id,
+  email,
+  displayName = null,
+  isAdmin = false,
+  customClaims = {},
+} = {}) {
   if (!id) {
     throw new Error('AuthUser must have an id');
   }
@@ -8,5 +14,7 @@ export function createAuthUser({ id, email, displayName = null } = {}) {
     uid: id,
     email: email || '',
     displayName: displayName || null,
+    isAdmin: Boolean(isAdmin),
+    customClaims: Object.freeze({ ...customClaims }),
   });
 }

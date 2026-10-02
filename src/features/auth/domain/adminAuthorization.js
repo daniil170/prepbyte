@@ -10,7 +10,7 @@ export function isUserAdmin(user, adminEmailsEnv = '') {
     return false;
   }
 
-  if (user.isAdmin === true) {
+  if (user.isAdmin === true || user.customClaims?.admin === true) {
     return true;
   }
 
@@ -25,16 +25,6 @@ export function isUserAdmin(user, adminEmailsEnv = '') {
     .filter(Boolean);
 
   if (allowedEmails.length > 0 && allowedEmails.includes(email)) {
-    return true;
-  }
-
-  // Built-in default admin identifiers for PrepByte development and administration
-  if (
-    email === 'admin@prepbyte.kz' ||
-    email.startsWith('admin@') ||
-    email.includes('ivakin') ||
-    email === 'abishev.ernar@pifagor.kz'
-  ) {
     return true;
   }
 

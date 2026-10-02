@@ -14,8 +14,23 @@ describe('authUser domain', () => {
       uid: 'usr-123',
       email: 'student@example.com',
       displayName: 'Daniil',
+      isAdmin: false,
+      customClaims: {},
     });
     expect(Object.isFrozen(user)).toBe(true);
+    expect(Object.isFrozen(user.customClaims)).toBe(true);
+  });
+
+  it('supports setting isAdmin and customClaims', () => {
+    const user = createAuthUser({
+      id: 'usr-admin',
+      email: 'admin@example.com',
+      isAdmin: true,
+      customClaims: { admin: true, role: 'editor' },
+    });
+
+    expect(user.isAdmin).toBe(true);
+    expect(user.customClaims).toEqual({ admin: true, role: 'editor' });
   });
 
   it('sets displayName to null if omitted', () => {

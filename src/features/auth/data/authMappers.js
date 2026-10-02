@@ -16,15 +16,20 @@ const FIREBASE_TO_DOMAIN_ERROR_MAP = {
   'auth/too-many-requests': AUTH_ERROR_CODES.TOO_MANY_REQUESTS,
 };
 
-export function mapFirebaseUserToAuthUser(firebaseUser) {
+export function mapFirebaseUserToAuthUser(firebaseUser, tokenResult = null) {
   if (!firebaseUser) {
     return null;
   }
+
+  const claims = tokenResult?.claims || {};
+  const isAdmin = Boolean(claims.admin);
 
   return createAuthUser({
     id: firebaseUser.uid,
     email: firebaseUser.email || '',
     displayName: firebaseUser.displayName || null,
+    isAdmin,
+    customClaims: claims,
   });
 }
 

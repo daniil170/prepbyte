@@ -11,6 +11,7 @@
     "test": "vitest run",
     "seed": "node scripts/seed/seedQuestions.js",
     "bank:audit": "node scripts/audit/auditBank.js",
+    "auth:set-admin": "node scripts/auth/setAdminClaim.js",
     "preview": "vite preview"
   },
   "dependencies": {
