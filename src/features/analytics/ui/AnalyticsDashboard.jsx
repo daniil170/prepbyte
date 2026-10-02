@@ -137,9 +137,6 @@ export function AnalyticsDashboard({ hook = useStudentAnalytics }) {
                 <div className={styles.kpiCard}>
                   <div className={styles.kpiHeader}>
                     <span className={styles.kpiLabel}>Всего тестов</span>
-                    <span className={styles.kpiIcon} aria-hidden="true">
-                      📝
-                    </span>
                   </div>
                   <div className={styles.kpiValueRow}>
                     <span className={styles.kpiValue}>{kpis.totalTests}</span>
@@ -152,9 +149,6 @@ export function AnalyticsDashboard({ hook = useStudentAnalytics }) {
                 <div className={styles.kpiCard}>
                   <div className={styles.kpiHeader}>
                     <span className={styles.kpiLabel}>Средний балл</span>
-                    <span className={styles.kpiIcon} aria-hidden="true">
-                      🎯
-                    </span>
                   </div>
                   <div className={styles.kpiValueRow}>
                     <span className={styles.kpiValue}>{kpis.averageScore}</span>
@@ -168,9 +162,6 @@ export function AnalyticsDashboard({ hook = useStudentAnalytics }) {
                 <div className={styles.kpiCard}>
                   <div className={styles.kpiHeader}>
                     <span className={styles.kpiLabel}>Лучший результат</span>
-                    <span className={styles.kpiIcon} aria-hidden="true">
-                      🏆
-                    </span>
                   </div>
                   <div className={styles.kpiValueRow}>
                     <span className={styles.kpiValue}>{kpis.topScore}</span>
@@ -184,9 +175,6 @@ export function AnalyticsDashboard({ hook = useStudentAnalytics }) {
                 <div className={styles.kpiCard}>
                   <div className={styles.kpiHeader}>
                     <span className={styles.kpiLabel}>Завершаемость</span>
-                    <span className={styles.kpiIcon} aria-hidden="true">
-                      📈
-                    </span>
                   </div>
                   <div className={styles.kpiValueRow}>
                     <span className={styles.kpiValue}>
@@ -201,9 +189,6 @@ export function AnalyticsDashboard({ hook = useStudentAnalytics }) {
                 <div className={styles.kpiCard}>
                   <div className={styles.kpiHeader}>
                     <span className={styles.kpiLabel}>Ударный режим</span>
-                    <span className={styles.kpiIcon} aria-hidden="true">
-                      🔥
-                    </span>
                   </div>
                   <div className={styles.kpiValueRow}>
                     <span className={styles.kpiValue}>{kpis.studyStreak}</span>

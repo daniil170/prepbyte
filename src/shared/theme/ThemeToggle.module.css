@@ -6,7 +6,7 @@
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  color: var(--color-text);
+  color: grey;
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 600;
@@ -17,8 +17,8 @@
 
 .themeToggle:hover {
   border-color: var(--color-border-strong);
-  background-color: var(--color-surface-hover, rgba(255, 255, 255, 0.05));
   transform: translateY(-1px);
+  background-color: white;
 }
 
 .icon {
