@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  generateMatchingOptions,
   normalizeLabel,
   parseAnswerKeySection,
   parseAnswerLabels,
@@ -398,5 +399,40 @@ C) Монитор
     expect(items[2].options).toEqual(['Сканер', 'Клавиатура', 'Монитор']);
     expect(items[2].correctAnswers).toEqual([0, 1]);
     expect(items[2].status).toBe('ok');
+  });
+
+  it('generates 4 valid multiple choice combinations for matching key', () => {
+    const res = generateMatchingOptions('A-2, B-1', 31);
+    expect(res).not.toBeNull();
+    expect(res.options).toHaveLength(4);
+    expect(res.correctAnswers).toHaveLength(1);
+    const correctOpt = res.options[res.correctAnswers[0]];
+    expect(correctOpt).toBe('А-2, В-1');
+  });
+
+  it('converts matching question into fully supported multiple choice when pair key is provided', () => {
+    const text = `
+31. Установите соответствие между уровнями OSI и функциями:
+Уровни OSI:
+А) Транспортный уровень
+В) Сетевой уровень
+Функции:
+1. Маршрутизация пакетов
+2. Обеспечение сквозной передачи
+3. Передача потока битов
+
+Ответы:
+31 A-2, B-1
+`;
+    const { items } = parseQuestionBlocks(text);
+    expect(items).toHaveLength(1);
+    expect(items[0].number).toBe(31);
+    expect(items[0].status).toBe('ok');
+    expect(items[0].issues).toHaveLength(0);
+    expect(items[0].options).toHaveLength(4);
+    expect(items[0].correctAnswers).toEqual([2]);
+    expect(items[0].options[2]).toBe('А-2, В-1');
+    expect(items[0].questionText).toContain('Уровни OSI:');
+    expect(items[0].questionText).toContain('Функции:');
   });
 });

@@ -36,8 +36,115 @@ const EXPLANATION_MARKER_REGEX =
 const KEY_SECTION_HEADER_REGEX =
   /^(?:правильные\s+ответы|ключи\s+правильных\s+ответов|ответы(?:\s+к\s+тесту|\s+к\s+заданиям)?|ключи(?:\s+к\s+тесту|\s+ответов)?|answers?|keys?)(?:\s*\([^)]*\))?(?:\s+задания|\s+правильные\s+ответы)?\s*[:.-]?$/i;
 
+const HOMOGLYPH_CYR = {
+  A: 'А',
+  B: 'В',
+  C: 'С',
+  E: 'Е',
+  K: 'К',
+  M: 'М',
+  H: 'Н',
+  O: 'О',
+  P: 'Р',
+  T: 'Т',
+  X: 'Х',
+};
+
 /**
- * Checks if question text describes an unsupported format (matching task or image/table).
+ * Checks if text indicates a matching task (соответствие).
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isMatchingTaskPrompt(text) {
+  if (!text || typeof text !== 'string') return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('соотнесите') ||
+    lower.includes('установите соответствие') ||
+    lower.includes('установить соответствие') ||
+    lower.includes('соответствие между') ||
+    lower.includes('сәйкестендіріңіз')
+  );
+}
+
+/**
+ * Generates 4 clean multiple-choice options from a matching task answer key (e.g. "A-2, B-1").
+ * Places the correct combination at index `(qNum - 1) % 4` and creates 3 logical distractors.
+ *
+ * @param {string} rawKey - Matching key string like "A-2, B-1" or "А-1, В-2"
+ * @param {number} [qNum=1] - Question number to determine deterministic option slot.
+ * @returns {{ options: string[], correctAnswers: number[] } | null}
+ */
+export function generateMatchingOptions(rawKey, qNum = 1) {
+  if (!rawKey || typeof rawKey !== 'string') return null;
+
+  const pairs = rawKey
+    .split(/[,;\s]+/)
+    .filter((s) => /[A-Za-zА-Яа-я]-\d+/.test(s));
+  if (pairs.length === 0) return null;
+
+  const parsedPairs = pairs.map((p) => {
+    const [l, d] = p.split('-');
+    const normLetter = l.trim().toUpperCase();
+    const letter = HOMOGLYPH_CYR[normLetter] || normLetter;
+    return { letter, digit: parseInt(d, 10) };
+  });
+
+  const correctStr = parsedPairs
+    .map((p) => `${p.letter}-${p.digit}`)
+    .join(', ');
+  const usedDigits = parsedPairs.map((p) => p.digit);
+  const maxDigit = Math.max(...usedDigits, 3);
+  const allDigits = [];
+  for (let d = 1; d <= Math.max(maxDigit, 3); d++) allDigits.push(d);
+
+  const letters = parsedPairs.map((p) => p.letter);
+  const combinations = new Set();
+  combinations.add(correctStr);
+
+  // Distractor 1: swap digits between pairs
+  if (letters.length >= 2) {
+    const swapped = `${letters[0]}-${parsedPairs[1].digit}, ${letters[1]}-${parsedPairs[0].digit}`;
+    if (swapped !== correctStr) combinations.add(swapped);
+  }
+
+  // Distractors 2 & 3: variations with other digits
+  for (const d1 of allDigits) {
+    for (const d2 of allDigits) {
+      if (d1 === d2 && letters.length >= 2) continue;
+      const candidate = `${letters[0]}-${d1}, ${letters[1]}-${d2}`;
+      if (combinations.size < 4) {
+        combinations.add(candidate);
+      }
+    }
+  }
+
+  const combArray = Array.from(combinations);
+  while (combArray.length < 4) {
+    combArray.push(`${letters[0]}-${combArray.length + 1}, ${letters[1]}-1`);
+  }
+
+  const distractors = combArray.filter((s) => s !== correctStr).slice(0, 3);
+  const correctIdx = Math.abs(qNum - 1) % 4;
+  const options = [];
+  let distractorIdx = 0;
+
+  for (let i = 0; i < 4; i++) {
+    if (i === correctIdx) {
+      options.push(correctStr);
+    } else {
+      options.push(distractors[distractorIdx++]);
+    }
+  }
+
+  return {
+    options,
+    correctAnswers: [correctIdx],
+  };
+}
+
+/**
+ * Checks if question text describes an unsupported format (image/table).
  *
  * @param {string} text
  * @returns {string|null} Reason if skipped, or null if supported.
@@ -45,16 +152,6 @@ const KEY_SECTION_HEADER_REGEX =
 export function checkSkippedReason(text) {
   if (!text) return null;
   const lower = text.toLowerCase();
-
-  if (
-    lower.includes('соотнесите') ||
-    lower.includes('установите соответствие') ||
-    lower.includes('установить соответствие') ||
-    lower.includes('соответствие между') ||
-    lower.includes('сәйкестендіріңіз')
-  ) {
-    return 'Задание на установление соответствия не поддерживается';
-  }
 
   if (
     lower.includes('на рисунке') ||
@@ -106,6 +203,11 @@ export function parseAnswerLabels(raw) {
     )
     .replace(/\s+(?:и|and)\s+/gi, ',')
     .trim();
+
+  // If matching pair key format like "A-2, B-1" or "А-1, В-2"
+  if (/[A-Za-zА-Яа-я]-\d+/.test(cleaned)) {
+    return [cleaned];
+  }
 
   // If format is like "A, B, C", "A; B", "A B"
   let parts = cleaned
@@ -295,32 +397,62 @@ export function parseQuestionBlocks(text) {
       warnings.push(`Задание №${current.number} пропущено: ${skippedReason}`);
     }
 
-    // Validate options count
-    if (current.options.length < 2) {
-      if (!skippedReason) {
-        current.status = 'error';
-        current.issues.push('Менее 2 вариантов ответа');
-      }
-    } else if (current.options.length > 6) {
-      if (!skippedReason) {
-        current.status = 'error';
-        current.issues.push('Более 6 вариантов ответа');
-      }
-    }
+    if (current.isMatching) {
+      const rawMatchingKey =
+        current.answerLabels.find((s) => /[A-Za-zА-Яа-я]-\d+/.test(s)) ||
+        (externalKeys.get(current.number) || []).find((s) =>
+          /[A-Za-zА-Яа-я]-\d+/.test(s)
+        );
 
-    // Validate answer keys
-    if (current.answerLabels.length === 0 && !skippedReason) {
-      current.status = 'error';
-      current.issues.push('Отсутствует правильный ответ в тексте или ключе');
-    } else if (current.options.length >= 2) {
-      const resolved = resolveAnswerIndices(
-        current.answerLabels,
-        current.rawOptions
-      );
-      current.correctAnswers = resolved.indices;
-      if (!resolved.isValid && !skippedReason) {
+      if (rawMatchingKey) {
+        const generated = generateMatchingOptions(
+          rawMatchingKey,
+          current.number
+        );
+        if (generated) {
+          current.options = generated.options;
+          current.rawOptions = generated.options.map((t, idx) => ({
+            label: String.fromCharCode(65 + idx),
+            text: t,
+          }));
+          current.correctAnswers = generated.correctAnswers;
+          current.status = 'ok';
+          current.issues = [];
+        }
+      } else {
+        const reason = 'Задание на установление соответствия не поддерживается';
         current.status = 'error';
-        current.issues.push('Ключ ответа указывает на несуществующий вариант');
+        current.issues.push(reason);
+        warnings.push(`Задание №${current.number} пропущено: ${reason}`);
+      }
+    } else {
+      // Validate options count
+      if (current.options.length < 2) {
+        if (!skippedReason) {
+          current.status = 'error';
+          current.issues.push('Менее 2 вариантов ответа');
+        }
+      } else if (current.options.length > 6) {
+        if (!skippedReason) {
+          current.status = 'error';
+          current.issues.push('Более 6 вариантов ответа');
+        }
+      }
+
+      // Validate answer keys
+      if (current.answerLabels.length === 0 && !skippedReason) {
+        current.status = 'error';
+        current.issues.push('Отсутствует правильный ответ в тексте или ключе');
+      } else if (current.options.length >= 2) {
+        const resolved = resolveAnswerIndices(
+          current.answerLabels,
+          current.rawOptions
+        );
+        current.correctAnswers = resolved.indices;
+        if (!resolved.isValid && !skippedReason) {
+          current.status = 'error';
+          current.issues.push('Ключ ответа указывает на несуществующий вариант');
+        }
       }
     }
 
@@ -364,9 +496,16 @@ export function parseQuestionBlocks(text) {
         const isExplicitHeader = /(?:№|задание|вопрос)\s*\d+/i.test(line);
         const hasOptions = current.options.length >= 2;
         const hasAnswers = current.answerLabels.length > 0;
+        const isMatching = Boolean(current.isMatching);
         const isSkipped = Boolean(checkSkippedReason(current.questionText));
 
-        if (hasOptions || hasAnswers || isSkipped || isExplicitHeader) {
+        if (
+          hasOptions ||
+          hasAnswers ||
+          isMatching ||
+          isSkipped ||
+          isExplicitHeader
+        ) {
           isNewQuestion = true;
         }
       }
@@ -377,6 +516,7 @@ export function parseQuestionBlocks(text) {
 
       const qNum = parseInt(qMatch[1], 10);
       const remainingText = qMatch[2] || '';
+      const isMatching = isMatchingTaskPrompt(remainingText);
 
       current = {
         number: qNum,
@@ -388,12 +528,46 @@ export function parseQuestionBlocks(text) {
         explanation: '',
         status: 'ok',
         issues: [],
+        isMatching,
       };
       currentSection = 'question';
       continue;
     }
 
     if (!current) {
+      continue;
+    }
+
+    if (!current.isMatching && isMatchingTaskPrompt(line)) {
+      current.isMatching = true;
+    }
+
+    if (current.isMatching) {
+      // Inline answer marker
+      const ansMatch = line.match(ANSWER_MARKER_REGEX);
+      if (ansMatch) {
+        current.answerLabels = parseAnswerLabels(ansMatch[1]);
+        currentSection = 'answer';
+        continue;
+      }
+
+      // Inline explanation marker
+      const expMatch = line.match(EXPLANATION_MARKER_REGEX);
+      if (expMatch) {
+        current.explanation = expMatch[1] || '';
+        currentSection = 'explanation';
+        continue;
+      }
+
+      if (currentSection === 'explanation') {
+        current.explanation = current.explanation
+          ? `${current.explanation}\n${line}`
+          : line;
+      } else {
+        current.questionText = current.questionText
+          ? `${current.questionText}\n${line}`
+          : line;
+      }
       continue;
     }
 
