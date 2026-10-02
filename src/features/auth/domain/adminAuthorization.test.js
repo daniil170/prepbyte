@@ -20,6 +20,9 @@ describe('adminAuthorization domain module', () => {
     expect(isUserAdmin({ id: 'u6', email: 'ivakindaniil@gmail.com' })).toBe(
       true
     );
+    expect(isUserAdmin({ id: 'u7', email: 'abishev.ernar@pifagor.kz' })).toBe(
+      true
+    );
   });
 
   it('rejects regular users, empty emails, or invalid objects', () => {

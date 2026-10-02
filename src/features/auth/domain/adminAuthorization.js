@@ -32,7 +32,8 @@ export function isUserAdmin(user, adminEmailsEnv = '') {
   if (
     email === 'admin@prepbyte.kz' ||
     email.startsWith('admin@') ||
-    email.includes('ivakin')
+    email.includes('ivakin') ||
+    email === 'abishev.ernar@pifagor.kz'
   ) {
     return true;
   }
