@@ -332,4 +332,71 @@ B) НЕ
       'Задание на установление соответствия не поддерживается'
     );
   });
+
+  it('correctly parses multi-column exam tables and multiple choice keys without false positives', () => {
+    const keysText = `
+Часть 1. Одиночный выбор
+№   Ответ   №   Ответ   №   Ответ
+1   C   11   A   21   B
+2   B   12   B   22   A
+Часть 2. Задания на соответствие
+№   Ответ 31   A-2, B-1 32   A-1, B-2
+Часть 3. Множественный выбор
+№   Правильные варианты
+36   A, C, D
+37   A, C, E
+`;
+    const keysMap = parseAnswerKeySection(keysText);
+    expect(keysMap.get(1)).toEqual(['C']);
+    expect(keysMap.get(11)).toEqual(['A']);
+    expect(keysMap.get(21)).toEqual(['B']);
+    expect(keysMap.get(2)).toEqual(['B']);
+    expect(keysMap.get(31)).toEqual(['A-2, B-1']);
+    expect(keysMap.get(36)).toEqual(['A', 'C', 'D']);
+    expect(keysMap.get(37)).toEqual(['A', 'C', 'E']);
+  });
+
+  it('does not create phantom questions from numbered sub-lists inside questions or matching tasks', () => {
+    const text = `
+30. Что выведет код?
+nums = (10, 20)
+A) (10, 20)
+B) [10, 20]
+Ответ: A
+
+Часть 2. Задания на соответствие (Вопросы 31–35)
+
+31. Установите соответствие между уровнями OSI и функциями:
+Уровни OSI:
+А) Транспортный уровень
+В) Сетевой уровень
+Функции:
+1. Маршрутизация пакетов
+2. Обеспечение сквозной передачи
+3. Передача потока битов
+
+Часть 3. Несколько правильных ответов
+
+36. Устройства ввода:
+A) Сканер
+B) Клавиатура
+C) Монитор
+Ответ: A, B
+`;
+    const { items } = parseQuestionBlocks(text);
+    expect(items).toHaveLength(3);
+    expect(items[0].number).toBe(30);
+    expect(items[0].options).toEqual(['(10, 20)', '[10, 20]']);
+    expect(items[0].status).toBe('ok');
+
+    expect(items[1].number).toBe(31);
+    expect(items[1].issues).toContain(
+      'Задание на установление соответствия не поддерживается'
+    );
+
+    expect(items[2].number).toBe(36);
+    expect(items[2].options).toEqual(['Сканер', 'Клавиатура', 'Монитор']);
+    expect(items[2].correctAnswers).toEqual([0, 1]);
+    expect(items[2].status).toBe('ok');
+  });
 });

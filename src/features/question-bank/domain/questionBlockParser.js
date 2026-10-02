@@ -120,12 +120,14 @@ export function parseAnswerLabels(raw) {
     parts = parts[0].split('');
   }
 
-  return parts;
+  // Filter to valid answer labels only (single letters A-Z, А-Я)
+  return parts.filter((s) => s.length === 1 && /^[A-Za-zА-Яа-я]$/.test(s));
 }
 
 /**
  * Extracts external answer keys from an answer key section text.
- * Supports "1. B", "1) B", "1-B", "1: B", "36: A, B, D | 37: A, B, D", "1B 2C 3A", compact tables.
+ * Supports "1. B", "1) B", "1-B", "1: B", "36: A, B, D | 37: A, B, D", "1B 2C 3A",
+ * multi-column tables like "1 C 11 A 21 B", and multiple choice lists like "36 A, C, D".
  *
  * @param {string} keysText
  * @returns {Map<number, string[]>} Map of question number to answer labels.
@@ -134,39 +136,40 @@ export function parseAnswerKeySection(keysText) {
   const keysMap = new Map();
   if (!keysText || typeof keysText !== 'string') return keysMap;
 
-  // Strip table range headers like "1 - 10", "36 - 40"
-  const cleaned = keysText
-    .replace(/\b\d+\s*[-–—]\s*\d+\b/g, ' ')
+  // Clean lines: strip range headers like "1 - 10", "36 - 40"
+  const lines = keysText
     .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .join(' ');
+    .map((l) => l.replace(/\b\d+\s*[-–—]\s*\d+\b/g, ' ').trim())
+    .filter(Boolean);
 
-  // Match pipe/semicolon/comma separated items like "36: A, B, D | 37: A, B, D", "1 - B, 2 - B", "1. A", "2) C, D"
-  const regex =
-    /(?:^|[|;\s]+)(\d+)\s*[.):-]\s*([A-Za-zА-Яа-я\s,;иand]+?)(?=(?:[|;\s]+\d+\s*[.):-])|$)/g;
-  let match;
-  while ((match = regex.exec(cleaned)) !== null) {
-    const qNum = parseInt(match[1], 10);
-    const rawVal = match[2].trim();
-    const labels = rawVal
-      .split(/[,;\s]+/)
-      .filter((s) => /^[A-Za-zА-Яа-я]$/.test(s));
-    if (labels.length > 0) {
-      keysMap.set(qNum, labels);
+  for (let line of lines) {
+    // Skip part/variant headers
+    if (/^(?:часть|раздел|блок|вариант|тест)\s+\d+/i.test(line)) continue;
+    // Skip lines that are purely table column headers like "№ Ответ № Ответ"
+    if (/^(?:№\s+(?:ответ(?:ы)?|правильные\s+варианты)\s*)+$/i.test(line)) {
+      continue;
     }
-  }
+    // If line starts with "№ Ответ" followed by question number, strip the header prefix
+    line = line
+      .replace(/^(?:№\s+(?:ответ(?:ы)?|правильные\s+варианты)\s*)+/i, '')
+      .trim();
+    if (!line) continue;
 
-  // Also support compact formats like "1B 2C 3A" or "1. B 2. C 3. A"
-  const compactMatches = [
-    ...cleaned.matchAll(
-      /(?:^|[\s,;]+)(\d+)(?:[.):\-\s]*)([A-Za-zА-Яа-я]+)(?=[\s,;]+|$)/gi
-    ),
-  ];
-  for (const m of compactMatches) {
-    const qNum = parseInt(m[1], 10);
-    if (!keysMap.has(qNum)) {
-      const labels = parseAnswerLabels(m[2]);
+    // Match question entries: (\d+) followed by answer text until pipe or next question entry
+    const entryRegex =
+      /(?:^|[|;\s]+)(\d+)\s*[:.)-]?\s*([A-Za-zА-Яа-я0-9\s,;иand-]+?)(?=(?:[|;\s]+\d+\s*[:.)-]?\s*[A-Za-zА-Яа-я])|$)/g;
+    let match;
+    while ((match = entryRegex.exec(line)) !== null) {
+      const qNum = parseInt(match[1], 10);
+      const rawAns = match[2].trim();
+
+      // If matching format like "A-2, B-1"
+      if (/[A-Za-zА-Яа-я]-\d+/.test(rawAns)) {
+        keysMap.set(qNum, [rawAns]);
+        continue;
+      }
+
+      const labels = parseAnswerLabels(rawAns);
       if (labels.length > 0) {
         keysMap.set(qNum, labels);
       }
@@ -336,13 +339,40 @@ export function parseQuestionBlocks(text) {
     current = null;
   }
 
+  const SECTION_HEADER_REGEX =
+    /^(?:(?:часть|раздел|блок|вариант|тест)\s+\d+|структура\s+варианта)/i;
+
   for (let i = 0; i < bodyLines.length; i++) {
     const line = bodyLines[i].trim();
     if (!line) continue;
 
+    // Check for explicit section/variant headers (e.g. "Часть 2. Задания на соответствие")
+    if (SECTION_HEADER_REGEX.test(line)) {
+      finalizeCurrentQuestion();
+      continue;
+    }
+
     // Check for start of new question
     const qMatch = line.match(QUESTION_START_REGEX);
+    let isNewQuestion = false;
+
     if (qMatch) {
+      const nextNum = parseInt(qMatch[1], 10);
+      if (!current) {
+        isNewQuestion = true;
+      } else if (nextNum > current.number) {
+        const isExplicitHeader = /(?:№|задание|вопрос)\s*\d+/i.test(line);
+        const hasOptions = current.options.length >= 2;
+        const hasAnswers = current.answerLabels.length > 0;
+        const isSkipped = Boolean(checkSkippedReason(current.questionText));
+
+        if (hasOptions || hasAnswers || isSkipped || isExplicitHeader) {
+          isNewQuestion = true;
+        }
+      }
+    }
+
+    if (isNewQuestion) {
       finalizeCurrentQuestion();
 
       const qNum = parseInt(qMatch[1], 10);
