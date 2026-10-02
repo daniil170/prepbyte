@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { ThemeToggle } from '@shared/theme';
 import { useStudentAnalytics } from '../hooks/useStudentAnalytics';
+import { StreakFlame } from './StreakFlame';
 import styles from './AnalyticsDashboard.module.css';
 
 function formatDate(timestamp) {
@@ -186,9 +187,14 @@ export function AnalyticsDashboard({ hook = useStudentAnalytics }) {
                   </p>
                 </div>
 
-                <div className={styles.kpiCard}>
+                <div
+                  className={`${styles.kpiCard} ${styles.streakCard} ${
+                    kpis.studyStreak > 0 ? styles.streakCardActive : ''
+                  }`}
+                >
                   <div className={styles.kpiHeader}>
                     <span className={styles.kpiLabel}>Ударный режим</span>
+                    <StreakFlame streak={kpis.studyStreak} />
                   </div>
                   <div className={styles.kpiValueRow}>
                     <span className={styles.kpiValue}>{kpis.studyStreak}</span>

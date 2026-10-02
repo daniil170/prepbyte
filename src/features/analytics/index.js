@@ -16,3 +16,4 @@ export {
 export { useStudentAnalytics } from './hooks/useStudentAnalytics';
 
 export { AnalyticsDashboard } from './ui/AnalyticsDashboard';
+export { StreakFlame } from './ui/StreakFlame';

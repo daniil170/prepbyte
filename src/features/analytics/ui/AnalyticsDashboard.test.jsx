@@ -166,6 +166,11 @@ describe('AnalyticsDashboard', () => {
     expect(screen.getByText('42.5')).toBeInTheDocument();
     expect(screen.getAllByText('45').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('67%')).toBeInTheDocument();
+    expect(screen.getByTestId('streak-flame')).toBeInTheDocument();
+    expect(screen.getByTestId('streak-flame')).toHaveAttribute(
+      'data-active',
+      'true'
+    );
 
     // Topics filter
     expect(screen.getByText('Циклы и условия в Python')).toBeInTheDocument();
