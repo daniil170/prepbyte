@@ -46,25 +46,9 @@ export function AuthProvider({ children, repository = defaultRepository }) {
     return authUser;
   }, [repository]);
 
-  const [googleDriveToken, setGoogleDriveToken] = useState(null);
-
-  const requestGoogleDriveAccess = useCallback(async () => {
-    if (typeof repository.requestGoogleDriveAccess !== 'function') {
-      throw new Error(
-        'requestGoogleDriveAccess is not implemented on the repository'
-      );
-    }
-    const token = await repository.requestGoogleDriveAccess();
-    if (token) {
-      setGoogleDriveToken(token);
-    }
-    return token;
-  }, [repository]);
-
   const signOut = useCallback(async () => {
     await repository.signOut();
     setUser(null);
-    setGoogleDriveToken(null);
     setStatus('unauthenticated');
   }, [repository]);
 
@@ -72,24 +56,12 @@ export function AuthProvider({ children, repository = defaultRepository }) {
     () => ({
       user,
       status,
-      googleDriveToken,
-      setGoogleDriveToken,
-      requestGoogleDriveAccess,
       signIn,
       register,
       signInWithGoogle,
       signOut,
     }),
-    [
-      user,
-      status,
-      googleDriveToken,
-      requestGoogleDriveAccess,
-      signIn,
-      register,
-      signInWithGoogle,
-      signOut,
-    ]
+    [user, status, signIn, register, signInWithGoogle, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

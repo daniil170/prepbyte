@@ -24,7 +24,6 @@ function createFakeAuthRepository(initialUser = null) {
       };
       return currentUser;
     }),
-    requestGoogleDriveAccess: vi.fn(async () => 'test-drive-token'),
     signOut: vi.fn(async () => {
       currentUser = null;
     }),
@@ -43,23 +42,13 @@ function createFakeAuthRepository(initialUser = null) {
 }
 
 function TestConsumer() {
-  const {
-    user,
-    status,
-    googleDriveToken,
-    requestGoogleDriveAccess,
-    signIn,
-    register,
-    signInWithGoogle,
-    signOut,
-  } = useAuth();
+  const { user, status, signIn, register, signInWithGoogle, signOut } =
+    useAuth();
 
   return (
     <div>
       <span data-testid="status">{status}</span>
       <span data-testid="user">{user ? user.email : 'none'}</span>
-      <span data-testid="drive-token">{googleDriveToken || 'none'}</span>
-      <button onClick={() => requestGoogleDriveAccess()}>Connect Drive</button>
       <button
         onClick={() =>
           signIn({ email: 'test@prepbyte.kz', password: 'password123' })
@@ -162,13 +151,5 @@ describe('AuthProvider & useAuth', () => {
     });
     expect(screen.getByTestId('status')).toHaveTextContent('authenticated');
     expect(screen.getByTestId('user')).toHaveTextContent('google@test.com');
-
-    // Google Drive Access
-    await act(async () => {
-      screen.getByText('Connect Drive').click();
-    });
-    expect(screen.getByTestId('drive-token')).toHaveTextContent(
-      'test-drive-token'
-    );
   });
 });

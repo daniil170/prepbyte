@@ -119,20 +119,4 @@ C) Принтер
     // Verify prefix placeholder
     expect(screen.getByPlaceholderText('#10001')).toBeInTheDocument();
   });
-
-  it('opens Google Drive import modal when Google Drive button is clicked', () => {
-    render(
-      <MemoryRouter>
-        <AdminVariantsPage />
-      </MemoryRouter>
-    );
-
-    const driveBtn = screen.getByRole('button', {
-      name: /Импортировать из Google Drive \/ Docs/i,
-    });
-    fireEvent.click(driveBtn);
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Импорт из Google Drive')).toBeInTheDocument();
-  });
 });

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useVariantUploader } from '../hooks/useVariantUploader';
 import { AiVariantGenerator } from './AiVariantGenerator';
-import { GoogleDriveImportModal } from './GoogleDriveImportModal';
 import { QuestionPreviewEditor } from './QuestionPreviewEditor';
 import { VariantDropzone } from './VariantDropzone';
 import { VariantValidationSummary } from './VariantValidationSummary';
@@ -15,7 +14,6 @@ import styles from './AdminVariantsPage.module.css';
 export function AdminVariantsPage() {
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' | 'generator'
   const [expandedQuestionIdx, setExpandedQuestionIdx] = useState(null);
-  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
   const {
     file,
@@ -149,14 +147,7 @@ export function AdminVariantsPage() {
 
           <VariantDropzone
             onFileSelect={handleFileSelect}
-            onGoogleDriveClick={() => setIsDriveModalOpen(true)}
             disabled={isUploading}
-          />
-
-          <GoogleDriveImportModal
-            isOpen={isDriveModalOpen}
-            onClose={() => setIsDriveModalOpen(false)}
-            onFileLoaded={handleFileSelect}
           />
 
           {error && (

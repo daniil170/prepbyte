@@ -8,11 +8,7 @@ import styles from './VariantDropzone.module.css';
  * @param {Function} props.onFileSelect - Callback when a file is selected.
  * @param {boolean} [props.disabled=false] - Whether the dropzone is disabled.
  */
-export function VariantDropzone({
-  onFileSelect,
-  onGoogleDriveClick,
-  disabled = false,
-}) {
+export function VariantDropzone({ onFileSelect, disabled = false }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef(null);
 
@@ -93,7 +89,7 @@ export function VariantDropzone({
           handleClick();
         }
       }}
-      aria-label="Загрузить файл варианта (JSON, DOCX, PDF, Google Drive)"
+      aria-label="Загрузить файл варианта (JSON, DOCX, PDF)"
     >
       <input
         ref={inputRef}
@@ -104,30 +100,15 @@ export function VariantDropzone({
         disabled={disabled}
       />
       <div className={styles.iconContainer}>
-        <span className={styles.icon}>[DOC / JSON / DRIVE]</span>
+        <span className={styles.icon}>[DOC / JSON]</span>
       </div>
       <p className={styles.prompt}>
         Перетащите файл варианта сюда или{' '}
         <span className={styles.browseLink}>выберите файл</span>
       </p>
-      {onGoogleDriveClick && (
-        <div className={styles.driveAction}>
-          <button
-            type="button"
-            className={styles.driveButton}
-            onClick={(e) => {
-              e.stopPropagation();
-              onGoogleDriveClick();
-            }}
-            disabled={disabled}
-          >
-            <span>📁</span> Импортировать из Google Drive / Docs
-          </button>
-        </div>
-      )}
       <p className={styles.hint}>
-        Поддерживаются форматы JSON (спецификация ЕНТ), DOCX, PDF (с текстовым
-        слоем) и Google Документы
+        Поддерживаются форматы JSON (спецификация ЕНТ), DOCX и PDF (с текстовым
+        слоем)
       </p>
     </div>
   );
