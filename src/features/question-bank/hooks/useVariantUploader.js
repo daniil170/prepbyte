@@ -4,7 +4,7 @@ import { questionRepository as defaultRepository } from '../data/questionReposit
 import { normalizeDocumentText } from '../domain/documentNormalization';
 import { parseQuestionBlocks } from '../domain/questionBlockParser';
 import { buildImportedQuestions } from '../domain/questionImportMapper';
-import { isValidTopic } from '../domain/topics';
+import { detectQuestionTopic, isValidTopic } from '../domain/topics';
 import { validateVariantPayload } from '../domain/variantValidation';
 
 /**
@@ -36,7 +36,9 @@ function validateEditableQuestion(q) {
     issues.push('Индекс правильного ответа выходит за пределы вариантов.');
   }
 
-  if (!q.topic || !isValidTopic(q.topic)) {
+  const effectiveTopic =
+    q.topic || detectQuestionTopic(q.questionText, q.options);
+  if (!effectiveTopic || !isValidTopic(effectiveTopic)) {
     issues.push('Необходимо выбрать корректную тему ЕНТ.');
   }
 
@@ -55,18 +57,24 @@ function validateEditableQuestion(q) {
 }
 
 /**
- * Generates a clean variant slug from file name.
+ * Generates a clean variant slug from file name with 5-digit number prefixed by #.
+ * E.g., "Вариант 8.pdf" -> "#00008", or fallback "#10001".
  * @param {string} fileName
  * @returns {string}
  */
-function generateSlugFromFileName(fileName = '') {
+export function generateSlugFromFileName(fileName = '') {
   const base = fileName.replace(/\.[^/.]+$/, '').trim();
-  const slug = base
-    .toLowerCase()
-    .replace(/[^a-z0-9а-яё_-]/gi, '_')
-    .replace(/_+/g, '_')
-    .slice(0, 24);
-  return slug || 'doc';
+  const variantMatch = base.match(/(?:вариант|variant|var|v)[\s._-]*(\d+)/i);
+  if (variantMatch) {
+    const num = parseInt(variantMatch[1], 10);
+    return `#${String(num).padStart(5, '0')}`;
+  }
+  const anyNumMatch = base.match(/\d+/);
+  if (anyNumMatch) {
+    const num = parseInt(anyNumMatch[0], 10);
+    return `#${String(num).padStart(5, '0')}`;
+  }
+  return '#10001';
 }
 
 /**
@@ -87,7 +95,7 @@ export function useVariantUploader({
   const [validationResult, setValidationResult] = useState(null);
   const [documentQuestions, setDocumentQuestions] = useState([]);
   const [documentWarnings, setDocumentWarnings] = useState([]);
-  const [variantSlug, setVariantSlug] = useState('doc_import');
+  const [variantSlug, setVariantSlugState] = useState('#10001');
   const [defaultTopic, setDefaultTopic] = useState('cpu_memory');
   const [defaultDifficulty, setDefaultDifficulty] = useState('medium');
 
@@ -97,13 +105,29 @@ export function useVariantUploader({
   const [uploadCount, setUploadCount] = useState(0);
   const [error, setError] = useState(null);
 
+  const setVariantSlug = useCallback((newSlug) => {
+    setVariantSlugState(newSlug);
+    setDocumentQuestions((prev) =>
+      prev.map((q, idx) => {
+        const paddedIndex = String(q.number || idx + 1).padStart(3, '0');
+        const clean = String(newSlug || '#10001')
+          .trim()
+          .replace(/[^a-z0-9_#-]/gi, '-');
+        return {
+          ...q,
+          id: `${clean}-${paddedIndex}`,
+        };
+      })
+    );
+  }, []);
+
   const reset = useCallback(() => {
     setFile(null);
     setFileType(null);
     setValidationResult(null);
     setDocumentQuestions([]);
     setDocumentWarnings([]);
-    setVariantSlug('doc_import');
+    setVariantSlugState('#10001');
     setDefaultTopic('cpu_memory');
     setDefaultDifficulty('medium');
     setIsValidating(false);
@@ -135,7 +159,7 @@ export function useVariantUploader({
         ) {
           setFileType('document');
           const slug = generateSlugFromFileName(fileName);
-          setVariantSlug(slug);
+          setVariantSlugState(slug);
 
           // 1. Read document text
           const rawText = await documentReader(selectedFile);
@@ -162,10 +186,9 @@ export function useVariantUploader({
             existingBank = [];
           }
 
-          // 5. Build imported questions
+          // 5. Build imported questions with auto-detected topics
           const rawImported = buildImportedQuestions(parsedItems, {
             existingQuestions: existingBank,
-            defaultTopic: 'cpu_memory',
             defaultDifficulty: 'medium',
             defaultExplanation: 'Пояснение к заданию',
             variantSlug: slug,
@@ -419,17 +442,28 @@ export function useVariantUploader({
           }
         }
 
-        const payload = includedQuestions.map((q, idx) => ({
-          id: q.id || `${variantSlug}_q${idx + 1}`,
-          topic: q.topic,
-          questionText: q.questionText.trim(),
-          options: q.options.map((opt) => opt.trim()),
-          correctAnswers: q.correctAnswers,
-          explanation: q.explanation.trim(),
-          difficulty: q.difficulty,
-          points: q.correctAnswers.length > 1 ? 2 : 1,
-          version: 1,
-        }));
+        const payload = includedQuestions.map((q, idx) => {
+          const paddedIndex = String(q.number || idx + 1).padStart(3, '0');
+          const clean = String(variantSlug || '#10001')
+            .trim()
+            .replace(/[^a-z0-9_#-]/gi, '-');
+          const topic =
+            q.topic ||
+            detectQuestionTopic(q.questionText, q.options) ||
+            'cpu_memory';
+
+          return {
+            id: q.id || `${clean}-${paddedIndex}`,
+            topic,
+            questionText: q.questionText.trim(),
+            options: q.options.map((opt) => opt.trim()),
+            correctAnswers: q.correctAnswers,
+            explanation: q.explanation.trim(),
+            difficulty: q.difficulty,
+            points: q.correctAnswers.length > 1 ? 2 : 1,
+            version: 1,
+          };
+        });
 
         const { writtenCount } = await repository.saveQuestionsBatch(payload);
         setUploadSuccess(true);

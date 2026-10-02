@@ -1,8 +1,27 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { useVariantUploader } from './useVariantUploader';
+import {
+  generateSlugFromFileName,
+  useVariantUploader,
+} from './useVariantUploader';
 
 describe('useVariantUploader hook', () => {
+  describe('generateSlugFromFileName', () => {
+    it('extracts variant number and formats as 5-digit number with #', () => {
+      expect(
+        generateSlugFromFileName('ЕНТ по информатике — Вариант 8.pdf')
+      ).toBe('#00008');
+      expect(generateSlugFromFileName('variant_12.docx')).toBe('#00012');
+      expect(generateSlugFromFileName('var 05.pdf')).toBe('#00005');
+      expect(generateSlugFromFileName('v10001.pdf')).toBe('#10001');
+    });
+
+    it('falls back to #10001 if no numbers found', () => {
+      expect(generateSlugFromFileName('test_mock.pdf')).toBe('#10001');
+      expect(generateSlugFromFileName('')).toBe('#10001');
+    });
+  });
+
   const createMockFile = (content, name = 'variant.json') => ({
     name,
     text: vi.fn().mockResolvedValue(content),
@@ -231,6 +250,38 @@ D) Дисплей
           (q) => q.topic === 'algorithms_structures'
         )
       ).toBe(true);
+    });
+
+    it('extracts 5-digit # prefix from variant filename and synchronizes question IDs', async () => {
+      const mockFile = { name: 'ЕНТ по информатике — Вариант 8.pdf' };
+      const mockReader = vi.fn().mockResolvedValue(sampleDocxText);
+      const mockRepo = {
+        getAllQuestions: vi.fn().mockResolvedValue([]),
+      };
+
+      const { result } = renderHook(() =>
+        useVariantUploader({
+          repository: mockRepo,
+          documentReader: mockReader,
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleFileSelect(mockFile);
+      });
+
+      expect(result.current.variantSlug).toBe('#00008');
+      expect(result.current.documentQuestions[0].id).toBe('#00008-001');
+      expect(result.current.documentQuestions[1].id).toBe('#00008-002');
+
+      // Update variant slug manually
+      act(() => {
+        result.current.setVariantSlug('#99999');
+      });
+
+      expect(result.current.variantSlug).toBe('#99999');
+      expect(result.current.documentQuestions[0].id).toBe('#99999-001');
+      expect(result.current.documentQuestions[1].id).toBe('#99999-002');
     });
   });
 });

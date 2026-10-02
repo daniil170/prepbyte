@@ -4,6 +4,7 @@ export {
   QuestionDomainError,
 } from './domain/question';
 export {
+  detectQuestionTopic,
   getTopicById,
   getTopicLabel,
   isValidTopic,

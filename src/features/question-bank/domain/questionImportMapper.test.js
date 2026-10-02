@@ -139,4 +139,24 @@ describe('questionImportMapper', () => {
       'Пояснение к заданию по умолчанию'
     );
   });
+
+  it('preserves # in variantSlug (e.g. #00008) and auto-detects topic when not provided', () => {
+    const sqlItem = {
+      number: 1,
+      questionText: 'Какой оператор SQL выбирает уникальные значения?',
+      options: ['SELECT DISTINCT', 'UPDATE', 'INSERT'],
+      correctAnswers: [0],
+      explanation: 'SELECT DISTINCT возвращает уникальные строки.',
+      status: 'ok',
+      issues: [],
+    };
+
+    const results = buildImportedQuestions([sqlItem], {
+      variantSlug: '#00008',
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0].question.id).toBe('#00008-001');
+    expect(results[0].question.topic).toBe('sql_queries');
+  });
 });

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TOPICS } from '../domain/topics';
 import { useVariantUploader } from '../hooks/useVariantUploader';
 import { AiVariantGenerator } from './AiVariantGenerator';
 import { QuestionPreviewEditor } from './QuestionPreviewEditor';
@@ -24,8 +23,6 @@ export function AdminVariantsPage() {
     documentWarnings,
     variantSlug,
     setVariantSlug,
-    defaultTopic,
-    setDefaultTopic,
     defaultDifficulty,
     setDefaultDifficulty,
     isUploading,
@@ -40,7 +37,6 @@ export function AdminVariantsPage() {
     removeDocumentQuestion,
     includeAll,
     excludeDuplicates,
-    applyDefaultTopicToAll,
     applyDefaultDifficultyToAll,
     canSaveDocument,
     includedCount,
@@ -243,25 +239,8 @@ export function AdminVariantsPage() {
                         className={styles.toolbarInput}
                         value={variantSlug}
                         onChange={(e) => setVariantSlug(e.target.value)}
-                        placeholder="Например, ent_2026_v1"
+                        placeholder="#10001"
                       />
-                    </div>
-
-                    <div className={styles.toolbarField}>
-                      <label className={styles.toolbarLabel}>
-                        Тема по умолчанию:
-                      </label>
-                      <select
-                        className={styles.toolbarSelect}
-                        value={defaultTopic}
-                        onChange={(e) => setDefaultTopic(e.target.value)}
-                      >
-                        {TOPICS.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.label}
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
                     <div className={styles.toolbarField}>
@@ -284,14 +263,6 @@ export function AdminVariantsPage() {
                     <span className={styles.bulkActionLabel}>
                       Быстрые действия:
                     </span>
-                    <button
-                      type="button"
-                      className={styles.actionBtn}
-                      onClick={() => applyDefaultTopicToAll(defaultTopic)}
-                      title="Установить выбранную тему для всех заданий в списке"
-                    >
-                      Применить тему ко всем
-                    </button>
                     <button
                       type="button"
                       className={styles.actionBtn}

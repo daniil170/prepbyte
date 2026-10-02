@@ -4,6 +4,7 @@ import {
   extractWordShingles,
   normalizeQuestionText,
 } from './questionSimilarity.js';
+import { detectQuestionTopic } from './topics.js';
 
 /**
  * Builds imported question entities from raw parsed document blocks, performs
@@ -12,9 +13,10 @@ import {
  *
  * @param {Array<object>} parsedItems - Items returned from parseQuestionBlocks.
  * @param {object} options
- * @param {string} [options.variantSlug='imported-var'] - Slug for generating question IDs.
+ * @param {string} [options.variantSlug='#10001'] - Slug for generating question IDs.
  * @param {string} [options.defaultTopic=''] - Default topic assigned if none specified.
  * @param {string} [options.defaultDifficulty='medium'] - Default difficulty level.
+ * @param {string} [options.defaultExplanation=''] - Default explanation if question has none.
  * @param {Array<object>} [options.existingQuestions=[]] - Existing question bank for duplicate detection.
  * @returns {Array<{
  *   question: object,
@@ -26,7 +28,7 @@ import {
 export function buildImportedQuestions(
   parsedItems = [],
   {
-    variantSlug = 'imported-var',
+    variantSlug = '#10001',
     defaultTopic = '',
     defaultDifficulty = 'medium',
     defaultExplanation = '',
@@ -37,10 +39,10 @@ export function buildImportedQuestions(
     return [];
   }
 
-  const cleanSlug = (variantSlug || 'imported-var')
+  const cleanSlug = (variantSlug || '#10001')
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '-');
+    .replace(/[^a-z0-9_#-]/g, '-');
 
   // Pre-index existing questions for duplicate checks
   const existingMap = (existingQuestions || []).map((q) => ({
@@ -58,9 +60,14 @@ export function buildImportedQuestions(
     const paddedNum = String(qNum).padStart(3, '0');
     const questionId = `${cleanSlug}-${paddedNum}`;
 
+    const assignedTopic =
+      item.topic ||
+      defaultTopic ||
+      detectQuestionTopic(item.questionText, item.options);
+
     const rawQuestion = {
       id: questionId,
-      topic: item.topic || defaultTopic || '',
+      topic: assignedTopic,
       questionText: item.questionText || '',
       options: item.options || [],
       correctAnswers: item.correctAnswers || [],

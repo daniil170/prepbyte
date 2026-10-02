@@ -103,9 +103,20 @@ C) Принтер
     expect(screen.getByText('variant_2026.docx')).toBeInTheDocument();
     expect(screen.getByText('Выбрано: 2 / 2')).toBeInTheDocument();
     expect(screen.getByText('Распознанные задания (2)')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Что такое компилятор?')).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('Что такое компилятор?')
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Сохранить 2 вопросов/i })
     ).toBeInTheDocument();
+
+    // Verify default topic UI was removed
+    expect(screen.queryByText(/Тема по умолчанию:/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Применить тему ко всем/i)
+    ).not.toBeInTheDocument();
+
+    // Verify prefix placeholder
+    expect(screen.getByPlaceholderText('#10001')).toBeInTheDocument();
   });
 });
