@@ -65,11 +65,9 @@ describe('documentReaders', () => {
     it('extracts raw text using mammoth', async () => {
       const file = new File(['dummy docx'], 'test.docx');
       const mockMammoth = {
-        extractRawText: vi
-          .fn()
-          .mockResolvedValue({
-            value: '1. Вопрос по физике\nA) 1\nB) 2\nОтвет: A',
-          }),
+        extractRawText: vi.fn().mockResolvedValue({
+          value: '1. Вопрос по физике\nA) 1\nB) 2\nОтвет: A',
+        }),
       };
 
       const text = await readDocxText(file, { mammoth: mockMammoth });

@@ -76,6 +76,19 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
     }
   }
 
+  async function requestGoogleDriveAccess() {
+    try {
+      const driveProvider = new GoogleAuthProvider();
+      driveProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
+      const userCredential = await signInWithPopup(firebaseAuth, driveProvider);
+      const credential =
+        GoogleAuthProvider.credentialFromResult(userCredential);
+      return credential?.accessToken || null;
+    } catch (error) {
+      throw mapFirebaseErrorToAuthError(error);
+    }
+  }
+
   function subscribeToAuthState(callback) {
     return onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
       const authUser = await resolveAuthUser(firebaseUser);
@@ -87,6 +100,7 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
     signInWithEmail,
     registerWithEmail,
     signInWithGoogle,
+    requestGoogleDriveAccess,
     signOut,
     subscribeToAuthState,
   };

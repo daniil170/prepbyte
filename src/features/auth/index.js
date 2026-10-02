@@ -1,4 +1,5 @@
 export { AuthProvider } from './hooks/AuthProvider';
+export { AuthContext } from './hooks/authContext';
 export { useAuth } from './hooks/useAuth';
 export { default as LoginPage } from './ui/LoginPage';
 export { default as RegisterPage } from './ui/RegisterPage';
