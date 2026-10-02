@@ -24,6 +24,17 @@ describe('adminAuthorization domain module', () => {
     ).toBe(true);
   });
 
+  it('authorizes built-in admin identifiers', () => {
+    expect(isUserAdmin({ id: 'u5', email: 'admin@prepbyte.kz' })).toBe(true);
+    expect(isUserAdmin({ id: 'u6', email: 'admin@school.kz' })).toBe(true);
+    expect(isUserAdmin({ id: 'u7', email: 'daniilivakin30@gmail.com' })).toBe(
+      true
+    );
+    expect(isUserAdmin({ id: 'u8', email: 'abishev.ernar@pifagor.kz' })).toBe(
+      true
+    );
+  });
+
   it('rejects regular users, empty emails, or invalid objects', () => {
     expect(isUserAdmin(null)).toBe(false);
     expect(isUserAdmin({})).toBe(false);

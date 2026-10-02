@@ -21,7 +21,7 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
     }
     try {
       if (typeof firebaseUser.getIdTokenResult === 'function') {
-        const tokenResult = await firebaseUser.getIdTokenResult();
+        const tokenResult = await firebaseUser.getIdTokenResult(true);
         return mapFirebaseUserToAuthUser(firebaseUser, tokenResult);
       }
     } catch {
