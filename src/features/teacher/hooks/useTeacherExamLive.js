@@ -78,9 +78,17 @@ export function useTeacherExamLive(
   const stats = useMemo(() => {
     const totalEnrolled = group?.studentIds?.length || 0;
     const joinedCount = sessions.length;
-    const waitingCount = sessions.filter((s) => s.status === 'waiting').length;
-    const inProgressCount = sessions.filter((s) => s.status === 'in_progress').length;
-    const submittedCount = sessions.filter((s) => s.status === 'submitted').length;
+    const isExamActive = exam?.status === EXAM_STATUS.ACTIVE;
+    const waitingCount = sessions.filter(
+      (s) => s.status === 'waiting' && !isExamActive
+    ).length;
+    const inProgressCount = sessions.filter(
+      (s) =>
+        s.status === 'in_progress' || (isExamActive && s.status === 'waiting')
+    ).length;
+    const submittedCount = sessions.filter(
+      (s) => s.status === 'submitted'
+    ).length;
 
     let totalPoints = 0;
     let gradedCount = 0;
@@ -91,7 +99,8 @@ export function useTeacherExamLive(
       }
     }
 
-    const averageScore = gradedCount > 0 ? (totalPoints / gradedCount).toFixed(1) : 0;
+    const averageScore =
+      gradedCount > 0 ? (totalPoints / gradedCount).toFixed(1) : 0;
 
     return {
       totalEnrolled,
@@ -102,7 +111,7 @@ export function useTeacherExamLive(
       averageScore,
       gradedCount,
     };
-  }, [group, sessions]);
+  }, [group, sessions, exam?.status]);
 
   return {
     exam,

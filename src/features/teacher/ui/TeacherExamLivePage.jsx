@@ -148,10 +148,10 @@ export function TeacherExamLivePage() {
                       <strong>{s.studentName || s.studentId}</strong>
                     </td>
                     <td className={styles.td}>
-                      {s.status === 'waiting' && (
+                      {s.status === 'waiting' && exam.status !== EXAM_STATUS.ACTIVE && (
                         <span className={styles.statusWaiting}>Ожидает</span>
                       )}
-                      {s.status === 'in_progress' && (
+                      {(s.status === 'in_progress' || (s.status === 'waiting' && exam.status === EXAM_STATUS.ACTIVE)) && (
                         <span className={styles.statusInProgress}>
                           ● В процессе
                         </span>
