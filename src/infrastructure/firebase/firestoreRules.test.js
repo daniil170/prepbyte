@@ -619,6 +619,36 @@ describe('Firestore Security Rules Unit Tests', () => {
     );
   });
 
+  it('18b. Student A CANNOT forge expiresAt, startedAt, or questionOrder on exam session create', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    // Attempt expiresAt injection on create
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/examA_studentA_cheatTimer'), {
+        examId: 'examA',
+        studentId: 'studentA',
+        groupId: 'groupA',
+        status: 'waiting',
+        answers: {},
+        expiresAt: Date.now() + 86400000,
+      })
+    );
+    // Attempt questionOrder injection on create
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/examA_studentA_cheatOrder'), {
+        examId: 'examA',
+        studentId: 'studentA',
+        groupId: 'groupA',
+        status: 'waiting',
+        answers: {},
+        questionOrder: ['q2', 'q1'],
+      })
+    );
+  });
+
   it('19. Student A CAN update answers in active session, but CANNOT update submitted session', async () => {
     if (!isEmulatorAvailable) return;
     const studentA = testEnv.authenticatedContext('studentA', {

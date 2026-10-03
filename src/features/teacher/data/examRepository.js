@@ -30,6 +30,7 @@ import {
 import {
   submitExamSessionService,
   submitExamSessionClient,
+  startExamSessionClient,
 } from './submitExamSessionService';
 
 function generateId(prefix = 'exam') {
@@ -279,6 +280,15 @@ export function createExamRepository(firestore = defaultDb) {
 
     if (snapshot.exists()) {
       return documentToExamSession(snapshot.id, snapshot.data());
+    }
+
+    try {
+      const serverSession = await startExamSessionClient({ examId: examId.trim() });
+      if (serverSession) {
+        return documentToExamSession(serverSession.id || sessionId, serverSession);
+      }
+    } catch {
+      // Fallback for mock/test environments
     }
 
     const initialStatus =

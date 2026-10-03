@@ -1,6 +1,8 @@
+import { describe, it, expect, vi } from 'vitest';
 import {
   submitExamSessionService,
   submitExamSessionClient,
+  startExamSessionClient,
   SubmitExamSessionError,
 } from './submitExamSessionService';
 
@@ -347,6 +349,45 @@ describe('submitExamSessionClient Transport Unit Tests', () => {
         { callableFactory }
       )
     ).rejects.toThrow(SubmitExamSessionError);
+  });
+});
+
+describe('startExamSessionClient Transport Unit Tests', () => {
+  it('1. Validates examId is present and non-empty', async () => {
+    await expect(startExamSessionClient({})).rejects.toThrow(SubmitExamSessionError);
+    await expect(startExamSessionClient({ examId: '   ' })).rejects.toThrow(
+      'Идентификатор экзамена (examId) обязателен.'
+    );
+  });
+
+  it('2. Invokes httpsCallable for startExamSession and returns initialized session', async () => {
+    const mockCallable = vi.fn().mockResolvedValue({
+      data: {
+        id: 'exam1_student1',
+        examId: 'exam1',
+        studentId: 'student1',
+        status: 'in_progress',
+        questionOrder: ['q1', 'q2'],
+      },
+    });
+    const callableFactory = vi.fn(() => mockCallable);
+    const mockFunctions = {};
+
+    const result = await startExamSessionClient(
+      { examId: 'exam1' },
+      mockFunctions,
+      { callableFactory }
+    );
+
+    expect(callableFactory).toHaveBeenCalledWith(
+      mockFunctions,
+      'startExamSession'
+    );
+    expect(mockCallable).toHaveBeenCalledWith({
+      examId: 'exam1',
+    });
+    expect(result.id).toBe('exam1_student1');
+    expect(result.questionOrder).toEqual(['q1', 'q2']);
   });
 });
 

@@ -247,7 +247,7 @@ service cloud.firestore {
         && request.resource.data.groupId == get(/databases/$(database)/documents/exams/$(request.resource.data.examId)).data.groupId
         && exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId))
         && (request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.studentIds)
-        && !request.resource.data.keys().hasAny(['score', 'totalScore', 'percentage', 'correctAnswersCount', 'maxPossibleScore']);
+        && !request.resource.data.keys().hasAny(['score', 'totalScore', 'percentage', 'correctAnswersCount', 'maxPossibleScore', 'expiresAt', 'startedAt', 'questionOrder']);
 
       // Update allowed only by student owner while waiting or in_progress, preserving immutable fields and preventing score modification
       allow update: if isAuthenticated() && (

@@ -59,6 +59,34 @@ export async function submitExamSessionClient(
 }
 
 /**
+ * Client session initialization transport that invokes startExamSession Callable Cloud Function.
+ */
+export async function startExamSessionClient(
+  { examId } = {},
+  functionsInstance = defaultFunctions,
+  { callableFactory = httpsCallable } = {}
+) {
+  if (!examId || typeof examId !== 'string' || !examId.trim()) {
+    throw new SubmitExamSessionError(
+      'Идентификатор экзамена (examId) обязателен.',
+      'INVALID_ARGUMENT'
+    );
+  }
+
+  try {
+    const callable = callableFactory(functionsInstance, 'startExamSession');
+    const response = await callable({
+      examId: examId.trim(),
+    });
+    return response.data;
+  } catch (err) {
+    const message = err.message || 'Ошибка инициализации сессии экзамена.';
+    const code = err.code || 'UNKNOWN';
+    throw new SubmitExamSessionError(message, code);
+  }
+}
+
+/**
  * Server-authoritative submission service for online exams (used in server / test environments).
  *
  * Validates authentication, loads protected correct answers from question_answers,
