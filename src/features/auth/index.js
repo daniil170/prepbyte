@@ -9,3 +9,5 @@ export { AdminRoute } from './ui/AdminRoute';
 export { TeacherRoute } from './ui/TeacherRoute';
 export { isUserAdmin } from './domain/adminAuthorization';
 export { isUserTeacher } from './domain/teacherAuthorization';
+export { createUserProfile } from './domain/userProfile';
+export { userProfileRepository } from './data/userProfileRepository';
