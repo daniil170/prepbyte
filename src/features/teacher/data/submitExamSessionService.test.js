@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
 import {
   submitExamSessionService,
+  submitExamSessionClient,
   SubmitExamSessionError,
 } from './submitExamSessionService';
 
@@ -293,3 +293,60 @@ describe('submitExamSessionService Unit Tests', () => {
     expect(result.correctAnswersCount).toBe(1);
   });
 });
+
+describe('submitExamSessionClient Transport Unit Tests', () => {
+  it('1. Validates sessionId is present and non-empty', async () => {
+    await expect(submitExamSessionClient({})).rejects.toThrow(SubmitExamSessionError);
+    await expect(submitExamSessionClient({ sessionId: '   ' })).rejects.toThrow(
+      'Идентификатор сессии (sessionId) обязателен.'
+    );
+  });
+
+  it('2. Invokes httpsCallable and returns data payload', async () => {
+    const mockCallable = vi.fn().mockResolvedValue({
+      data: {
+        sessionId: 'exam1_student1',
+        status: 'submitted',
+        totalScore: 5,
+        percentage: 63,
+      },
+    });
+    const callableFactory = vi.fn(() => mockCallable);
+    const mockFunctions = {};
+
+    const result = await submitExamSessionClient(
+      { sessionId: 'exam1_student1', answers: { q1: [0] } },
+      mockFunctions,
+      { callableFactory }
+    );
+
+    expect(callableFactory).toHaveBeenCalledWith(
+      mockFunctions,
+      'submitExamSession'
+    );
+    expect(mockCallable).toHaveBeenCalledWith({
+      sessionId: 'exam1_student1',
+      answers: { q1: [0] },
+    });
+    expect(result.totalScore).toBe(5);
+    expect(result.percentage).toBe(63);
+  });
+
+  it('3. Wraps callable errors in SubmitExamSessionError', async () => {
+    const mockCallable = vi.fn().mockRejectedValue({
+      code: 'functions/permission-denied',
+      message: 'Вы не являетесь владельцем этой экзаменационной сессии.',
+    });
+    const callableFactory = vi.fn(() => mockCallable);
+    const mockFunctions = {};
+
+    await expect(
+      submitExamSessionClient(
+        { sessionId: 'exam1_student1' },
+        mockFunctions,
+        { callableFactory }
+      )
+    ).rejects.toThrow(SubmitExamSessionError);
+  });
+});
+

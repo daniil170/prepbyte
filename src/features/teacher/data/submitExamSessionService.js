@@ -9,8 +9,10 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { evaluateExamAnswers } from '../domain/examSession';
 import { chunk } from '@shared/lib/chunk';
+import { functions as defaultFunctions } from '@infrastructure/firebase/functions';
 
 export class SubmitExamSessionError extends Error {
   constructor(message, code = 'INTERNAL') {
@@ -21,12 +23,48 @@ export class SubmitExamSessionError extends Error {
 }
 
 /**
- * Server-authoritative submission service for online exams.
+ * Client submission transport that invokes the Callable Cloud Function.
+ * The Cloud Function runs on the secure backend with Admin SDK privileges,
+ * verifies authentication, loads protected answers, scores server-authoritatively,
+ * and writes immutable results to Firestore.
+ *
+ * @param {object} payload - Submission payload ({ sessionId, answers })
+ * @param {object} functionsInstance - Optional Firebase Functions instance
+ * @returns {Promise<object>} Safe score result summary
+ */
+export async function submitExamSessionClient(
+  { sessionId, answers = {} } = {},
+  functionsInstance = defaultFunctions,
+  { callableFactory = httpsCallable } = {}
+) {
+  if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
+    throw new SubmitExamSessionError(
+      'Идентификатор сессии (sessionId) обязателен.',
+      'INVALID_ARGUMENT'
+    );
+  }
+
+  try {
+    const callable = callableFactory(functionsInstance, 'submitExamSession');
+    const response = await callable({
+      sessionId: sessionId.trim(),
+      answers,
+    });
+    return response.data;
+  } catch (err) {
+    const message = err.message || 'Ошибка отправки экзамена на сервер.';
+    const code = err.code || 'UNKNOWN';
+    throw new SubmitExamSessionError(message, code);
+  }
+}
+
+/**
+ * Server-authoritative submission service for online exams (used in server / test environments).
  *
  * Validates authentication, loads protected correct answers from question_answers,
  * calculates the score on the trusted server/service, and writes immutable results to Firestore.
  *
- * @param {object} firestore - Firestore instance (client or Admin SDK).
+ * @param {object} firestore - Firestore instance.
  * @param {object} authUser - Authenticated user context ({ uid, role, ... }).
  * @param {object} payload - Submission payload ({ sessionId, answers }).
  * @returns {Promise<object>} Safe score result summary without exposing correct answers.

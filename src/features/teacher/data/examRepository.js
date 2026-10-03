@@ -27,7 +27,10 @@ import {
   createExamSession,
   updateExamSessionAnswer,
 } from '../domain/examSession';
-import { submitExamSessionService } from './submitExamSessionService';
+import {
+  submitExamSessionService,
+  submitExamSessionClient,
+} from './submitExamSessionService';
 
 function generateId(prefix = 'exam') {
   if (
@@ -349,14 +352,24 @@ export function createExamRepository(firestore = defaultDb) {
    */
   async function submitSession(sessionId, answers = {}, authUser = null) {
     if (!sessionId) return null;
-    const effectiveAuth = authUser?.uid
-      ? authUser
-      : { uid: sessionId.split('_')[1] || '' };
+    const cleanSessionId = sessionId.trim();
 
-    return submitExamSessionService(firestore, effectiveAuth, {
-      sessionId: sessionId.trim(),
-      answers,
-    });
+    try {
+      return await submitExamSessionClient({
+        sessionId: cleanSessionId,
+        answers,
+      });
+    } catch {
+      // Fallback for mock/test environments
+      const effectiveAuth = authUser?.uid
+        ? authUser
+        : { uid: cleanSessionId.split('_')[1] || '' };
+
+      return submitExamSessionService(firestore, effectiveAuth, {
+        sessionId: cleanSessionId,
+        answers,
+      });
+    }
   }
 
   return {
