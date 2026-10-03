@@ -17,6 +17,7 @@ export {
   createExamSession,
   startExamSession,
   updateExamSessionAnswer,
+  toggleExamSessionFlag,
   submitExamSession,
   getExamSessionRemainingSeconds,
   isExamSessionExpired,

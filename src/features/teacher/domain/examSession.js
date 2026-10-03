@@ -283,6 +283,41 @@ export function updateExamSessionAnswer(
 }
 
 /**
+ * Toggles a question flag state in the session.
+ *
+ * @param {object} session
+ * @param {string} questionId
+ * @param {object} [options]
+ * @param {number|(() => number)} [options.now=Date.now]
+ * @returns {object}
+ */
+export function toggleExamSessionFlag(
+  session,
+  questionId,
+  { now = Date.now } = {}
+) {
+  if (
+    !session ||
+    session.status !== EXAM_SESSION_STATUS.IN_PROGRESS ||
+    !questionId
+  ) {
+    return session;
+  }
+
+  const currentFlagged = Array.isArray(session.flagged) ? session.flagged : [];
+  const isFlagged = currentFlagged.includes(questionId);
+  const updatedFlagged = isFlagged
+    ? currentFlagged.filter((id) => id !== questionId)
+    : [...currentFlagged, questionId];
+
+  return Object.freeze({
+    ...session,
+    flagged: updatedFlagged,
+    updatedAt: resolveTime(now),
+  });
+}
+
+/**
  * Submits an exam session, evaluates final score, and freezes state.
  *
  * @param {object} session

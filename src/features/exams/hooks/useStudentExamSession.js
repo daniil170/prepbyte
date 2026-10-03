@@ -188,6 +188,33 @@ export function useStudentExamSession(
     [sessionId, session, examRepo]
   );
 
+  // 6. Toggle Flag Question
+  const toggleFlag = useCallback(
+    async (questionId) => {
+      if (!sessionId || !session || session.status !== 'in_progress' || !questionId) return;
+
+      const currentFlagged = session.flagged || [];
+      const isAlreadyFlagged = currentFlagged.includes(questionId);
+      const updatedFlagged = isAlreadyFlagged
+        ? currentFlagged.filter((id) => id !== questionId)
+        : [...currentFlagged, questionId];
+
+      // Optimistic local update
+      setSession((prev) => ({
+        ...prev,
+        flagged: updatedFlagged,
+      }));
+
+      // Persist to Firestore
+      try {
+        await examRepo.toggleQuestionFlag(sessionId, questionId);
+      } catch (err) {
+        console.error('Failed to toggle question flag:', err);
+      }
+    },
+    [sessionId, session, examRepo]
+  );
+
   // Auto-activate waiting session when teacher launches exam
   useEffect(() => {
     if (
@@ -231,6 +258,7 @@ export function useStudentExamSession(
     setCurrentIndex,
     totalQuestions: questions.length || exam?.questionIds?.length || 0,
     remainingSeconds,
+    flagged: session?.flagged || [],
     isWaiting,
     isActive,
     isSubmitted,
@@ -238,6 +266,7 @@ export function useStudentExamSession(
     isSubmitting,
     error,
     selectAnswer,
+    toggleFlag,
     submit,
   };
 }

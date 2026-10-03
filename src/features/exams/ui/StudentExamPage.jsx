@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useStudentExamSession } from '../hooks/useStudentExamSession';
 import { StudentExamResultPage } from './StudentExamResultPage';
@@ -13,6 +14,7 @@ function formatTime(seconds) {
 
 export function StudentExamPage() {
   const { examId } = useParams();
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const {
     exam,
     session,
@@ -22,12 +24,14 @@ export function StudentExamPage() {
     setCurrentIndex,
     totalQuestions,
     remainingSeconds,
+    flagged,
     isWaiting,
     isSubmitted,
     isLoading,
     isSubmitting,
     error,
     selectAnswer,
+    toggleFlag,
     submit,
   } = useStudentExamSession(examId);
 
@@ -85,15 +89,34 @@ export function StudentExamPage() {
   const selectedOptions = currentQuestion
     ? session?.answers?.[currentQuestion.id] || []
     : [];
-  const isMultipleChoice = currentQuestion?.multiple || (Array.isArray(currentQuestion?.correctAnswers) && currentQuestion.correctAnswers.length > 1);
+  const isMultipleChoice =
+    currentQuestion?.multiple ||
+    (Array.isArray(currentQuestion?.correctAnswers) &&
+      currentQuestion.correctAnswers.length > 1);
+
+  const isCurrentFlagged = currentQuestion ? flagged.includes(currentQuestion.id) : false;
 
   const handleOptionClick = (index) => {
-    if (!currentQuestion) return;
+    if (!currentQuestion || isSubmitting) return;
     selectAnswer(currentQuestion.id, index, { multiple: isMultipleChoice });
   };
 
+  const handleToggleFlag = () => {
+    if (!currentQuestion || isSubmitting) return;
+    toggleFlag(currentQuestion.id);
+  };
+
+  const answeredCount = Object.values(session?.answers || {}).filter(
+    (ans) => Array.isArray(ans) && ans.length > 0
+  ).length;
+
   const isLastQuestion = currentIndex === totalQuestions - 1;
   const isWarningTimer = remainingSeconds > 0 && remainingSeconds < 300;
+
+  const handleConfirmSubmit = async () => {
+    setShowSubmitModal(false);
+    await submit();
+  };
 
   return (
     <div className={styles.page}>
@@ -114,15 +137,7 @@ export function StudentExamPage() {
           <button
             type="button"
             className={styles.finishBtn}
-            onClick={() => {
-              if (
-                window.confirm(
-                  'Вы уверены, что хотите завершить экзамен и отправить ответы?'
-                )
-              ) {
-                submit();
-              }
-            }}
+            onClick={() => setShowSubmitModal(true)}
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Отправка...' : 'Завершить экзамен'}
@@ -138,9 +153,19 @@ export function StudentExamPage() {
               <span>
                 {isMultipleChoice
                   ? 'Несколько правильных ответов (до 2 баллов)'
-                  : 'Один правильный ответ (1 балл)'}
+                  : 'Один правильный ответ (1 балл)'} • Тема: {currentQuestion.topic || 'Общая'}
               </span>
-              <span>Тема: {currentQuestion.topic || 'Общая'}</span>
+
+              <button
+                type="button"
+                className={`${styles.flagBtn} ${
+                  isCurrentFlagged ? styles.flagBtnActive : ''
+                }`}
+                onClick={handleToggleFlag}
+                disabled={isSubmitting}
+              >
+                {isCurrentFlagged ? '🚩 Отмечен' : '⚑ Отметить'}
+              </button>
             </div>
 
             <div className={styles.questionText}>
@@ -179,7 +204,7 @@ export function StudentExamPage() {
                 type="button"
                 className={styles.navBtn}
                 onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-                disabled={currentIndex === 0}
+                disabled={currentIndex === 0 || isSubmitting}
               >
                 ← Назад
               </button>
@@ -192,7 +217,7 @@ export function StudentExamPage() {
                     Math.min(totalQuestions - 1, prev + 1)
                   )
                 }
-                disabled={isLastQuestion}
+                disabled={isLastQuestion || isSubmitting}
               >
                 Вперёд →
               </button>
@@ -208,6 +233,7 @@ export function StudentExamPage() {
               const isCurrent = idx === currentIndex;
               const isAnswered =
                 session?.answers?.[q.id] && session.answers[q.id].length > 0;
+              const isFlagged = flagged.includes(q.id);
 
               return (
                 <button
@@ -219,7 +245,7 @@ export function StudentExamPage() {
                       : isAnswered
                       ? styles.navGridBtnAnswered
                       : ''
-                  }`}
+                  } ${isFlagged ? styles.navGridBtnFlagged : ''}`}
                   onClick={() => setCurrentIndex(idx)}
                 >
                   {idx + 1}
@@ -229,6 +255,42 @@ export function StudentExamPage() {
           </div>
         </div>
       </main>
+
+      {/* Confirmation Modal */}
+      {showSubmitModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <h2 className={styles.modalTitle}>Завершение экзамена</h2>
+            <p className={styles.modalText}>
+              Вы уверены, что хотите завершить экзамен и отправить свои ответы на проверку?
+            </p>
+            <div className={styles.modalSummary}>
+              Отвечено: <strong>{answeredCount}</strong> из <strong>{totalQuestions}</strong> вопросов
+            </div>
+            <p className={styles.modalText} style={{ fontSize: '0.8125rem', color: '#ef4444' }}>
+              После завершения изменить ответы будет нельзя.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalCancelBtn}
+                onClick={() => setShowSubmitModal(false)}
+                disabled={isSubmitting}
+              >
+                Продолжить экзамен
+              </button>
+              <button
+                type="button"
+                className={styles.modalConfirmBtn}
+                onClick={handleConfirmSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Отправка...' : 'Завершить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

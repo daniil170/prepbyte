@@ -26,6 +26,7 @@ import {
 import {
   createExamSession,
   updateExamSessionAnswer,
+  toggleExamSessionFlag,
 } from '../domain/examSession';
 import {
   submitExamSessionService,
@@ -374,6 +375,24 @@ export function createExamRepository(firestore = defaultDb) {
   }
 
   /**
+   * Toggles question flag in the student exam session.
+   */
+  async function toggleQuestionFlag(sessionId, questionId) {
+    if (!sessionId || !questionId) return;
+    const docRef = doc(firestore, sessionsCollection, sessionId.trim());
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) return;
+
+    const currentSession = documentToExamSession(snapshot.id, snapshot.data());
+    const updated = toggleExamSessionFlag(currentSession, questionId);
+
+    await updateDoc(docRef, {
+      flagged: updated.flagged,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  /**
    * Submits a student exam session via the secure server-authoritative service.
    * Calculates score from protected answer bank and writes immutable results.
    */
@@ -411,6 +430,7 @@ export function createExamRepository(firestore = defaultDb) {
     getOrCreateExamSession,
     subscribeToStudentSession,
     saveStudentAnswer,
+    toggleQuestionFlag,
     submitSession,
   };
 }
