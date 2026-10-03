@@ -8,7 +8,7 @@ function renderWithRouter(ui) {
 }
 
 describe('AuthForm', () => {
-  it('renders login mode properly without confirmPassword field', () => {
+  it('renders login mode properly without registration fields', () => {
     renderWithRouter(<AuthForm mode="login" onSubmit={vi.fn()} />);
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
@@ -16,6 +16,9 @@ describe('AuthForm', () => {
     );
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^пароль/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/имя/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/фамилия/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/класс/i)).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText(/подтверждение пароля/i)
     ).not.toBeInTheDocument();
@@ -24,19 +27,23 @@ describe('AuthForm', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders register mode with confirmPassword field', () => {
+  it('renders register mode with name, class, and school email fields', () => {
     renderWithRouter(<AuthForm mode="register" onSubmit={vi.fn()} />);
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Регистрация'
+      'Регистрация ученика'
     );
+    expect(screen.getByLabelText(/^имя$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^фамилия$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^класс$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/подтверждение пароля/i)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /^зарегистрироваться$/i })
     ).toBeInTheDocument();
   });
 
-  it('validates required fields and shows inline errors without submitting', () => {
+  it('validates required fields on login and shows inline errors', () => {
     const onSubmit = vi.fn();
     renderWithRouter(<AuthForm mode="login" onSubmit={onSubmit} />);
 
@@ -47,12 +54,12 @@ describe('AuthForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('calls onSubmit when credentials are valid', () => {
+  it('calls onSubmit when login credentials are valid', () => {
     const onSubmit = vi.fn();
     renderWithRouter(<AuthForm mode="login" onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'student@prepbyte.kz' },
+      target: { value: 'student@pifagorschool.kz' },
     });
     fireEvent.change(screen.getByLabelText(/^пароль/i), {
       target: { value: 'password123' },
@@ -60,17 +67,26 @@ describe('AuthForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /^войти$/i }));
 
     expect(onSubmit).toHaveBeenCalledWith({
-      email: 'student@prepbyte.kz',
+      email: 'student@pifagorschool.kz',
       password: 'password123',
     });
   });
 
-  it('calls onSubmit with confirmPassword when registering', () => {
+  it('calls onSubmit with full profile data when registering with @pifagorschool.kz', () => {
     const onSubmit = vi.fn();
     renderWithRouter(<AuthForm mode="register" onSubmit={onSubmit} />);
 
+    fireEvent.change(screen.getByLabelText(/^имя$/i), {
+      target: { value: 'Данияр' },
+    });
+    fireEvent.change(screen.getByLabelText(/^фамилия$/i), {
+      target: { value: 'Ахметов' },
+    });
+    fireEvent.change(screen.getByLabelText(/^класс$/i), {
+      target: { value: '10А' },
+    });
     fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'student@prepbyte.kz' },
+      target: { value: 'daniyar@pifagorschool.kz' },
     });
     fireEvent.change(screen.getByLabelText(/^пароль/i), {
       target: { value: 'password123' },
@@ -83,10 +99,45 @@ describe('AuthForm', () => {
     );
 
     expect(onSubmit).toHaveBeenCalledWith({
-      email: 'student@prepbyte.kz',
+      firstName: 'Данияр',
+      lastName: 'Ахметов',
+      className: '10А',
+      email: 'daniyar@pifagorschool.kz',
       password: 'password123',
       confirmPassword: 'password123',
     });
+  });
+
+  it('rejects registration with non-school email domain', () => {
+    const onSubmit = vi.fn();
+    renderWithRouter(<AuthForm mode="register" onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText(/^имя$/i), {
+      target: { value: 'Данияр' },
+    });
+    fireEvent.change(screen.getByLabelText(/^фамилия$/i), {
+      target: { value: 'Ахметов' },
+    });
+    fireEvent.change(screen.getByLabelText(/^класс$/i), {
+      target: { value: '10А' },
+    });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'daniyar@gmail.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/^пароль/i), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByLabelText(/подтверждение пароля/i), {
+      target: { value: 'password123' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /^зарегистрироваться$/i })
+    );
+
+    expect(
+      screen.getByText('Регистрация разрешена только с почтой @pifagorschool.kz')
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('displays general error message when provided', () => {

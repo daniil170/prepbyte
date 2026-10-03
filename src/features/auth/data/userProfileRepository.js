@@ -39,11 +39,14 @@ export function documentToUserProfile(id, data) {
   return createUserProfile({
     uid: id,
     email: data.email || '',
+    firstName: data.firstName || null,
+    lastName: data.lastName || null,
+    className: data.className || null,
     displayName: data.displayName || null,
     role: data.role || 'student',
     teacherId: data.teacherId || null,
     groupIds: Array.isArray(data.groupIds) ? data.groupIds : [],
-    school: data.school || null,
+    school: data.school || 'Pifagor School',
     grade: typeof data.grade === 'number' ? data.grade : null,
     createdAt: parseTimestamp(data.createdAt),
     updatedAt: parseTimestamp(data.updatedAt),
@@ -54,6 +57,9 @@ export function userProfileToDocument(profile, { serverUpdated = true } = {}) {
   return {
     uid: profile.uid,
     email: profile.email,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    className: profile.className,
     displayName: profile.displayName,
     role: profile.role,
     teacherId: profile.teacherId,
@@ -83,7 +89,7 @@ export function createUserProfileRepository(firestore = defaultDb) {
     return documentToUserProfile(snapshot.id, snapshot.data());
   }
 
-  async function ensureUserProfile(authUser) {
+  async function ensureUserProfile(authUser, additionalProfileData = {}) {
     if (!authUser || !authUser.id) {
       throw new Error('Некорректный пользователь для инициализации профиля.');
     }
@@ -99,13 +105,20 @@ export function createUserProfileRepository(firestore = defaultDb) {
     const initialProfile = createUserProfile({
       uid,
       email: authUser.email || '',
+      firstName: additionalProfileData.firstName || null,
+      lastName: additionalProfileData.lastName || null,
+      className: additionalProfileData.className || null,
       displayName:
-        authUser.displayName || (authUser.email ? authUser.email.split('@')[0] : 'Ученик'),
-      role: authUser.role || (authUser.isAdmin ? 'admin' : authUser.isTeacher ? 'teacher' : 'student'),
+        additionalProfileData.displayName ||
+        authUser.displayName ||
+        (authUser.email ? authUser.email.split('@')[0] : 'Ученик'),
+      role:
+        authUser.role ||
+        (authUser.isAdmin ? 'admin' : authUser.isTeacher ? 'teacher' : 'student'),
       teacherId: null,
       groupIds: [],
-      school: null,
-      grade: null,
+      school: additionalProfileData.school || 'Pifagor School',
+      grade: additionalProfileData.grade || null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -126,6 +139,15 @@ export function createUserProfileRepository(firestore = defaultDb) {
       updatedAt: serverTimestamp(),
     };
 
+    if (updates.firstName !== undefined) {
+      allowedPayload.firstName = updates.firstName ? String(updates.firstName).trim() : null;
+    }
+    if (updates.lastName !== undefined) {
+      allowedPayload.lastName = updates.lastName ? String(updates.lastName).trim() : null;
+    }
+    if (updates.className !== undefined) {
+      allowedPayload.className = updates.className ? String(updates.className).trim() : null;
+    }
     if (updates.displayName !== undefined) {
       allowedPayload.displayName = updates.displayName ? String(updates.displayName).trim() : null;
     }
@@ -186,7 +208,6 @@ export function createUserProfileRepository(firestore = defaultDb) {
     const clean = searchQuery.trim().toLowerCase();
     const usersRef = collection(firestore, collectionName);
 
-    // 1. If it looks like email, search by exact email
     if (clean.includes('@')) {
       const q = query(usersRef, where('email', '==', clean), limit(5));
       const snap = await getDocs(q);
@@ -195,7 +216,6 @@ export function createUserProfileRepository(firestore = defaultDb) {
         .filter((p) => p && p.role === 'student');
     }
 
-    // 2. Otherwise try direct document ID lookup
     const directDocRef = doc(firestore, collectionName, clean);
     const directSnap = await getDoc(directDocRef);
     if (directSnap.exists()) {

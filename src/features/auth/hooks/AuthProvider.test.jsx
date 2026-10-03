@@ -41,6 +41,12 @@ function createFakeAuthRepository(initialUser = null) {
   };
 }
 
+function createFakeProfileRepository() {
+  return {
+    ensureUserProfile: vi.fn().mockResolvedValue({}),
+  };
+}
+
 function TestConsumer() {
   const { user, status, signIn, register, signInWithGoogle, signOut } =
     useAuth();
@@ -71,7 +77,6 @@ function TestConsumer() {
 
 describe('AuthProvider & useAuth', () => {
   it('throws error when useAuth is called outside of AuthProvider', () => {
-    // Suppress console.error for expected render error
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => renderHook(() => useAuth())).toThrow(
       'useAuth must be used within an AuthProvider'
@@ -81,9 +86,10 @@ describe('AuthProvider & useAuth', () => {
 
   it('initializes with unauthenticated status when no user is signed in', () => {
     const fakeRepo = createFakeAuthRepository(null);
+    const fakeProfileRepo = createFakeProfileRepository();
 
     render(
-      <AuthProvider repository={fakeRepo}>
+      <AuthProvider repository={fakeRepo} profileRepository={fakeProfileRepo}>
         <TestConsumer />
       </AuthProvider>
     );
@@ -98,9 +104,10 @@ describe('AuthProvider & useAuth', () => {
       email: 'existing@prepbyte.kz',
       displayName: 'Existing',
     });
+    const fakeProfileRepo = createFakeProfileRepository();
 
     render(
-      <AuthProvider repository={fakeRepo}>
+      <AuthProvider repository={fakeRepo} profileRepository={fakeProfileRepo}>
         <TestConsumer />
       </AuthProvider>
     );
@@ -113,9 +120,10 @@ describe('AuthProvider & useAuth', () => {
 
   it('handles signIn, register, signInWithGoogle, and signOut', async () => {
     const fakeRepo = createFakeAuthRepository(null);
+    const fakeProfileRepo = createFakeProfileRepository();
 
     render(
-      <AuthProvider repository={fakeRepo}>
+      <AuthProvider repository={fakeRepo} profileRepository={fakeProfileRepo}>
         <TestConsumer />
       </AuthProvider>
     );

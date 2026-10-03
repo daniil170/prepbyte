@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { authRepository as defaultRepository } from '../data/authRepository';
+import { userProfileRepository as defaultProfileRepository } from '../data/userProfileRepository';
 import { AuthContext } from './authContext';
 
-export function AuthProvider({ children, repository = defaultRepository }) {
+export function AuthProvider({
+  children,
+  repository = defaultRepository,
+  profileRepository = defaultProfileRepository,
+}) {
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState('loading');
 
@@ -10,6 +15,11 @@ export function AuthProvider({ children, repository = defaultRepository }) {
     const unsubscribe = repository.subscribeToAuthState((authUser) => {
       setUser(authUser);
       setStatus(authUser ? 'authenticated' : 'unauthenticated');
+
+      if (authUser) {
+        // Automatically ensure user profile exists in Firestore
+        profileRepository.ensureUserProfile(authUser).catch(() => {});
+      }
     });
 
     return () => {
@@ -17,34 +27,58 @@ export function AuthProvider({ children, repository = defaultRepository }) {
         unsubscribe();
       }
     };
-  }, [repository]);
+  }, [repository, profileRepository]);
 
   const signIn = useCallback(
     async ({ email, password }) => {
       const authUser = await repository.signInWithEmail({ email, password });
       setUser(authUser);
       setStatus('authenticated');
+      if (authUser) {
+        profileRepository.ensureUserProfile(authUser).catch(() => {});
+      }
       return authUser;
     },
-    [repository]
+    [repository, profileRepository]
   );
 
   const register = useCallback(
-    async ({ email, password }) => {
-      const authUser = await repository.registerWithEmail({ email, password });
+    async ({ email, password, firstName, lastName, className }) => {
+      const authUser = await repository.registerWithEmail({
+        email,
+        password,
+        firstName,
+        lastName,
+      });
+
+      if (authUser) {
+        try {
+          await profileRepository.ensureUserProfile(authUser, {
+            firstName,
+            lastName,
+            className,
+          });
+        } catch {
+          // Fallback if network delayed
+        }
+      }
+
       setUser(authUser);
       setStatus('authenticated');
       return authUser;
     },
-    [repository]
+    [repository, profileRepository]
   );
 
   const signInWithGoogle = useCallback(async () => {
     const authUser = await repository.signInWithGoogle();
     setUser(authUser);
     setStatus('authenticated');
+    if (authUser) {
+      profileRepository.ensureUserProfile(authUser).catch(() => {});
+    }
     return authUser;
-  }, [repository]);
+  }, [repository, profileRepository]);
 
   const signOut = useCallback(async () => {
     await repository.signOut();

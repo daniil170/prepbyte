@@ -10,14 +10,26 @@ export default function RegisterPage() {
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  async function handleEmailRegister({ email, password }) {
+  async function handleEmailRegister({
+    firstName,
+    lastName,
+    className,
+    email,
+    password,
+  }) {
     setIsPending(true);
     setErrorMessage('');
     try {
-      await register({ email, password });
+      await register({
+        firstName,
+        lastName,
+        className,
+        email,
+        password,
+      });
       navigate('/', { replace: true });
     } catch (error) {
-      setErrorMessage(error.message);
+      setErrorMessage(error.message || 'Не удалось зарегистрироваться');
     } finally {
       setIsPending(false);
     }
@@ -30,7 +42,7 @@ export default function RegisterPage() {
       await signInWithGoogle();
       navigate('/', { replace: true });
     } catch (error) {
-      setErrorMessage(error.message);
+      setErrorMessage(error.message || 'Ошибка входа через Google');
     } finally {
       setIsPending(false);
     }

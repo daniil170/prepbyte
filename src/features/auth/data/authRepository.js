@@ -5,6 +5,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
+  updateProfile,
 } from 'firebase/auth';
 import { auth as defaultFirebaseAuth } from '@infrastructure/firebase/auth';
 import {
@@ -31,10 +32,11 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
   }
 
   async function signInWithEmail({ email, password }) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
     try {
       const userCredential = await signInWithEmailAndPassword(
         firebaseAuth,
-        email,
+        normalizedEmail,
         password
       );
       return await resolveAuthUser(userCredential.user);
@@ -43,13 +45,35 @@ export function createAuthRepository(firebaseAuth = defaultFirebaseAuth) {
     }
   }
 
-  async function registerWithEmail({ email, password }) {
+  async function registerWithEmail({
+    email,
+    password,
+    firstName = null,
+    lastName = null,
+  }) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
     try {
       const userCredential = await createUserWithEmailAndPassword(
         firebaseAuth,
-        email,
+        normalizedEmail,
         password
       );
+
+      const displayName =
+        firstName && lastName
+          ? `${String(firstName).trim()} ${String(lastName).trim()}`
+          : firstName
+            ? String(firstName).trim()
+            : null;
+
+      if (displayName && userCredential.user) {
+        try {
+          await updateProfile(userCredential.user, { displayName });
+        } catch {
+          // Non-critical profile update failure
+        }
+      }
+
       return await resolveAuthUser(userCredential.user);
     } catch (error) {
       throw mapFirebaseErrorToAuthError(error);

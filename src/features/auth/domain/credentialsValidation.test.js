@@ -1,76 +1,100 @@
 import { describe, expect, it } from 'vitest';
-import { validateCredentials } from './credentialsValidation';
+import {
+  isSchoolEmailAllowed,
+  normalizeSchoolEmail,
+  validateCredentials,
+} from './credentialsValidation';
 
-describe('validateCredentials', () => {
-  it('validates correct email and password for login', () => {
-    const result = validateCredentials({
-      email: 'user@prepbyte.kz',
-      password: 'password123',
+describe('credentialsValidation domain', () => {
+  describe('normalizeSchoolEmail & isSchoolEmailAllowed', () => {
+    it('normalizes uppercase and trimmed emails correctly', () => {
+      expect(normalizeSchoolEmail('  STUDENT@PIFAGORSCHOOL.KZ  ')).toBe(
+        'student@pifagorschool.kz'
+      );
+      expect(normalizeSchoolEmail(null)).toBe('');
+      expect(normalizeSchoolEmail(undefined)).toBe('');
     });
 
-    expect(result.isValid).toBe(true);
-    expect(result.errors).toEqual({});
+    it('allows valid @pifagorschool.kz emails', () => {
+      expect(isSchoolEmailAllowed('student@pifagorschool.kz')).toBe(true);
+      expect(isSchoolEmailAllowed('alihan.serikov@pifagorschool.kz')).toBe(true);
+      expect(isSchoolEmailAllowed('STUDENT@PIFAGORSCHOOL.KZ')).toBe(true);
+    });
+
+    it('rejects non-pifagorschool.kz and spoofed domain emails', () => {
+      expect(isSchoolEmailAllowed('student@gmail.com')).toBe(false);
+      expect(isSchoolEmailAllowed('student@mail.ru')).toBe(false);
+      expect(isSchoolEmailAllowed('student@fakepifagorschool.kz')).toBe(false);
+      expect(isSchoolEmailAllowed('student@pifagorschool.kz.fake.com')).toBe(false);
+      expect(isSchoolEmailAllowed('pifagorschool.kz')).toBe(false);
+      expect(isSchoolEmailAllowed('@pifagorschool.kz')).toBe(false);
+    });
   });
 
-  it('detects empty and invalid email format', () => {
-    const emptyResult = validateCredentials({
-      email: '',
-      password: 'password123',
-    });
-    expect(emptyResult.isValid).toBe(false);
-    expect(emptyResult.errors.email).toBe('Введите email.');
+  describe('validateCredentials - Registration', () => {
+    it('validates a complete and correct registration payload', () => {
+      const result = validateCredentials({
+        isRegister: true,
+        firstName: 'Данияр',
+        lastName: 'Ахметов',
+        className: '10А',
+        email: 'daniyar@pifagorschool.kz',
+        password: 'securePassword123',
+        confirmPassword: 'securePassword123',
+      });
 
-    const invalidResult = validateCredentials({
-      email: 'not-an-email',
-      password: 'password123',
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toEqual({});
     });
-    expect(invalidResult.isValid).toBe(false);
-    expect(invalidResult.errors.email).toBe('Введите корректный email.');
+
+    it('flags missing and invalid registration fields', () => {
+      const result = validateCredentials({
+        isRegister: true,
+        firstName: '',
+        lastName: '',
+        className: '',
+        email: 'student@gmail.com',
+        password: '123',
+        confirmPassword: '456',
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.firstName).toBeDefined();
+      expect(result.errors.lastName).toBeDefined();
+      expect(result.errors.className).toBeDefined();
+      expect(result.errors.email).toBe(
+        'Регистрация разрешена только с почтой @pifagorschool.kz'
+      );
+      expect(result.errors.password).toBe(
+        'Пароль должен содержать минимум 6 символов.'
+      );
+      expect(result.errors.confirmPassword).toBe('Пароли не совпадают.');
+    });
   });
 
-  it('detects empty and short passwords (< 6 chars)', () => {
-    const emptyResult = validateCredentials({
-      email: 'user@prepbyte.kz',
-      password: '',
-    });
-    expect(emptyResult.isValid).toBe(false);
-    expect(emptyResult.errors.password).toBe('Введите пароль.');
+  describe('validateCredentials - Login', () => {
+    it('allows valid login email format', () => {
+      const result = validateCredentials({
+        isRegister: false,
+        email: 'admin@prepbyte.kz',
+        password: 'password123',
+      });
 
-    const shortResult = validateCredentials({
-      email: 'user@prepbyte.kz',
-      password: '123',
+      expect(result.isValid).toBe(true);
     });
-    expect(shortResult.isValid).toBe(false);
-    expect(shortResult.errors.password).toBe(
-      'Пароль должен содержать минимум 6 символов.'
-    );
-  });
 
-  it('validates password confirmation in registration mode', () => {
-    const missingConfirm = validateCredentials({
-      email: 'user@prepbyte.kz',
-      password: 'password123',
-      isRegister: true,
-    });
-    expect(missingConfirm.isValid).toBe(false);
-    expect(missingConfirm.errors.confirmPassword).toBe('Подтвердите пароль.');
+    it('rejects invalid email and short password on login', () => {
+      const result = validateCredentials({
+        isRegister: false,
+        email: 'invalid-email',
+        password: '12',
+      });
 
-    const mismatch = validateCredentials({
-      email: 'user@prepbyte.kz',
-      password: 'password123',
-      confirmPassword: 'differentPassword',
-      isRegister: true,
+      expect(result.isValid).toBe(false);
+      expect(result.errors.email).toBe('Введите корректный email.');
+      expect(result.errors.password).toBe(
+        'Пароль должен содержать минимум 6 символов.'
+      );
     });
-    expect(mismatch.isValid).toBe(false);
-    expect(mismatch.errors.confirmPassword).toBe('Пароли не совпадают.');
-
-    const matching = validateCredentials({
-      email: 'user@prepbyte.kz',
-      password: 'password123',
-      confirmPassword: 'password123',
-      isRegister: true,
-    });
-    expect(matching.isValid).toBe(true);
-    expect(matching.errors).toEqual({});
   });
 });

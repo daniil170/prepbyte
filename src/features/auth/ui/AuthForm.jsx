@@ -11,6 +11,9 @@ export function AuthForm({
   errorMessage = '',
   isPending = false,
 }) {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [className, setClassName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,6 +28,9 @@ export function AuthForm({
       password,
       confirmPassword,
       isRegister,
+      firstName,
+      lastName,
+      className,
     });
 
     if (!validation.isValid) {
@@ -34,31 +40,26 @@ export function AuthForm({
 
     setFieldErrors({});
     if (isRegister) {
-      onSubmit({ email, password, confirmPassword });
+      onSubmit({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        className: className.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        confirmPassword,
+      });
     } else {
-      onSubmit({ email, password });
+      onSubmit({ email: email.trim().toLowerCase(), password });
     }
   }
 
-  function handleEmailChange(event) {
-    setEmail(event.target.value);
-    if (fieldErrors.email) {
-      setFieldErrors((prev) => ({ ...prev, email: undefined }));
-    }
-  }
-
-  function handlePasswordChange(event) {
-    setPassword(event.target.value);
-    if (fieldErrors.password) {
-      setFieldErrors((prev) => ({ ...prev, password: undefined }));
-    }
-  }
-
-  function handleConfirmPasswordChange(event) {
-    setConfirmPassword(event.target.value);
-    if (fieldErrors.confirmPassword) {
-      setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-    }
+  function handleFieldChange(setter, fieldName) {
+    return (event) => {
+      setter(event.target.value);
+      if (fieldErrors[fieldName]) {
+        setFieldErrors((prev) => ({ ...prev, [fieldName]: undefined }));
+      }
+    };
   }
 
   return (
@@ -69,11 +70,11 @@ export function AuthForm({
         </div>
 
         <h1 className={styles.title}>
-          {isRegister ? 'Регистрация' : 'Вход в PrepByte'}
+          {isRegister ? 'Регистрация ученика' : 'Вход в PrepByte'}
         </h1>
         <p className={styles.subtitle}>
           {isRegister
-            ? 'Создайте аккаунт для подготовки к ЕНТ'
+            ? 'Создайте аккаунт школы Pifagor для подготовки к ЕНТ'
             : 'Войдите, чтобы продолжить подготовку'}
         </p>
 
@@ -87,28 +88,100 @@ export function AuthForm({
         ) : null}
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
+          {isRegister && (
+            <>
+              <div className={styles.row}>
+                <div className={styles.field}>
+                  <label htmlFor="firstName" className={styles.label}>
+                    Имя
+                  </label>
+                  <input
+                    id="firstName"
+                    type="text"
+                    autoComplete="given-name"
+                    value={firstName}
+                    onChange={handleFieldChange(setFirstName, 'firstName')}
+                    disabled={isPending}
+                    className={`${styles.input} ${fieldErrors.firstName ? styles.inputError : ''}`}
+                    placeholder="Данияр"
+                  />
+                  {fieldErrors.firstName && (
+                    <span className={styles.fieldError}>
+                      <span className={styles.errorIcon} aria-hidden="true">[!]</span>
+                      <span>{fieldErrors.firstName}</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="lastName" className={styles.label}>
+                    Фамилия
+                  </label>
+                  <input
+                    id="lastName"
+                    type="text"
+                    autoComplete="family-name"
+                    value={lastName}
+                    onChange={handleFieldChange(setLastName, 'lastName')}
+                    disabled={isPending}
+                    className={`${styles.input} ${fieldErrors.lastName ? styles.inputError : ''}`}
+                    placeholder="Ахметов"
+                  />
+                  {fieldErrors.lastName && (
+                    <span className={styles.fieldError}>
+                      <span className={styles.errorIcon} aria-hidden="true">[!]</span>
+                      <span>{fieldErrors.lastName}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="className" className={styles.label}>
+                  Класс
+                </label>
+                <input
+                  id="className"
+                  type="text"
+                  value={className}
+                  onChange={handleFieldChange(setClassName, 'className')}
+                  disabled={isPending}
+                  className={`${styles.input} ${fieldErrors.className ? styles.inputError : ''}`}
+                  placeholder="Например: 10А или 11Б"
+                />
+                {fieldErrors.className && (
+                  <span className={styles.fieldError}>
+                    <span className={styles.errorIcon} aria-hidden="true">[!]</span>
+                    <span>{fieldErrors.className}</span>
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+
           <div className={styles.field}>
             <label htmlFor="email" className={styles.label}>
-              Email
+              Школьный email
             </label>
             <input
               id="email"
               type="email"
               autoComplete="email"
               value={email}
-              onChange={handleEmailChange}
+              onChange={handleFieldChange(setEmail, 'email')}
               disabled={isPending}
               className={`${styles.input} ${fieldErrors.email ? styles.inputError : ''}`}
-              placeholder="student@example.com"
+              placeholder={isRegister ? 'name@pifagorschool.kz' : 'student@pifagorschool.kz'}
             />
-            {fieldErrors.email ? (
+            {isRegister && !fieldErrors.email && (
+              <span className={styles.hintText}>Доступна только корпоративная почта @pifagorschool.kz</span>
+            )}
+            {fieldErrors.email && (
               <span className={styles.fieldError}>
-                <span className={styles.errorIcon} aria-hidden="true">
-                  [!]
-                </span>
+                <span className={styles.errorIcon} aria-hidden="true">[!]</span>
                 <span>{fieldErrors.email}</span>
               </span>
-            ) : null}
+            )}
           </div>
 
           <div className={styles.field}>
@@ -120,22 +193,20 @@ export function AuthForm({
               type="password"
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               value={password}
-              onChange={handlePasswordChange}
+              onChange={handleFieldChange(setPassword, 'password')}
               disabled={isPending}
               className={`${styles.input} ${fieldErrors.password ? styles.inputError : ''}`}
               placeholder="••••••••"
             />
-            {fieldErrors.password ? (
+            {fieldErrors.password && (
               <span className={styles.fieldError}>
-                <span className={styles.errorIcon} aria-hidden="true">
-                  [!]
-                </span>
+                <span className={styles.errorIcon} aria-hidden="true">[!]</span>
                 <span>{fieldErrors.password}</span>
               </span>
-            ) : null}
+            )}
           </div>
 
-          {isRegister ? (
+          {isRegister && (
             <div className={styles.field}>
               <label htmlFor="confirmPassword" className={styles.label}>
                 Подтверждение пароля
@@ -145,21 +216,33 @@ export function AuthForm({
                 type="password"
                 autoComplete="new-password"
                 value={confirmPassword}
-                onChange={handleConfirmPasswordChange}
+                onChange={handleFieldChange(setConfirmPassword, 'confirmPassword')}
                 disabled={isPending}
                 className={`${styles.input} ${fieldErrors.confirmPassword ? styles.inputError : ''}`}
                 placeholder="••••••••"
               />
-              {fieldErrors.confirmPassword ? (
+              {fieldErrors.confirmPassword && (
                 <span className={styles.fieldError}>
-                  <span className={styles.errorIcon} aria-hidden="true">
-                    [!]
-                  </span>
+                  <span className={styles.errorIcon} aria-hidden="true">[!]</span>
                   <span>{fieldErrors.confirmPassword}</span>
                 </span>
-              ) : null}
+              )}
             </div>
-          ) : null}
+          )}
+
+          {isRegister && (
+            <div className={styles.legalNotice}>
+              Создавая аккаунт, вы подтверждаете согласие с{' '}
+              <Link to="/privacy-policy" className={styles.link} target="_blank" rel="noreferrer">
+                Политикой конфиденциальности
+              </Link>{' '}
+              и{' '}
+              <Link to="/cookie-policy" className={styles.link} target="_blank" rel="noreferrer">
+                Политикой файлов cookie
+              </Link>
+              .
+            </div>
+          )}
 
           <button
             type="submit"
