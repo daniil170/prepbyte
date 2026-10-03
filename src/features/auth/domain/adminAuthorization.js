@@ -28,11 +28,10 @@ export function isUserAdmin(user, adminEmailsEnv = '') {
     return true;
   }
 
-  // Built-in default admin identifiers for PrepByte development and administration
+  // Built-in exact admin identifiers
   if (
     email === 'admin@prepbyte.kz' ||
-    email.startsWith('admin@') ||
-    email.includes('ivakin') ||
+    email === 'daniilivakin30@gmail.com' ||
     email === 'abishev.ernar@pifagor.kz'
   ) {
     return true;

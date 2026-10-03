@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import {
   initializeTestEnvironment,
@@ -181,7 +182,7 @@ describe('Firestore Security Rules Unit Tests', () => {
     );
   });
 
-  it('6. Student CANNOT escalate role from "student" to "teacher"', async () => {
+  it('6. Student CANNOT escalate role from "student" to "teacher" or "admin"', async () => {
     if (!isEmulatorAvailable) return;
     const studentA = testEnv.authenticatedContext('studentA', {
       email: 'studenta@pifagorschool.kz',
@@ -190,6 +191,39 @@ describe('Firestore Security Rules Unit Tests', () => {
     await assertFails(
       updateDoc(doc(db, 'users/studentA'), {
         role: 'teacher',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'users/studentA'), {
+        role: 'admin',
+      })
+    );
+  });
+
+  it('6b. Teacher A CANNOT modify or hijack Group B (belonging to Teacher B)', async () => {
+    if (!isEmulatorAvailable) return;
+    const teacherA = testEnv.authenticatedContext('teacherA', {
+      teacher: true,
+      email: 'teachera@pifagorschool.kz',
+    });
+    const db = teacherA.firestore();
+    await assertFails(
+      updateDoc(doc(db, 'groups/groupB'), {
+        name: 'Hijacked by Teacher A',
+      })
+    );
+  });
+
+  it('6c. Student CANNOT write or modify questions', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    await assertFails(
+      setDoc(doc(db, 'questions/qHacked'), {
+        text: 'Hacked question',
+        topicId: 'security',
       })
     );
   });

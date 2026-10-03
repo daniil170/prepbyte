@@ -26,13 +26,22 @@ describe('adminAuthorization domain module', () => {
 
   it('authorizes built-in admin identifiers', () => {
     expect(isUserAdmin({ id: 'u5', email: 'admin@prepbyte.kz' })).toBe(true);
-    expect(isUserAdmin({ id: 'u6', email: 'admin@school.kz' })).toBe(true);
     expect(isUserAdmin({ id: 'u7', email: 'daniilivakin30@gmail.com' })).toBe(
       true
     );
     expect(isUserAdmin({ id: 'u8', email: 'abishev.ernar@pifagor.kz' })).toBe(
       true
     );
+  });
+
+  it('rejects substring emails and ordinary student emails', () => {
+    expect(
+      isUserAdmin({ id: 'u9', email: 'adminstudent@pifagorschool.kz' })
+    ).toBe(false);
+    expect(
+      isUserAdmin({ id: 'u10', email: 'ivakinstudent@pifagorschool.kz' })
+    ).toBe(false);
+    expect(isUserAdmin({ id: 'u11', email: 'admin@school.kz' })).toBe(false);
   });
 
   it('rejects regular users, empty emails, or invalid objects', () => {
