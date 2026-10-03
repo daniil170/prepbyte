@@ -178,12 +178,39 @@ export function useStudentExamSession(
     [sessionId, session, examRepo]
   );
 
-  const isWaiting =
-    exam?.status === EXAM_STATUS.WAITING || session?.status === 'waiting';
-  const isActive =
-    (exam?.status === EXAM_STATUS.ACTIVE || session?.status === 'in_progress') &&
-    session?.status !== 'submitted';
+  // Auto-activate waiting session when teacher launches exam
+  useEffect(() => {
+    if (
+      exam?.status === EXAM_STATUS.ACTIVE &&
+      session?.status === 'waiting' &&
+      examId &&
+      user?.id
+    ) {
+      examRepo
+        .getOrCreateExamSession({
+          examId,
+          studentId: user.id,
+          studentName: user.name || user.email || user.id,
+          groupId: exam.groupId,
+          questionIds: exam.questionIds,
+          durationSeconds: exam.durationSeconds || 3600,
+          examStatus: EXAM_STATUS.ACTIVE,
+        })
+        .catch((err) => {
+          console.error('Failed to auto-activate student session:', err);
+        });
+    }
+  }, [exam?.status, session?.status, examId, user, exam, examRepo]);
+
   const isSubmitted = session?.status === 'submitted';
+  const isWaiting =
+    !isSubmitted &&
+    (exam?.status === EXAM_STATUS.WAITING ||
+      (session?.status === 'waiting' && exam?.status !== EXAM_STATUS.ACTIVE));
+  const isActive =
+    !isSubmitted &&
+    !isWaiting &&
+    (exam?.status === EXAM_STATUS.ACTIVE || session?.status === 'in_progress');
 
   return {
     exam,
