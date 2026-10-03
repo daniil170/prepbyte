@@ -30,10 +30,11 @@ service cloud.firestore {
 
     // Users collection: user profiles and educational associations
     match /users/{userId} {
-      // Reading allowed for owner, admin, or teacher managing this student
+      // Reading allowed for owner, admin, teacher, or when document does not exist yet (resource == null)
       allow read: if isAuthenticated() && (
         isOwner(userId)
         || isAdmin()
+        || resource == null
         || (isTeacher() && (resource.data.teacherId == request.auth.uid || resource.data.teacherId == null))
       );
 
@@ -58,9 +59,10 @@ service cloud.firestore {
 
     // Groups collection: manages classroom groups created by teachers
     match /groups/{groupId} {
-      // Readable by teacher owner, enrolled students, or admins
+      // Readable by teacher owner, enrolled students, admins, or non-existent doc lookup
       allow read: if isAuthenticated() && (
-        resource.data.teacherId == request.auth.uid
+        resource == null
+        || resource.data.teacherId == request.auth.uid
         || (resource.data.studentIds is list && request.auth.uid in resource.data.studentIds)
         || isAdmin()
       );
@@ -88,9 +90,10 @@ service cloud.firestore {
 
     // Test sessions collection: manages user test attempts
     match /test_sessions/{sessionId} {
-      // Allow read to the authenticated session owner, admin, or the student's assigned teacher
+      // Allow read to authenticated session owner, admin, teacher, or non-existent doc lookup
       allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid
+        resource == null
+        || resource.data.userId == request.auth.uid
         || isAdmin()
         || (
           isTeacher()
@@ -125,9 +128,10 @@ service cloud.firestore {
 
     // Question exposure collection: tracks per-user question novelty and exposure history
     match /question_exposure/{userId} {
-      // Allow read to the authenticated exposure owner, admin, or the student's assigned teacher
+      // Allow read to exposure owner, admin, teacher, or non-existent doc lookup
       allow read: if isAuthenticated() && (
         request.auth.uid == userId
+        || resource == null
         || isAdmin()
         || (
           isTeacher()
@@ -154,9 +158,10 @@ service cloud.firestore {
 
     // Exams collection: teacher-managed online exams
     match /exams/{examId} {
-      // Reading allowed for owner teacher, admin, or students enrolled in the assigned group when exam is waiting/active/finished
+      // Reading allowed for owner teacher, admin, non-existent doc lookup, or enrolled students when exam is waiting/active/finished
       allow read: if isAuthenticated() && (
-        resource.data.teacherId == request.auth.uid
+        resource == null
+        || resource.data.teacherId == request.auth.uid
         || isAdmin()
         || (
           resource.data.status in ['waiting', 'active', 'finished']
@@ -195,9 +200,10 @@ service cloud.firestore {
 
     // Exam PIN lookup collection: quick access by PIN for students enrolled in the exam's group
     match /exam_pin_lookup/{pin} {
-      // Readable by teacher owner, admin, or students enrolled in the assigned group
+      // Readable by teacher owner, admin, non-existent doc lookup, or students enrolled in the assigned group
       allow read: if isAuthenticated() && (
-        resource.data.teacherId == request.auth.uid
+        resource == null
+        || resource.data.teacherId == request.auth.uid
         || isAdmin()
         || (
           exists(/databases/$(database)/documents/groups/$(resource.data.groupId))
@@ -224,9 +230,10 @@ service cloud.firestore {
 
     // Exam sessions collection: student participation in online exams
     match /exam_sessions/{sessionId} {
-      // Reading allowed for student owner, admin, or the teacher owning the exam
+      // Reading allowed for student owner, admin, non-existent doc lookup, or the teacher owning the exam
       allow read: if isAuthenticated() && (
-        resource.data.studentId == request.auth.uid
+        resource == null
+        || resource.data.studentId == request.auth.uid
         || isAdmin()
         || (
           isTeacher()
@@ -235,7 +242,7 @@ service cloud.firestore {
         )
       );
 
-      // Creation allowed only for enrolled students when exam is in waiting or active status, with no score tampering
+      // Creation allowed only for enrolled students when exam is in waiting or active status, with no score or timer tampering
       allow create: if isAuthenticated()
         && request.resource.data.studentId == request.auth.uid
         && request.resource.data.examId is string
