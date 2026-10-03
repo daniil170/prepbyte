@@ -217,7 +217,15 @@ export default function HomePage() {
             PrepByte © 2026. Платформа подготовки к ЕНТ по Информатике.
           </span>
         </div>
-        <div>
+        <div className={styles.footerLinks}>
+          <Link to="/privacy-policy" className={styles.footerLink}>
+            Конфиденциальность
+          </Link>
+          <span className={styles.footerDivider}>&bull;</span>
+          <Link to="/cookie-policy" className={styles.footerLink}>
+            Файлы cookie
+          </Link>
+          <span className={styles.footerDivider}>&bull;</span>
           <span>Разработчик: Ivakin Daniil</span>
         </div>
       </footer>

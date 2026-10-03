@@ -19,6 +19,8 @@ import {
   TeacherGroupDetailPage,
 } from '@features/teacher';
 import HomePage from './pages/HomePage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import CookiePolicyPage from './pages/CookiePolicyPage';
 
 export const routes = [
   {
@@ -98,6 +100,14 @@ export const routes = [
         <RegisterPage />
       </PublicOnlyRoute>
     ),
+  },
+  {
+    path: '/privacy-policy',
+    element: <PrivacyPolicyPage />,
+  },
+  {
+    path: '/cookie-policy',
+    element: <CookiePolicyPage />,
   },
 ];
 

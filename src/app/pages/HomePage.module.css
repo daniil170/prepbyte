@@ -404,6 +404,28 @@
   gap: 12px;
 }
 
+.footerLinks {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.footerLink {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footerLink:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.footerDivider {
+  color: var(--color-border-strong);
+}
+
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
