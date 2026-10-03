@@ -72,12 +72,27 @@ export function validateQuestion(raw) {
     }
   }
 
+  const isMultiple =
+    raw.type === 'single' || raw.multiple === false
+      ? false
+      : Boolean(
+          raw.type === 'multiple' ||
+            raw.multiple ||
+            (Array.isArray(raw.correctAnswers) && raw.correctAnswers.length > 1)
+        );
+
   // correctAnswers validation
   if (!Array.isArray(raw.correctAnswers)) {
     errors.push('Поле correctAnswers должно быть массивом индексов.');
   } else {
     if (raw.correctAnswers.length === 0) {
       errors.push('Массив correctAnswers не должен быть пустым.');
+    }
+
+    if (!isMultiple && raw.correctAnswers.length > 1) {
+      errors.push(
+        'Для вопроса с одним выбором ответа (single) должен быть указан ровно один правильный вариант.'
+      );
     }
 
     const uniqueAnswers = new Set(raw.correctAnswers);
@@ -102,6 +117,72 @@ export function validateQuestion(raw) {
   }
 
   return errors;
+}
+
+export function validateQuestionFormData(formData) {
+  const errors = {};
+
+  if (!formData || typeof formData !== 'object') {
+    return { isValid: false, errors: { general: 'Некорректная форма.' } };
+  }
+
+  if (!formData.questionText || !formData.questionText.trim()) {
+    errors.questionText = 'Введите текст вопроса.';
+  }
+
+  if (!formData.topic || !isValidTopic(formData.topic.trim())) {
+    errors.topic = 'Выберите тему из списка.';
+  }
+
+  if (!['easy', 'medium', 'hard'].includes(formData.difficulty)) {
+    errors.difficulty = 'Укажите сложность вопроса.';
+  }
+
+  if (!['single', 'multiple'].includes(formData.type)) {
+    errors.type = 'Укажите тип вопроса.';
+  }
+
+  const options = formData.options || [];
+  if (options.length < 2) {
+    errors.options = 'Минимум 2 варианта ответа.';
+  } else if (options.length > 6) {
+    errors.options = 'Максимум 6 вариантов ответа.';
+  } else {
+    const optionErrors = options.map((opt) =>
+      typeof opt !== 'string' || !opt.trim()
+        ? 'Текст варианта не может быть пустым.'
+        : ''
+    );
+    if (optionErrors.some(Boolean)) {
+      errors.optionItems = optionErrors;
+    }
+
+    const trimmedOpts = options.map((o) =>
+      typeof o === 'string' ? o.trim() : ''
+    );
+    const uniqueOpts = new Set(trimmedOpts);
+    if (uniqueOpts.size !== options.length) {
+      errors.optionsDuplicate = 'Варианты ответа не должны дублироваться.';
+    }
+  }
+
+  const correctAnswers = formData.correctAnswers || [];
+  if (formData.type === 'single') {
+    if (correctAnswers.length !== 1) {
+      errors.correctAnswers =
+        'Для вопроса с одним ответом выберите ровно один правильный вариант.';
+    }
+  } else if (formData.type === 'multiple') {
+    if (correctAnswers.length < 1) {
+      errors.correctAnswers =
+        'Для вопроса с несколькими ответами выберите хотя бы один правильный вариант.';
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
 }
 
 export function validatePublicQuestion(raw) {

@@ -50,6 +50,14 @@ export function TeacherLayout() {
             >
               Экзамены
             </NavLink>
+            <NavLink
+              to="/teacher/questions"
+              className={({ isActive }) =>
+                isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
+              }
+            >
+              Вопросы
+            </NavLink>
           </nav>
         </div>
 

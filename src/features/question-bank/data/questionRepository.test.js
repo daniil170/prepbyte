@@ -42,4 +42,17 @@ describe('questionRepository', () => {
     expect(await repo.saveQuestionsBatch([])).toEqual({ writtenCount: 0 });
     expect(await repo.saveQuestionsBatch(null)).toEqual({ writtenCount: 0 });
   });
+
+  it('rejects saveQuestion when question data is null or empty', async () => {
+    const repo = createQuestionRepository({});
+    await expect(repo.saveQuestion(null)).rejects.toThrow(
+      'Данные вопроса отсутствуют.'
+    );
+  });
+
+  it('returns false for isQuestionUsedInExams when questionId is empty', async () => {
+    const repo = createQuestionRepository({});
+    expect(await repo.isQuestionUsedInExams('')).toBe(false);
+    expect(await repo.isQuestionUsedInExams(null)).toBe(false);
+  });
 });

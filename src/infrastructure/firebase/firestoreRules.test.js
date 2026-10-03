@@ -338,14 +338,24 @@ describe('Firestore Security Rules Unit Tests', () => {
     );
   });
 
-  it('6f. Teacher CANNOT read protected question_answers/q1 without admin privilege', async () => {
+  it('6f. Teacher CAN read and write protected question_answers/q1 and questions/q1', async () => {
     if (!isEmulatorAvailable) return;
     const teacherA = testEnv.authenticatedContext('teacherA', {
       teacher: true,
       email: 'teachera@pifagorschool.kz',
     });
     const db = teacherA.firestore();
-    await assertFails(getDoc(doc(db, 'question_answers/q1')));
+    await assertSucceeds(getDoc(doc(db, 'question_answers/q1')));
+    await assertSucceeds(
+      setDoc(doc(db, 'questions/qTeacherNew'), {
+        topic: 'python_loops',
+        questionText: 'Teacher question',
+        options: ['A', 'B'],
+        multiple: false,
+        difficulty: 'easy',
+        version: 1,
+      })
+    );
   });
 
   it('7. Ordinary user CANNOT create a profile with role: "teacher" or "admin"', async () => {

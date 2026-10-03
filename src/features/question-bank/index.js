@@ -12,7 +12,7 @@ export {
   TOPIC_GROUPS,
   TOPICS,
 } from './domain/topics';
-export { validateQuestion } from './domain/questionValidation';
+export { validateQuestion, validateQuestionFormData } from './domain/questionValidation';
 export { parseQuestionText } from './domain/questionText';
 export {
   createQuestionRepository,

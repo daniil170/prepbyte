@@ -17,15 +17,15 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Questions collection: public question data readable by authenticated users, client writes allowed only for admins (custom claim)
+    // Questions collection: public question data readable by authenticated users, client writes allowed for teachers and admins
     match /questions/{questionId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isTeacher();
     }
 
     // Question answers collection: protected correct answers and explanations. Strictly forbidden to students.
     match /question_answers/{questionId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isTeacher();
     }
 
     // Users collection: user profiles and educational associations

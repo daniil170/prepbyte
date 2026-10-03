@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateQuestion } from './questionValidation';
+import { validateQuestion, validateQuestionFormData } from './questionValidation';
 
 describe('validateQuestion', () => {
   const validQuestion = {
@@ -133,5 +133,55 @@ describe('validateQuestion', () => {
     ).toContain(
       'Каждый элемент correctAnswers должен быть корректным индексом из диапазона options.'
     );
+  });
+
+  it('validates single choice question constraints (exactly 1 correct answer)', () => {
+    const singleErrors = validateQuestion({
+      ...validQuestion,
+      multiple: false,
+      correctAnswers: [0, 1],
+    });
+    expect(singleErrors).toContain(
+      'Для вопроса с одним выбором ответа (single) должен быть указан ровно один правильный вариант.'
+    );
+  });
+
+  it('validates multiple choice question constraints (at least 1 correct answer)', () => {
+    const multipleValid = validateQuestion({
+      ...validQuestion,
+      multiple: true,
+      correctAnswers: [0, 1],
+    });
+    expect(multipleValid).toHaveLength(0);
+  });
+
+  it('validates form data via validateQuestionFormData', () => {
+    const validForm = {
+      questionText: 'Как объявить функцию в Python?',
+      topic: 'python_functions',
+      difficulty: 'easy',
+      type: 'single',
+      options: ['def func():', 'function func()', 'func = () => {}'],
+      correctAnswers: [0],
+    };
+
+    expect(validateQuestionFormData(validForm).isValid).toBe(true);
+
+    const invalidForm = {
+      questionText: '',
+      topic: 'invalid_topic',
+      difficulty: 'unknown',
+      type: 'single',
+      options: ['A'],
+      correctAnswers: [],
+    };
+
+    const result = validateQuestionFormData(invalidForm);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.questionText).toBeDefined();
+    expect(result.errors.topic).toBeDefined();
+    expect(result.errors.difficulty).toBeDefined();
+    expect(result.errors.options).toBeDefined();
+    expect(result.errors.correctAnswers).toBeDefined();
   });
 });

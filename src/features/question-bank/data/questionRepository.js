@@ -17,6 +17,7 @@ import {
   questionToDocument,
   questionToAnswerDocument,
 } from './questionMappers';
+import { createQuestion } from '../domain/question';
 
 export function createQuestionRepository(firestore = defaultDb) {
   const collectionName = 'questions';
@@ -156,6 +157,127 @@ export function createQuestionRepository(firestore = defaultDb) {
     return { writtenCount: questions.length };
   }
 
+  async function getQuestionWithAnswer(id) {
+    if (!id || typeof id !== 'string' || !id.trim()) {
+      return null;
+    }
+
+    const cleanId = id.trim();
+    const docRef = doc(firestore, collectionName, cleanId);
+    const snapshot = await getDoc(docRef);
+
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    const publicData = snapshot.data();
+    let answerData = null;
+
+    try {
+      const answerDocRef = doc(firestore, answersCollectionName, cleanId);
+      const answerSnap = await getDoc(answerDocRef);
+      if (answerSnap.exists()) {
+        answerData = answerSnap.data();
+      }
+    } catch {
+      // Safe fallback if answer doc cannot be read
+    }
+
+    return documentToQuestion(cleanId, {
+      ...publicData,
+      correctAnswers: answerData?.correctAnswers ?? [0],
+      explanation: answerData?.explanation ?? '',
+    });
+  }
+
+  async function getAllQuestionsWithAnswers() {
+    const questionsRef = collection(firestore, collectionName);
+    const snapshot = await getDocs(questionsRef);
+
+    if (snapshot.empty) return [];
+
+    const publicDocs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const questionIds = publicDocs.map((q) => q.id);
+
+    let answersMap = new Map();
+    try {
+      const answersList = await getQuestionAnswersByIds(questionIds);
+      answersMap = new Map(answersList.map((a) => [a.id, a]));
+    } catch {
+      // Safe fallback
+    }
+
+    return publicDocs.map((pub) => {
+      const ans = answersMap.get(pub.id);
+      return documentToQuestion(pub.id, {
+        ...pub,
+        correctAnswers: ans?.correctAnswers ?? [0],
+        explanation: ans?.explanation ?? '',
+      });
+    });
+  }
+
+  async function isQuestionUsedInExams(questionId) {
+    if (!questionId || typeof questionId !== 'string') return false;
+    try {
+      const examsRef = collection(firestore, 'exams');
+      const q = query(
+        examsRef,
+        where('questionIds', 'array-contains', questionId.trim())
+      );
+      const snapshot = await getDocs(q);
+      return !snapshot.empty;
+    } catch {
+      return false;
+    }
+  }
+
+  async function saveQuestion(rawQuestion) {
+    if (!rawQuestion || typeof rawQuestion !== 'object') {
+      throw new Error('Данные вопроса отсутствуют.');
+    }
+
+    const isNew = !rawQuestion.id || !String(rawQuestion.id).trim();
+    const id = isNew
+      ? `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+      : String(rawQuestion.id).trim();
+
+    const questionEntity = createQuestion({
+      ...rawQuestion,
+      id,
+      version: rawQuestion.version || 1,
+    });
+
+    const publicDocRef = doc(firestore, collectionName, id);
+    const answerDocRef = doc(firestore, answersCollectionName, id);
+
+    const batch = writeBatch(firestore);
+    batch.set(publicDocRef, questionToDocument(questionEntity), { merge: true });
+    batch.set(answerDocRef, questionToAnswerDocument(questionEntity), { merge: true });
+    await batch.commit();
+
+    return questionEntity;
+  }
+
+  async function deleteQuestion(id) {
+    if (!id || typeof id !== 'string' || !id.trim()) {
+      return;
+    }
+    const cleanId = id.trim();
+
+    const isUsed = await isQuestionUsedInExams(cleanId);
+    if (isUsed) {
+      throw new Error(
+        'Вопрос не может быть удалён, так как он используется в экзаменах.'
+      );
+    }
+
+    const batch = writeBatch(firestore);
+    batch.delete(doc(firestore, collectionName, cleanId));
+    batch.delete(doc(firestore, answersCollectionName, cleanId));
+    await batch.commit();
+  }
+
   async function getQuestionCount() {
     const questionsRef = collection(firestore, collectionName);
     const snapshot = await getCountFromServer(questionsRef);
@@ -168,6 +290,11 @@ export function createQuestionRepository(firestore = defaultDb) {
     getQuestionAnswersByIds,
     getQuestionsByTopics,
     getAllQuestions,
+    getQuestionWithAnswer,
+    getAllQuestionsWithAnswers,
+    isQuestionUsedInExams,
+    saveQuestion,
+    deleteQuestion,
     getQuestionCount,
     saveQuestionsBatch,
   };

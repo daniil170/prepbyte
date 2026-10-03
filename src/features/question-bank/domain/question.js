@@ -24,8 +24,9 @@ export function createQuestion(raw) {
     questionText: String(raw.questionText),
     options: Object.freeze(raw.options.map((opt) => String(opt).trim())),
     multiple: Boolean(
-      raw.multiple ||
-      (Array.isArray(raw.correctAnswers) && raw.correctAnswers.length > 1)
+      raw.type === 'multiple' ||
+        raw.multiple ||
+        (Array.isArray(raw.correctAnswers) && raw.correctAnswers.length > 1)
     ),
     difficulty: raw.difficulty,
     version: raw.version || 1,
