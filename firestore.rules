@@ -147,6 +147,73 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Exams collection: teacher-managed online exams
+    match /exams/{examId} {
+      // Reading allowed for owner teacher, admin, or any authenticated student when exam is waiting/active/finished
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid
+        || isAdmin()
+        || resource.data.status in ['waiting', 'active', 'finished']
+      );
+
+      // Creation allowed only for teacher owner or admin
+      allow create: if isTeacher()
+        && request.resource.data.teacherId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 3
+        && request.resource.data.groupId is string
+        && request.resource.data.questionIds is list
+        && request.resource.data.status in ['draft', 'waiting', 'active'];
+
+      // Updating allowed only for teacher owner or admin, preserving teacherId ownership
+      allow update: if isAuthenticated() && (
+        (resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == resource.data.teacherId)
+        || isAdmin()
+      );
+
+      // Deletion allowed for owner teacher only while in draft status, or admin
+      allow delete: if isAuthenticated() && (
+        (resource.data.teacherId == request.auth.uid && resource.data.status == 'draft')
+        || isAdmin()
+      );
+    }
+
+    // Exam sessions collection: student participation in online exams
+    match /exam_sessions/{sessionId} {
+      // Reading allowed for student owner, admin, or the teacher owning the exam
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid
+        || isAdmin()
+        || (
+          isTeacher()
+          && exists(/databases/$(database)/documents/exams/$(resource.data.examId))
+          && get(/databases/$(database)/documents/exams/$(resource.data.examId)).data.teacherId == request.auth.uid
+        )
+      );
+
+      // Creation allowed only for the student owner with initial status
+      allow create: if isAuthenticated()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.examId is string
+        && request.resource.data.status in ['waiting', 'in_progress']
+        && request.resource.data.answers is map;
+
+      // Update allowed only by student owner while waiting or in_progress, preserving immutable identifiers
+      allow update: if isAuthenticated() && (
+        (
+          resource.data.studentId == request.auth.uid
+          && request.resource.data.studentId == resource.data.studentId
+          && request.resource.data.examId == resource.data.examId
+          && resource.data.status in ['waiting', 'in_progress']
+          && request.resource.data.status in ['waiting', 'in_progress', 'submitted']
+        )
+        || isAdmin()
+      );
+
+      // Client deletions are strictly denied
+      allow delete: if isAdmin();
+    }
+
     // Default deny for all other documents
     match /{document=**} {
       allow read, write: if false;
