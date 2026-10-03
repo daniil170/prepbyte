@@ -484,6 +484,62 @@ describe('Firestore Security Rules Unit Tests', () => {
     );
   });
 
+  it('17b. Student CANNOT create exam session for nonexistent exam, draft exam, or finished exam', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    // Nonexistent exam
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/nonexistent_studentA'), {
+        examId: 'nonexistentExam',
+        studentId: 'studentA',
+        groupId: 'groupA',
+        status: 'waiting',
+        answers: {},
+      })
+    );
+    // Finished exam
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/examFinished_studentA'), {
+        examId: 'examFinished',
+        studentId: 'studentA',
+        groupId: 'groupA',
+        status: 'waiting',
+        answers: {},
+      })
+    );
+  });
+
+  it('17c. Student CANNOT create exam session with forged groupId or another studentId', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    // Student A tries to join examB (belonging to groupB) by faking groupId: 'groupA' in payload
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/examB_studentA_fakeGroup'), {
+        examId: 'examB',
+        studentId: 'studentA',
+        groupId: 'groupA',
+        status: 'waiting',
+        answers: {},
+      })
+    );
+    // Student A tries to create session on behalf of Student B
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/examA_studentB_impersonate'), {
+        examId: 'examA',
+        studentId: 'studentB',
+        groupId: 'groupA',
+        status: 'waiting',
+        answers: {},
+      })
+    );
+  });
+
   it('18. Student A CANNOT forge score or percentage on exam session create or update', async () => {
     if (!isEmulatorAvailable) return;
     const studentA = testEnv.authenticatedContext('studentA', {
@@ -509,6 +565,12 @@ describe('Firestore Security Rules Unit Tests', () => {
         percentage: 100,
       })
     );
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        correctAnswersCount: 10,
+        maxPossibleScore: 10,
+      })
+    );
   });
 
   it('19. Student A CAN update answers in active session, but CANNOT update submitted session', async () => {
@@ -529,9 +591,15 @@ describe('Firestore Security Rules Unit Tests', () => {
         answers: { q1: [1] },
       })
     );
+    // Cannot regress session from in_progress back to waiting
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        status: 'waiting',
+      })
+    );
   });
 
-  it('20. Student A CANNOT modify studentId, examId, groupId, or questionOrder on update', async () => {
+  it('20. Student A CANNOT modify studentId, examId, groupId, questionOrder, startedAt, expiresAt on update', async () => {
     if (!isEmulatorAvailable) return;
     const studentA = testEnv.authenticatedContext('studentA', {
       email: 'studenta@pifagorschool.kz',
@@ -555,6 +623,16 @@ describe('Firestore Security Rules Unit Tests', () => {
     await assertFails(
       updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
         questionOrder: ['q2', 'q1'],
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        startedAt: 999999999,
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        expiresAt: 999999999,
       })
     );
   });

@@ -84,7 +84,6 @@ export function createExamRepository(firestore = defaultDb) {
     if (!pin) return null;
     const cleanPin = String(pin).trim();
 
-    // 1. Try secure PIN lookup document first
     try {
       const pinDocRef = doc(firestore, pinLookupCollection, cleanPin);
       const pinSnap = await getDoc(pinDocRef);
@@ -95,27 +94,7 @@ export function createExamRepository(firestore = defaultDb) {
           if (exam) return exam;
         }
       }
-    } catch {
-      // Fall through to query if permissions or direct collection fallback
-    }
-
-    // 2. Direct query fallback
-    try {
-      const q = query(
-        collection(firestore, examsCollection),
-        where('pin', '==', cleanPin)
-      );
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) return null;
-
-      const exams = snapshot.docs
-        .map((d) => documentToExam(d.id, d.data()))
-        .filter(Boolean);
-
-      const validExam = exams.find(
-        (e) => e.status === EXAM_STATUS.WAITING || e.status === EXAM_STATUS.ACTIVE
-      );
-      return validExam || exams[0] || null;
+      return null;
     } catch {
       return null;
     }

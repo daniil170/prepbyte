@@ -239,6 +239,7 @@ service cloud.firestore {
         && request.resource.data.answers is map
         && exists(/databases/$(database)/documents/exams/$(request.resource.data.examId))
         && get(/databases/$(database)/documents/exams/$(request.resource.data.examId)).data.status in ['waiting', 'active']
+        && request.resource.data.groupId == get(/databases/$(database)/documents/exams/$(request.resource.data.examId)).data.groupId
         && exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId))
         && (request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.studentIds)
         && !request.resource.data.keys().hasAny(['score', 'totalScore', 'percentage', 'correctAnswersCount', 'maxPossibleScore']);
@@ -249,7 +250,7 @@ service cloud.firestore {
         || (
           resource.data.studentId == request.auth.uid
           && resource.data.status in ['waiting', 'in_progress']
-          && request.resource.data.status in ['waiting', 'in_progress', 'submitted']
+          && (resource.data.status != 'in_progress' || request.resource.data.status in ['in_progress', 'submitted'])
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answers', 'flagged', 'currentIndex', 'status', 'updatedAt', 'submittedAt'])
         )
       );
