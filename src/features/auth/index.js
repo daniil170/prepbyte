@@ -6,4 +6,6 @@ export { default as RegisterPage } from './ui/RegisterPage';
 export { ProtectedRoute } from './ui/ProtectedRoute';
 export { PublicOnlyRoute } from './ui/PublicOnlyRoute';
 export { AdminRoute } from './ui/AdminRoute';
+export { TeacherRoute } from './ui/TeacherRoute';
 export { isUserAdmin } from './domain/adminAuthorization';
+export { isUserTeacher } from './domain/teacherAuthorization';

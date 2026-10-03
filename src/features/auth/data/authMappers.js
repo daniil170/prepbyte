@@ -22,13 +22,17 @@ export function mapFirebaseUserToAuthUser(firebaseUser, tokenResult = null) {
   }
 
   const claims = tokenResult?.claims || {};
-  const isAdmin = Boolean(claims.admin);
+  const isAdmin = Boolean(claims.admin || claims.role === 'admin');
+  const isTeacher = Boolean(claims.teacher || claims.role === 'teacher');
+  const role = isAdmin ? 'admin' : isTeacher ? 'teacher' : 'student';
 
   return createAuthUser({
     id: firebaseUser.uid,
     email: firebaseUser.email || '',
     displayName: firebaseUser.displayName || null,
+    role,
     isAdmin,
+    isTeacher,
     customClaims: claims,
   });
 }

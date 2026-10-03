@@ -26,13 +26,15 @@ describe('authMappers', () => {
         uid: 'user-789',
         email: 'test@prepbyte.kz',
         displayName: 'Test User',
+        role: 'student',
         isAdmin: false,
+        isTeacher: false,
         customClaims: {},
       });
       expect(Object.isFrozen(domainUser)).toBe(true);
     });
 
-    it('maps tokenResult admin claim to isAdmin true and customClaims', () => {
+    it('maps tokenResult admin claim to isAdmin true and role admin', () => {
       const firebaseUser = {
         uid: 'admin-123',
         email: 'admin@prepbyte.kz',
@@ -48,9 +50,33 @@ describe('authMappers', () => {
       const domainUser = mapFirebaseUserToAuthUser(firebaseUser, tokenResult);
 
       expect(domainUser.isAdmin).toBe(true);
+      expect(domainUser.isTeacher).toBe(false);
+      expect(domainUser.role).toBe('admin');
       expect(domainUser.customClaims).toEqual({
         admin: true,
         role: 'superadmin',
+      });
+    });
+
+    it('maps tokenResult teacher claim to isTeacher true and role teacher', () => {
+      const firebaseUser = {
+        uid: 'teacher-123',
+        email: 'teacher@prepbyte.kz',
+        displayName: 'Teacher User',
+      };
+      const tokenResult = {
+        claims: {
+          teacher: true,
+        },
+      };
+
+      const domainUser = mapFirebaseUserToAuthUser(firebaseUser, tokenResult);
+
+      expect(domainUser.isAdmin).toBe(false);
+      expect(domainUser.isTeacher).toBe(true);
+      expect(domainUser.role).toBe('teacher');
+      expect(domainUser.customClaims).toEqual({
+        teacher: true,
       });
     });
 
