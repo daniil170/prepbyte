@@ -17,7 +17,13 @@ import {
   TeacherStudentDetailPage,
   TeacherGroupsPage,
   TeacherGroupDetailPage,
+  TeacherExamsPage,
+  TeacherExamLivePage,
 } from '@features/teacher';
+import {
+  StudentExamJoinPage,
+  StudentExamPage,
+} from '@features/exams';
 import HomePage from './pages/HomePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import CookiePolicyPage from './pages/CookiePolicyPage';
@@ -67,7 +73,39 @@ export const routes = [
         path: 'groups/:groupId',
         element: <TeacherGroupDetailPage />,
       },
+      {
+        path: 'exams',
+        element: <TeacherExamsPage />,
+      },
+      {
+        path: 'exams/:examId',
+        element: <TeacherExamLivePage />,
+      },
     ],
+  },
+  {
+    path: '/exam/join',
+    element: (
+      <ProtectedRoute>
+        <StudentExamJoinPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/exam/:examId',
+    element: (
+      <ProtectedRoute>
+        <StudentExamPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/exam/:examId/result',
+    element: (
+      <ProtectedRoute>
+        <StudentExamPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/analytics',

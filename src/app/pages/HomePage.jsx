@@ -132,6 +132,24 @@ export default function HomePage() {
                   <span>Перейти в дашборд</span>
                   <span aria-hidden="true">→</span>
                 </Link>
+                <Link
+                  to="/exam/join"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.875rem',
+                    padding: '10px 18px',
+                    borderRadius: 'var(--radius)',
+                    border: '1px solid var(--color-border)',
+                    backgroundColor: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span>🔑 Вход на экзамен по PIN</span>
+                </Link>
               </div>
             </div>
 
