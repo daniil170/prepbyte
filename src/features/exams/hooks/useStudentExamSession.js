@@ -74,7 +74,9 @@ export function useStudentExamSession(
     questionRepo
       .getQuestionsByIds(idsToFetch)
       .then((loaded) => {
-        questionsLoadedRef.current = true;
+        if (loaded && loaded.length > 0) {
+          questionsLoadedRef.current = true;
+        }
         setRawQuestions(loaded);
       })
       .catch((err) => {
@@ -118,9 +120,17 @@ export function useStudentExamSession(
       return () => {};
     }
 
+    const calculatedExpiresAt =
+      session.expiresAt ||
+      (session.startedAt && session.durationSeconds
+        ? session.startedAt + session.durationSeconds * 1000
+        : null) ||
+      exam?.endsAt ||
+      null;
+
     const effectiveSession = {
       ...session,
-      expiresAt: session.expiresAt || exam?.endsAt || null,
+      expiresAt: calculatedExpiresAt,
     };
 
     const interval = setInterval(() => {

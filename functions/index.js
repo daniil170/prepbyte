@@ -145,16 +145,6 @@ export const startExamSession = onCall(async (request) => {
   return await db.runTransaction(async (transaction) => {
     const sessionSnap = await transaction.get(sessionDocRef);
 
-    if (sessionSnap.exists) {
-      const data = sessionSnap.data();
-      return {
-        id: sessionId,
-        examId: cleanExamId,
-        studentId,
-        ...data,
-      };
-    }
-
     const examDocRef = db.collection('exams').doc(cleanExamId);
     const examSnap = await transaction.get(examDocRef);
 
@@ -163,6 +153,45 @@ export const startExamSession = onCall(async (request) => {
     }
 
     const examData = examSnap.data();
+
+    if (sessionSnap.exists) {
+      const data = sessionSnap.data();
+
+      // If existing session is in 'waiting' state and exam has been activated, transition to 'in_progress'
+      if (data.status === 'waiting' && examData.status === 'active') {
+        const durationSeconds =
+          Number(data.durationSeconds) ||
+          Number(examData.durationSeconds) ||
+          (Number(examData.durationMinutes) || 60) * 60;
+        const serverNowMs = Date.now();
+        const startedAt = serverNowMs;
+        const expiresAt = startedAt + durationSeconds * 1000;
+
+        transaction.update(sessionDocRef, {
+          status: 'in_progress',
+          startedAt: FieldValue.serverTimestamp(),
+          expiresAt: new Date(expiresAt),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        return {
+          id: sessionId,
+          examId: cleanExamId,
+          studentId,
+          ...data,
+          status: 'in_progress',
+          startedAt,
+          expiresAt,
+        };
+      }
+
+      return {
+        id: sessionId,
+        examId: cleanExamId,
+        studentId,
+        ...data,
+      };
+    }
 
     if (examData.status !== 'waiting' && examData.status !== 'active') {
       throw new HttpsError(

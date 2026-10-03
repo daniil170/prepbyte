@@ -278,10 +278,6 @@ export function createExamRepository(firestore = defaultDb) {
     const docRef = doc(firestore, sessionsCollection, sessionId);
     const snapshot = await getDoc(docRef);
 
-    if (snapshot.exists()) {
-      return documentToExamSession(snapshot.id, snapshot.data());
-    }
-
     try {
       const serverSession = await startExamSessionClient({ examId: examId.trim() });
       if (serverSession) {
@@ -289,6 +285,27 @@ export function createExamRepository(firestore = defaultDb) {
       }
     } catch {
       // Fallback for mock/test environments
+    }
+
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      if (data.status === 'waiting' && examStatus === EXAM_STATUS.ACTIVE) {
+        const nowMs = Date.now();
+        const expiresAtMs = nowMs + (Number(durationSeconds) || 3600) * 1000;
+        await updateDoc(docRef, {
+          status: 'in_progress',
+          startedAt: serverTimestamp(),
+          expiresAt: new Date(expiresAtMs),
+          updatedAt: serverTimestamp(),
+        });
+        return documentToExamSession(sessionId, {
+          ...data,
+          status: 'in_progress',
+          startedAt: nowMs,
+          expiresAt: expiresAtMs,
+        });
+      }
+      return documentToExamSession(snapshot.id, data);
     }
 
     const initialStatus =

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@features/auth';
-import { questionRepository as defaultQuestionRepo } from '@features/question-bank';
+import {
+  questionRepository as defaultQuestionRepo,
+  generateCurriculumQuestions,
+} from '@features/question-bank';
 import { buildTestVariant } from '@features/testing';
 import { examRepository as defaultRepo } from '../data/examRepository';
 import { groupRepository as defaultGroupRepo } from '../data/groupRepository';
@@ -100,16 +103,15 @@ export function useTeacherExams({
           } else if (allQuestions && allQuestions.length > 0) {
             questionIds = allQuestions.map((q) => q.id);
           } else {
-            questionIds = Array.from(
-              { length: 40 },
-              (_, i) => `q_synth_${i + 1}`
-            );
+            const generated = generateCurriculumQuestions({ mode: 'full_exam' });
+            if (questionRepo.saveQuestionsBatch) {
+              await questionRepo.saveQuestionsBatch(generated);
+            }
+            questionIds = generated.map((q) => q.id);
           }
         } catch {
-          questionIds = Array.from(
-            { length: 40 },
-            (_, i) => `q_synth_${i + 1}`
-          );
+          const generated = generateCurriculumQuestions({ mode: 'full_exam' });
+          questionIds = generated.map((q) => q.id);
         }
       }
 
