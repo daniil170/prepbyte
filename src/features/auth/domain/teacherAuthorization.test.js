@@ -10,10 +10,10 @@ describe('teacherAuthorization domain', () => {
   });
 
   it('returns true if user has role: "teacher" or isTeacher: true', () => {
-    expect(isUserTeacher({ email: 'user@example.com', role: 'teacher' })).toBe(
+    expect(isUserTeacher({ email: 'user@pifagorschool.kz', role: 'teacher' })).toBe(
       true
     );
-    expect(isUserTeacher({ email: 'user@example.com', isTeacher: true })).toBe(
+    expect(isUserTeacher({ email: 'user@pifagorschool.kz', isTeacher: true })).toBe(
       true
     );
   });
@@ -21,13 +21,13 @@ describe('teacherAuthorization domain', () => {
   it('returns true if custom claims indicate teacher', () => {
     expect(
       isUserTeacher({
-        email: 'user@example.com',
+        email: 'user@pifagorschool.kz',
         customClaims: { teacher: true },
       })
     ).toBe(true);
     expect(
       isUserTeacher({
-        email: 'user@example.com',
+        email: 'user@pifagorschool.kz',
         customClaims: { role: 'teacher' },
       })
     ).toBe(true);
@@ -40,25 +40,28 @@ describe('teacherAuthorization domain', () => {
     expect(isUserTeacher({ email: 'admin@prepbyte.kz' })).toBe(true);
   });
 
-  it('honors environment variable whitelist', () => {
-    const env = 'teacher1@school.kz, mentor@prepbyte.kz';
-    expect(isUserTeacher({ email: 'teacher1@school.kz' }, env)).toBe(true);
+  it('honors exact environment variable whitelist', () => {
+    const env = 'teacher1@pifagorschool.kz, mentor@prepbyte.kz';
+    expect(isUserTeacher({ email: 'teacher1@pifagorschool.kz' }, env)).toBe(true);
     expect(isUserTeacher({ email: 'mentor@prepbyte.kz' }, env)).toBe(true);
-    expect(isUserTeacher({ email: 'other@school.kz' }, env)).toBe(false);
+    expect(isUserTeacher({ email: 'other@pifagorschool.kz' }, env)).toBe(false);
   });
 
-  it('recognizes built-in demo teacher email patterns', () => {
-    expect(isUserTeacher({ email: 'teacher@prepbyte.kz' })).toBe(true);
-    expect(isUserTeacher({ email: 'math.teacher@school.kz' })).toBe(true);
-    expect(isUserTeacher({ email: 'pedagog@gymnasium.kz' })).toBe(true);
+  it('strictly rejects substring and pattern spoofing for ordinary students', () => {
+    // Ordinary student emails containing substrings "teacher" or "pedagog"
+    expect(isUserTeacher({ email: 'teacherstudent@pifagorschool.kz' })).toBe(false);
+    expect(isUserTeacher({ email: 'student_teacher@gmail.com' })).toBe(false);
+    expect(isUserTeacher({ email: 'myteacher@pifagorschool.kz' })).toBe(false);
+    expect(isUserTeacher({ email: 'pedagog.assistant@school.kz' })).toBe(false);
+    expect(isUserTeacher({ email: 'teacher@random.org' })).toBe(false);
   });
 
   it('returns false for ordinary student', () => {
     expect(
-      isUserTeacher({ email: 'student@gmail.com', role: 'student' })
+      isUserTeacher({ email: 'student@pifagorschool.kz', role: 'student' })
     ).toBe(false);
     expect(
-      isUserTeacher({ email: 'alihan@mail.ru', isAdmin: false, isTeacher: false })
+      isUserTeacher({ email: 'alihan@pifagorschool.kz', isAdmin: false, isTeacher: false })
     ).toBe(false);
   });
 });
