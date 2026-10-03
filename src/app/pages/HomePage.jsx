@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { isUserAdmin, useAuth } from '@features/auth';
+import { isUserAdmin, isUserTeacher, useAuth } from '@features/auth';
 import { StartTestPanel } from '@features/testing';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { HeroBackgroundAnimation } from '@shared/ui/BackgroundAnimation/HeroBackgroundAnimation';
@@ -65,6 +65,9 @@ export default function HomePage() {
   const isAdmin =
     (import.meta.env?.DEV && import.meta.env?.VITE_ADMIN_ALL === 'true') ||
     isUserAdmin(user, import.meta.env?.VITE_ADMIN_EMAILS || '');
+  const isTeacher =
+    isAdmin ||
+    isUserTeacher(user, import.meta.env?.VITE_TEACHER_EMAILS || '');
 
   return (
     <div className={styles.page}>
@@ -75,6 +78,11 @@ export default function HomePage() {
             <Link to="/analytics" className={styles.navLink}>
               Дашборд
             </Link>
+            {isTeacher && (
+              <Link to="/teacher" className={styles.navLink}>
+                Кабинет учителя
+              </Link>
+            )}
             {isAdmin && (
               <Link to="/admin/variants" className={styles.navLink}>
                 Админ-панель

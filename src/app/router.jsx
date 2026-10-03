@@ -5,10 +5,19 @@ import {
   ProtectedRoute,
   PublicOnlyRoute,
   RegisterPage,
+  TeacherRoute,
 } from '@features/auth';
 import { AnalyticsDashboard } from '@features/analytics';
 import { AdminVariantsPage } from '@features/question-bank';
 import { TestPage } from '@features/testing';
+import {
+  TeacherLayout,
+  TeacherOverviewPage,
+  TeacherStudentsPage,
+  TeacherStudentDetailPage,
+  TeacherGroupsPage,
+  TeacherGroupDetailPage,
+} from '@features/teacher';
 import HomePage from './pages/HomePage';
 
 export const routes = [
@@ -27,6 +36,36 @@ export const routes = [
         <AdminVariantsPage />
       </AdminRoute>
     ),
+  },
+  {
+    path: '/teacher',
+    element: (
+      <TeacherRoute>
+        <TeacherLayout />
+      </TeacherRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <TeacherOverviewPage />,
+      },
+      {
+        path: 'students',
+        element: <TeacherStudentsPage />,
+      },
+      {
+        path: 'students/:studentId',
+        element: <TeacherStudentDetailPage />,
+      },
+      {
+        path: 'groups',
+        element: <TeacherGroupsPage />,
+      },
+      {
+        path: 'groups/:groupId',
+        element: <TeacherGroupDetailPage />,
+      },
+    ],
   },
   {
     path: '/analytics',
