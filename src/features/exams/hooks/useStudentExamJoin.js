@@ -89,6 +89,7 @@ export function useStudentExamJoin({
           studentId: user.id,
           studentName,
           groupId: exam.groupId,
+          questionIds: exam.questionIds || [],
           durationSeconds: exam.durationSeconds || 3600,
           examStatus: exam.status,
         });

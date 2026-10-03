@@ -145,19 +145,57 @@ describe('Firestore Security Rules Unit Tests', () => {
         status: 'active',
       });
 
+      await setDoc(doc(adminDb, 'exams/examFinished'), {
+        title: 'Завершённый экзамен',
+        teacherId: 'teacherA',
+        groupId: 'groupA',
+        questionIds: ['q1'],
+        durationMinutes: 60,
+        pin: '999999',
+        status: 'finished',
+      });
+
+      // Exam PIN lookups
+      await setDoc(doc(adminDb, 'exam_pin_lookup/123456'), {
+        examId: 'examA',
+        groupId: 'groupA',
+        teacherId: 'teacherA',
+        status: 'active',
+      });
+
+      await setDoc(doc(adminDb, 'exam_pin_lookup/654321'), {
+        examId: 'examB',
+        groupId: 'groupB',
+        teacherId: 'teacherB',
+        status: 'active',
+      });
+
       // Exam Sessions
       await setDoc(doc(adminDb, 'exam_sessions/examA_studentA'), {
         examId: 'examA',
         studentId: 'studentA',
+        groupId: 'groupA',
         status: 'in_progress',
         answers: {},
+        questionOrder: ['q1'],
       });
 
       await setDoc(doc(adminDb, 'exam_sessions/examB_studentB'), {
         examId: 'examB',
         studentId: 'studentB',
+        groupId: 'groupB',
         status: 'in_progress',
         answers: {},
+        questionOrder: ['q1'],
+      });
+
+      await setDoc(doc(adminDb, 'exam_sessions/examA_studentA_submitted'), {
+        examId: 'examA',
+        studentId: 'studentA',
+        groupId: 'groupA',
+        status: 'submitted',
+        answers: { q1: [0] },
+        questionOrder: ['q1'],
       });
     });
   });
@@ -337,6 +375,7 @@ describe('Firestore Security Rules Unit Tests', () => {
     await assertFails(getDoc(doc(db, 'test_sessions/sessionA')));
     await assertFails(getDoc(doc(db, 'exams/examA')));
     await assertFails(getDoc(doc(db, 'exam_sessions/examA_studentA')));
+    await assertFails(getDoc(doc(db, 'exam_pin_lookup/123456')));
   });
 
   it('12. Teacher A CAN create exams for their groups', async () => {
@@ -393,28 +432,134 @@ describe('Firestore Security Rules Unit Tests', () => {
     );
   });
 
-  it('15. Student A CAN create and update their own exam session answers', async () => {
+  it('15. Student A (in groupA) CAN read examA, but CANNOT read examB (groupB)', async () => {
     if (!isEmulatorAvailable) return;
     const studentA = testEnv.authenticatedContext('studentA', {
       email: 'studenta@pifagorschool.kz',
     });
     const db = studentA.firestore();
+    // CAN read exam for groupA
+    await assertSucceeds(getDoc(doc(db, 'exams/examA')));
+    // CANNOT read exam for groupB
+    await assertFails(getDoc(doc(db, 'exams/examB')));
+  });
+
+  it('16. Student A CAN read exam_pin_lookup for examA PIN, but CANNOT read PIN for examB', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    // CAN read PIN lookup of assigned group
+    await assertSucceeds(getDoc(doc(db, 'exam_pin_lookup/123456')));
+    // CANNOT read PIN lookup of unassigned group
+    await assertFails(getDoc(doc(db, 'exam_pin_lookup/654321')));
+  });
+
+  it('17. Student A CAN create exam session for examA, but CANNOT create for examB (wrong group)', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    // CAN create for groupA
     await assertSucceeds(
       setDoc(doc(db, 'exam_sessions/examA_studentA_new'), {
         examId: 'examA',
         studentId: 'studentA',
+        groupId: 'groupA',
         status: 'waiting',
         answers: {},
       })
     );
+    // CANNOT create for groupB
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/examB_studentA'), {
+        examId: 'examB',
+        studentId: 'studentA',
+        groupId: 'groupB',
+        status: 'waiting',
+        answers: {},
+      })
+    );
+  });
+
+  it('18. Student A CANNOT forge score or percentage on exam session create or update', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    // Attempt score injection on create
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/examA_studentA_cheat'), {
+        examId: 'examA',
+        studentId: 'studentA',
+        groupId: 'groupA',
+        status: 'waiting',
+        answers: {},
+        score: 100,
+        totalScore: 100,
+      })
+    );
+    // Attempt score injection on update
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        totalScore: 100,
+        percentage: 100,
+      })
+    );
+  });
+
+  it('19. Student A CAN update answers in active session, but CANNOT update submitted session', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    // Active session update answers
     await assertSucceeds(
       updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
         answers: { q1: [0] },
       })
     );
+    // Submitted session update MUST FAIL
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA_submitted'), {
+        answers: { q1: [1] },
+      })
+    );
   });
 
-  it('16. Student A CANNOT read or modify Student B exam session', async () => {
+  it('20. Student A CANNOT modify studentId, examId, groupId, or questionOrder on update', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        studentId: 'hackedStudent',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        examId: 'examB',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        groupId: 'groupB',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        questionOrder: ['q2', 'q1'],
+      })
+    );
+  });
+
+  it('21. Student A CANNOT read or modify Student B exam session', async () => {
     if (!isEmulatorAvailable) return;
     const studentA = testEnv.authenticatedContext('studentA', {
       email: 'studenta@pifagorschool.kz',
@@ -428,24 +573,58 @@ describe('Firestore Security Rules Unit Tests', () => {
     );
   });
 
-  it('17. Teacher A CAN read exam session of Student A for their exam', async () => {
+  it('22. Teacher A CAN read session for their exam, Teacher B CANNOT', async () => {
+    if (!isEmulatorAvailable) return;
+    const teacherA = testEnv.authenticatedContext('teacherA', {
+      teacher: true,
+      email: 'teachera@pifagorschool.kz',
+    });
+    const dbA = teacherA.firestore();
+    await assertSucceeds(getDoc(doc(dbA, 'exam_sessions/examA_studentA')));
+
+    const teacherB = testEnv.authenticatedContext('teacherB', {
+      teacher: true,
+      email: 'teacherb@pifagorschool.kz',
+    });
+    const dbB = teacherB.firestore();
+    await assertFails(getDoc(doc(dbB, 'exam_sessions/examA_studentA')));
+  });
+
+  it('23. Teacher CANNOT regress finished exam to active/draft, or active exam to draft/waiting', async () => {
     if (!isEmulatorAvailable) return;
     const teacherA = testEnv.authenticatedContext('teacherA', {
       teacher: true,
       email: 'teachera@pifagorschool.kz',
     });
     const db = teacherA.firestore();
-    await assertSucceeds(getDoc(doc(db, 'exam_sessions/examA_studentA')));
-  });
-
-  it('18. Teacher B CANNOT read exam session of Student A from Teacher A exam', async () => {
-    if (!isEmulatorAvailable) return;
-    const teacherB = testEnv.authenticatedContext('teacherB', {
-      teacher: true,
-      email: 'teacherb@pifagorschool.kz',
-    });
-    const db = teacherB.firestore();
-    await assertFails(getDoc(doc(db, 'exam_sessions/examA_studentA')));
+    // Cannot regress finished exam
+    await assertFails(
+      updateDoc(doc(db, 'exams/examFinished'), {
+        status: 'active',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exams/examFinished'), {
+        status: 'draft',
+      })
+    );
+    // Cannot regress active exam to draft or waiting
+    await assertFails(
+      updateDoc(doc(db, 'exams/examA'), {
+        status: 'draft',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exams/examA'), {
+        status: 'waiting',
+      })
+    );
+    // Can advance active exam to finished
+    await assertSucceeds(
+      updateDoc(doc(db, 'exams/examA'), {
+        status: 'finished',
+      })
+    );
   });
 
   it('rules structure sanity test', () => {
@@ -454,6 +633,7 @@ describe('Firestore Security Rules Unit Tests', () => {
     expect(rulesContent).toContain('match /groups/{groupId}');
     expect(rulesContent).toContain('match /test_sessions/{sessionId}');
     expect(rulesContent).toContain('match /exams/{examId}');
+    expect(rulesContent).toContain('match /exam_pin_lookup/{pin}');
     expect(rulesContent).toContain('match /exam_sessions/{sessionId}');
   });
 });

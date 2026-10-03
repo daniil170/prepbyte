@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@features/auth';
 import {
   examRepository as defaultExamRepo,
@@ -18,7 +18,7 @@ export function useStudentExamSession(
   const { user } = useAuth();
   const [exam, setExam] = useState(null);
   const [session, setSession] = useState(null);
-  const [questions, setQuestions] = useState([]);
+  const [rawQuestions, setRawQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isLoading, setIsLoading] = useState(Boolean(examId && user?.id));
@@ -67,19 +67,31 @@ export function useStudentExamSession(
 
   // 2. Load Questions when questionIds are ready
   useEffect(() => {
-    if (!exam?.questionIds || exam.questionIds.length === 0) return;
+    const idsToFetch = exam?.questionIds || [];
+    if (idsToFetch.length === 0) return;
     if (questionsLoadedRef.current) return;
 
     questionRepo
-      .getQuestionsByIds(exam.questionIds)
+      .getQuestionsByIds(idsToFetch)
       .then((loaded) => {
-        setQuestions(loaded);
         questionsLoadedRef.current = true;
+        setRawQuestions(loaded);
       })
       .catch((err) => {
         setError(err.message || 'Ошибка загрузки заданий экзамена.');
       });
   }, [exam?.questionIds, questionRepo]);
+
+  // Derived ordered questions based on session.questionOrder (or exam.questionIds fallback)
+  const questions = useMemo(() => {
+    if (!rawQuestions || rawQuestions.length === 0) return [];
+    const order = session?.questionOrder?.length ? session.questionOrder : exam?.questionIds;
+    if (!order || order.length === 0) return rawQuestions;
+
+    const questionMap = new Map(rawQuestions.map((q) => [q.id, q]));
+    const ordered = order.map((id) => questionMap.get(id)).filter(Boolean);
+    return ordered.length > 0 ? ordered : rawQuestions;
+  }, [rawQuestions, session?.questionOrder, exam?.questionIds]);
 
   // 3. Submit Session Action
   const submit = useCallback(async () => {

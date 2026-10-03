@@ -94,6 +94,7 @@ export function documentToExamSession(id, data) {
     studentId: data.studentId || '',
     studentName: data.studentName || '',
     groupId: data.groupId || '',
+    questionOrder: Array.isArray(data.questionOrder) ? [...data.questionOrder] : [],
     status: data.status || 'waiting',
     durationSeconds: Number(data.durationSeconds) || 3600,
     startedAt: toEpochMs(data.startedAt),
@@ -123,11 +124,12 @@ export function examSessionToDocument(session) {
     throw new Error('Объект сессии экзамена обязателен для маппинга.');
   }
 
-  return {
+  const docData = {
     examId: session.examId || '',
     studentId: session.studentId || '',
     studentName: session.studentName || '',
     groupId: session.groupId || '',
+    questionOrder: Array.isArray(session.questionOrder) ? session.questionOrder : [],
     status: session.status || 'waiting',
     durationSeconds: session.durationSeconds || 3600,
     startedAt: session.startedAt || null,
@@ -136,12 +138,25 @@ export function examSessionToDocument(session) {
     answers: session.answers || {},
     flagged: session.flagged || [],
     currentIndex: session.currentIndex || 0,
-    score: session.score || null,
-    correctAnswersCount: session.correctAnswersCount ?? null,
-    totalScore: session.totalScore ?? null,
-    maxPossibleScore: session.maxPossibleScore ?? null,
-    percentage: session.percentage ?? null,
     createdAt: session.createdAt || Date.now(),
     updatedAt: session.updatedAt || Date.now(),
   };
+
+  if (session.score !== undefined && session.score !== null) {
+    docData.score = session.score;
+  }
+  if (session.correctAnswersCount !== undefined && session.correctAnswersCount !== null) {
+    docData.correctAnswersCount = session.correctAnswersCount;
+  }
+  if (session.totalScore !== undefined && session.totalScore !== null) {
+    docData.totalScore = session.totalScore;
+  }
+  if (session.maxPossibleScore !== undefined && session.maxPossibleScore !== null) {
+    docData.maxPossibleScore = session.maxPossibleScore;
+  }
+  if (session.percentage !== undefined && session.percentage !== null) {
+    docData.percentage = session.percentage;
+  }
+
+  return docData;
 }

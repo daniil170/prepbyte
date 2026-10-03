@@ -41,6 +41,7 @@ function generateId(prefix = 'exam') {
 
 export function createExamRepository(firestore = defaultDb) {
   const examsCollection = 'exams';
+  const pinLookupCollection = 'exam_pin_lookup';
   const sessionsCollection = 'exam_sessions';
 
   /**
@@ -77,31 +78,51 @@ export function createExamRepository(firestore = defaultDb) {
   }
 
   /**
-   * Finds an active or waiting exam by its 6-digit PIN.
+   * Finds an active or waiting exam by its 6-digit PIN using secure lookup.
    */
   async function findExamByPin(pin) {
     if (!pin) return null;
     const cleanPin = String(pin).trim();
-    const q = query(
-      collection(firestore, examsCollection),
-      where('pin', '==', cleanPin)
-    );
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
 
-    // Filter by active/waiting if multiple exist
-    const exams = snapshot.docs
-      .map((d) => documentToExam(d.id, d.data()))
-      .filter(Boolean);
+    // 1. Try secure PIN lookup document first
+    try {
+      const pinDocRef = doc(firestore, pinLookupCollection, cleanPin);
+      const pinSnap = await getDoc(pinDocRef);
+      if (pinSnap.exists()) {
+        const lookupData = pinSnap.data();
+        if (lookupData?.examId) {
+          const exam = await getExamById(lookupData.examId);
+          if (exam) return exam;
+        }
+      }
+    } catch {
+      // Fall through to query if permissions or direct collection fallback
+    }
 
-    const validExam = exams.find(
-      (e) => e.status === EXAM_STATUS.WAITING || e.status === EXAM_STATUS.ACTIVE
-    );
-    return validExam || exams[0] || null;
+    // 2. Direct query fallback
+    try {
+      const q = query(
+        collection(firestore, examsCollection),
+        where('pin', '==', cleanPin)
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+
+      const exams = snapshot.docs
+        .map((d) => documentToExam(d.id, d.data()))
+        .filter(Boolean);
+
+      const validExam = exams.find(
+        (e) => e.status === EXAM_STATUS.WAITING || e.status === EXAM_STATUS.ACTIVE
+      );
+      return validExam || exams[0] || null;
+    } catch {
+      return null;
+    }
   }
 
   /**
-   * Creates a new exam in Firestore.
+   * Creates a new exam in Firestore and indexes PIN lookup.
    */
   async function createNewExam({
     title,
@@ -134,6 +155,23 @@ export function createExamRepository(firestore = defaultDb) {
     };
 
     await setDoc(docRef, docData);
+
+    // Save pin lookup
+    if (examEntity.pin) {
+      try {
+        const pinDocRef = doc(firestore, pinLookupCollection, examEntity.pin);
+        await setDoc(pinDocRef, {
+          examId,
+          groupId: groupId.trim(),
+          teacherId: teacherId.trim(),
+          status: EXAM_STATUS.DRAFT,
+          updatedAt: serverTimestamp(),
+        });
+      } catch {
+        // Safe fallback
+      }
+    }
+
     return examEntity;
   }
 
@@ -158,6 +196,27 @@ export function createExamRepository(firestore = defaultDb) {
     if (updated.finishedAt) patch.finishedAt = updated.finishedAt;
 
     await updateDoc(docRef, patch);
+
+    // Update PIN lookup
+    if (exam.pin) {
+      try {
+        const pinDocRef = doc(firestore, pinLookupCollection, exam.pin);
+        await setDoc(
+          pinDocRef,
+          {
+            examId,
+            groupId: exam.groupId,
+            teacherId: exam.teacherId,
+            status: updated.status,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch {
+        // Safe fallback
+      }
+    }
+
     return updated;
   }
 
@@ -166,8 +225,18 @@ export function createExamRepository(firestore = defaultDb) {
    */
   async function deleteExam(examId) {
     if (!examId) return;
+    const exam = await getExamById(examId);
     const docRef = doc(firestore, examsCollection, examId.trim());
     await deleteDoc(docRef);
+
+    if (exam?.pin) {
+      try {
+        const pinDocRef = doc(firestore, pinLookupCollection, exam.pin);
+        await deleteDoc(pinDocRef);
+      } catch {
+        // Safe fallback
+      }
+    }
   }
 
   /**
@@ -211,13 +280,14 @@ export function createExamRepository(firestore = defaultDb) {
   }
 
   /**
-   * Gets or creates a student exam session.
+   * Gets or creates a student exam session with persistent questionOrder.
    */
   async function getOrCreateExamSession({
     examId,
     studentId,
     studentName = '',
     groupId,
+    questionIds = [],
     durationSeconds = 3600,
     examStatus = EXAM_STATUS.WAITING,
   }) {
@@ -238,6 +308,7 @@ export function createExamRepository(firestore = defaultDb) {
       studentId: studentId.trim(),
       studentName,
       groupId: groupId.trim(),
+      questionIds,
       durationSeconds,
       status: initialStatus,
       now: Date.now,
@@ -294,7 +365,9 @@ export function createExamRepository(firestore = defaultDb) {
   }
 
   /**
-   * Submits a student exam session, calculates scores, and freezes.
+   * Submits a student exam session.
+   * Freezes answers and updates status to 'submitted'.
+   * Result is evaluated client-side for UI display.
    */
   async function submitSession(sessionId, questions = []) {
     const docRef = doc(firestore, sessionsCollection, sessionId.trim());
@@ -304,14 +377,10 @@ export function createExamRepository(firestore = defaultDb) {
     const currentSession = documentToExamSession(snapshot.id, snapshot.data());
     const evaluated = submitExamSession(currentSession, questions);
 
+    // Write ONLY the allowed submission fields
     const patch = {
       status: 'submitted',
       submittedAt: serverTimestamp(),
-      score: evaluated.score,
-      totalScore: evaluated.totalScore,
-      maxPossibleScore: evaluated.maxPossibleScore,
-      percentage: evaluated.percentage,
-      correctAnswersCount: evaluated.correctAnswersCount,
       updatedAt: serverTimestamp(),
     };
 

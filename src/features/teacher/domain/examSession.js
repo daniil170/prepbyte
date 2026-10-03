@@ -13,11 +13,35 @@ function resolveTime(now) {
 }
 
 /**
- * Pure evaluation function for exam answers against question bank items.
+ * Deterministic or random Fisher-Yates permutation for question IDs.
  *
- * @param {Record<string, number[]>} answers
- * @param {Array<object>} questions
- * @returns {object}
+ * @param {string[]} questionIds - Source array of question IDs.
+ * @param {object} [options]
+ * @param {() => number} [options.random=Math.random] - Injected RNG function.
+ * @returns {string[]} Permuted array of question IDs.
+ */
+export function generateQuestionOrder(questionIds = [], { random = Math.random } = {}) {
+  if (!Array.isArray(questionIds) || questionIds.length <= 1) {
+    return Array.isArray(questionIds) ? [...questionIds] : [];
+  }
+
+  const result = [...questionIds];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    const temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
+}
+
+/**
+ * Pure evaluation function for exam answers against question bank items.
+ * Answers are evaluated strictly by question.id.
+ *
+ * @param {Record<string, number[]>} answers - Map of { [questionId]: optionIndices }.
+ * @param {Array<object>} questions - Array of question entities.
+ * @returns {object} Detailed score calculation.
  */
 export function evaluateExamAnswers(answers = {}, questions = []) {
   let totalScore = 0;
@@ -113,16 +137,19 @@ export function evaluateExamAnswers(answers = {}, questions = []) {
 }
 
 /**
- * Creates a new student exam session.
+ * Creates a new student exam session with persistent individual questionOrder.
  *
  * @param {object} params
- * @param {string} params.id
+ * @param {string} params.id - Session identifier (${examId}_${studentId}).
  * @param {string} params.examId
  * @param {string} params.studentId
  * @param {string} [params.studentName='']
  * @param {string} params.groupId
+ * @param {string[]} [params.questionIds=[]] - Source exam question IDs.
+ * @param {string[]} [params.questionOrder] - Pre-existing or custom question order.
  * @param {number} [params.durationSeconds=3600]
  * @param {string} [params.status='waiting']
+ * @param {() => number} [params.random=Math.random] - Injected RNG function.
  * @param {number|(() => number)} [params.now=Date.now]
  * @returns {object} Immutable ExamSession.
  */
@@ -132,8 +159,11 @@ export function createExamSession({
   studentId,
   studentName = '',
   groupId,
+  questionIds = [],
+  questionOrder,
   durationSeconds = 3600,
   status = EXAM_SESSION_STATUS.WAITING,
+  random = Math.random,
   now = Date.now,
 }) {
   if (!id || typeof id !== 'string') {
@@ -151,12 +181,18 @@ export function createExamSession({
   const startedAt = isImmediatelyActive ? currentTime : null;
   const expiresAt = isImmediatelyActive ? currentTime + durationSeconds * 1000 : null;
 
+  // Persistent individual question order generated ONCE upon creation
+  const effectiveQuestionOrder = Array.isArray(questionOrder) && questionOrder.length > 0
+    ? [...questionOrder]
+    : generateQuestionOrder(questionIds, { random });
+
   return Object.freeze({
     id,
     examId,
     studentId,
     studentName: (studentName || '').trim(),
     groupId: (groupId || '').trim(),
+    questionOrder: effectiveQuestionOrder,
     status,
     durationSeconds,
     startedAt,

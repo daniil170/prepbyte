@@ -149,11 +149,15 @@ service cloud.firestore {
 
     // Exams collection: teacher-managed online exams
     match /exams/{examId} {
-      // Reading allowed for owner teacher, admin, or any authenticated student when exam is waiting/active/finished
+      // Reading allowed for owner teacher, admin, or students enrolled in the assigned group when exam is waiting/active/finished
       allow read: if isAuthenticated() && (
         resource.data.teacherId == request.auth.uid
         || isAdmin()
-        || resource.data.status in ['waiting', 'active', 'finished']
+        || (
+          resource.data.status in ['waiting', 'active', 'finished']
+          && exists(/databases/$(database)/documents/groups/$(resource.data.groupId))
+          && (request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.studentIds)
+        )
       );
 
       // Creation allowed only for teacher owner or admin
@@ -165,15 +169,50 @@ service cloud.firestore {
         && request.resource.data.questionIds is list
         && request.resource.data.status in ['draft', 'waiting', 'active'];
 
-      // Updating allowed only for teacher owner or admin, preserving teacherId ownership
+      // Updating allowed only for teacher owner or admin, preserving teacherId & groupId ownership and enforcing lifecycle rules
       allow update: if isAuthenticated() && (
-        (resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == resource.data.teacherId)
-        || isAdmin()
+        isAdmin()
+        || (
+          resource.data.teacherId == request.auth.uid
+          && request.resource.data.teacherId == resource.data.teacherId
+          && request.resource.data.groupId == resource.data.groupId
+          && (resource.data.status != 'finished' || request.resource.data.status == 'finished')
+          && (resource.data.status != 'active' || request.resource.data.status in ['active', 'finished'])
+        )
       );
 
       // Deletion allowed for owner teacher only while in draft status, or admin
       allow delete: if isAuthenticated() && (
         (resource.data.teacherId == request.auth.uid && resource.data.status == 'draft')
+        || isAdmin()
+      );
+    }
+
+    // Exam PIN lookup collection: quick access by PIN for students enrolled in the exam's group
+    match /exam_pin_lookup/{pin} {
+      // Readable by teacher owner, admin, or students enrolled in the assigned group
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid
+        || isAdmin()
+        || (
+          exists(/databases/$(database)/documents/groups/$(resource.data.groupId))
+          && (request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.studentIds)
+        )
+      );
+
+      // Creation allowed only for teacher owner or admin
+      allow create: if isTeacher()
+        && (request.resource.data.teacherId == request.auth.uid || isAdmin());
+
+      // Updating allowed only for teacher owner or admin, preserving teacherId
+      allow update: if isAuthenticated() && (
+        (resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == resource.data.teacherId)
+        || isAdmin()
+      );
+
+      // Deletion allowed only for teacher owner or admin
+      allow delete: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid
         || isAdmin()
       );
     }
@@ -191,23 +230,28 @@ service cloud.firestore {
         )
       );
 
-      // Creation allowed only for the student owner with initial status
+      // Creation allowed only for enrolled students when exam is in waiting or active status, with no score tampering
       allow create: if isAuthenticated()
         && request.resource.data.studentId == request.auth.uid
         && request.resource.data.examId is string
+        && request.resource.data.groupId is string
         && request.resource.data.status in ['waiting', 'in_progress']
-        && request.resource.data.answers is map;
+        && request.resource.data.answers is map
+        && exists(/databases/$(database)/documents/exams/$(request.resource.data.examId))
+        && get(/databases/$(database)/documents/exams/$(request.resource.data.examId)).data.status in ['waiting', 'active']
+        && exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId))
+        && (request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.studentIds)
+        && !request.resource.data.keys().hasAny(['score', 'totalScore', 'percentage', 'correctAnswersCount', 'maxPossibleScore']);
 
-      // Update allowed only by student owner while waiting or in_progress, preserving immutable identifiers
+      // Update allowed only by student owner while waiting or in_progress, preserving immutable fields and preventing score modification
       allow update: if isAuthenticated() && (
-        (
+        isAdmin()
+        || (
           resource.data.studentId == request.auth.uid
-          && request.resource.data.studentId == resource.data.studentId
-          && request.resource.data.examId == resource.data.examId
           && resource.data.status in ['waiting', 'in_progress']
           && request.resource.data.status in ['waiting', 'in_progress', 'submitted']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answers', 'flagged', 'currentIndex', 'status', 'updatedAt', 'submittedAt'])
         )
-        || isAdmin()
       );
 
       // Client deletions are strictly denied
