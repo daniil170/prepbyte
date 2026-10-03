@@ -10,6 +10,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore 'vitest run src/infrastructure/firebase/firestoreRules.test.js'",
+    "firebase:emulators": "firebase emulators:start --import=./emulator-data --export-on-exit",
+    "firebase:seed": "node scripts/seed/seedEmulator.js",
     "seed": "node scripts/seed/seedQuestions.js",
     "bank:audit": "node scripts/audit/auditBank.js",
     "auth:set-admin": "node scripts/auth/setAdminClaim.js",

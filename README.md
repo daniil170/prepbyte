@@ -66,16 +66,69 @@ npm install
 
 ### Available Scripts
 
-| Command              | Description                                                                |
-| -------------------- | -------------------------------------------------------------------------- |
-| `npm run dev`        | Starts the Vite local development server with Hot Module Replacement (HMR) |
-| `npm run build`      | Builds the optimized production assets into `dist/`                        |
-| `npm run preview`    | Previews the production build locally                                      |
-| `npm run lint`       | Runs ESLint across the codebase                                            |
-| `npm run format`     | Formats code with Prettier according to `.prettierrc`                      |
-| `npm test`           | Executes the Vitest test suite once                                        |
-| `npm run seed`       | Seeds questions to Firestore (supports `-- --dry-run`)                     |
-| `npm run bank:audit` | Audits question bank coverage, duplicates, and variant capacity            |
+| Command                  | Description                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `npm run dev`            | Starts the Vite local development server with Hot Module Replacement (HMR)      |
+| `npm run build`          | Builds the optimized production assets into `dist/`                             |
+| `npm run preview`        | Previews the production build locally                                           |
+| `npm run lint`           | Runs ESLint across the codebase                                                 |
+| `npm run format`         | Formats code with Prettier according to `.prettierrc`                           |
+| `npm test`               | Executes the Vitest test suite once                                             |
+| `npm run test:rules`     | Runs Firestore Security Rules unit tests against local Firestore Emulator       |
+| `npm run firebase:emulators` | Starts the Firebase Emulator Suite (Auth, Firestore, Functions, UI)         |
+| `npm run firebase:seed`  | Seeds test accounts, groups, questions, and active exams into local emulators   |
+| `npm run seed`           | Seeds questions to Firestore (supports `-- --dry-run`)                          |
+| `npm run bank:audit`     | Audits question bank coverage, duplicates, and variant capacity                 |
+
+---
+
+## ⚡ Local Firebase Development & Emulator Suite
+
+PrepByte provides a complete, isolated **Firebase Emulator Suite** setup so you can develop, test, and audit all features locally without connecting to or mutating production Firebase databases.
+
+### 1. Local Services & Ports
+
+The local environment runs the following Firebase services:
+- **Authentication Emulator**: `http://127.0.0.1:9099`
+- **Firestore Emulator**: `http://127.0.0.1:8080`
+- **Functions Emulator**: `http://127.0.0.1:5001`
+- **Emulator Suite UI**: `http://127.0.0.1:4000`
+
+### 2. Quickstart Workflow
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+2. **Start the Firebase Emulator Suite**:
+   ```bash
+   npm run firebase:emulators
+   ```
+3. **Seed Development Data (in a separate terminal)**:
+   ```bash
+   npm run firebase:seed
+   ```
+4. **Start Frontend with Emulator Integration**:
+   ```bash
+   # Ensure VITE_USE_FIREBASE_EMULATOR=true is in your .env.local
+   npm run dev
+   ```
+
+### 3. Pre-configured Local Test Accounts
+
+The `firebase:seed` script initializes isolated test accounts with Custom Claims:
+
+| Role | Email | Password | Custom Claims | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin** | `admin@test.local` | `password123` | `{ "admin": true }` | System Administrator |
+| **Teacher** | `teacher@test.local` | `password123` | `{ "teacher": true }` | Informatics Teacher (owns Group `10A`) |
+| **Student 1** | `student1@test.local` | `password123` | `{}` | Student enrolled in Group `10A` |
+| **Student 2** | `student2@test.local` | `password123` | `{}` | Student enrolled in Group `10A` |
+
+**Pre-seeded Exam**: An active online exam with PIN `123456` is pre-seeded for testing student participation and server-authoritative submission.
+
+> [!IMPORTANT]
+> The seed script and test helpers check for local emulator environment variables (`FIREBASE_AUTH_EMULATOR_HOST` / `FIRESTORE_EMULATOR_HOST`) and will automatically abort if executed against production Firebase.
 
 ---
 

@@ -117,11 +117,137 @@ export function sanitizeStudentAnswers(rawAnswers, authorizedQuestionIds, questi
 }
 
 /**
+ * Callable Cloud Function: startExamSession
+ *
+ * Server-authoritative session creation and initialization:
+ * - Validates caller authentication
+ * - Verifies student belongs to the exam's assigned group
+ * - Checks exam status ('waiting' or 'active')
+ * - Server-authoritatively computes startedAt, durationSeconds, expiresAt, and questionOrder
+ * - Creates/returns the ExamSession document without trusting client-supplied timestamps or order
+ */
+export const startExamSession = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для начала экзамена требуется аутентификация.');
+  }
+
+  const { examId } = request.data || {};
+  if (!examId || typeof examId !== 'string' || !examId.trim()) {
+    throw new HttpsError('invalid-argument', 'Идентификатор экзамена (examId) обязателен.');
+  }
+
+  const cleanExamId = examId.trim();
+  const studentId = request.auth.uid;
+  const sessionId = `${cleanExamId}_${studentId}`;
+
+  const sessionDocRef = db.collection('exam_sessions').doc(sessionId);
+
+  return await db.runTransaction(async (transaction) => {
+    const sessionSnap = await transaction.get(sessionDocRef);
+
+    if (sessionSnap.exists) {
+      const data = sessionSnap.data();
+      return {
+        id: sessionId,
+        examId: cleanExamId,
+        studentId,
+        ...data,
+      };
+    }
+
+    const examDocRef = db.collection('exams').doc(cleanExamId);
+    const examSnap = await transaction.get(examDocRef);
+
+    if (!examSnap.exists) {
+      throw new HttpsError('not-found', `Экзамен [${cleanExamId}] не найден.`);
+    }
+
+    const examData = examSnap.data();
+
+    if (examData.status !== 'waiting' && examData.status !== 'active') {
+      throw new HttpsError(
+        'failed-precondition',
+        `Экзамен находится в статусе [${examData.status}] и недоступен для сдачи.`
+      );
+    }
+
+    const groupId = examData.groupId;
+    if (!groupId) {
+      throw new HttpsError('failed-precondition', 'У экзамена отсутствует привязка к группе.');
+    }
+
+    const groupDocRef = db.collection('groups').doc(groupId);
+    const groupSnap = await transaction.get(groupDocRef);
+
+    if (!groupSnap.exists) {
+      throw new HttpsError('not-found', `Группа [${groupId}] не найдена.`);
+    }
+
+    const groupData = groupSnap.data();
+    const studentIds = Array.isArray(groupData.studentIds) ? groupData.studentIds : [];
+
+    if (!studentIds.includes(studentId)) {
+      throw new HttpsError(
+        'permission-denied',
+        'Вы не состоите в группе, для которой назначен этот экзамен.'
+      );
+    }
+
+    const questionIds = Array.isArray(examData.questionIds) ? examData.questionIds : [];
+    if (questionIds.length === 0) {
+      throw new HttpsError('failed-precondition', 'В экзамене отсутствуют вопросы.');
+    }
+
+    const durationSeconds = Number(examData.durationSeconds) || (Number(examData.durationMinutes) || 60) * 60;
+    const initialStatus = examData.status === 'active' ? 'in_progress' : 'waiting';
+    const serverNowMs = Date.now();
+    const startedAt = initialStatus === 'in_progress' ? serverNowMs : null;
+    const expiresAt = startedAt ? startedAt + durationSeconds * 1000 : null;
+
+    const sessionDocData = {
+      examId: cleanExamId,
+      studentId,
+      studentName: request.auth.token?.name || request.auth.token?.email || studentId,
+      groupId,
+      questionOrder: [...questionIds],
+      status: initialStatus,
+      durationSeconds,
+      startedAt: startedAt ? FieldValue.serverTimestamp() : null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      submittedAt: null,
+      answers: {},
+      flagged: [],
+      currentIndex: 0,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    transaction.set(sessionDocRef, sessionDocData);
+
+    return {
+      id: sessionId,
+      examId: cleanExamId,
+      studentId,
+      studentName: sessionDocData.studentName,
+      groupId,
+      questionOrder: questionIds,
+      status: initialStatus,
+      durationSeconds,
+      startedAt,
+      expiresAt,
+      answers: {},
+      flagged: [],
+      currentIndex: 0,
+    };
+  });
+});
+
+/**
  * Callable Cloud Function: submitExamSession
  *
  * Implements server-authoritative submission with:
  * - Authentication & Session ownership validation
- * - Transactional concurrency protection against race conditions
+ * - Transactional execution for atomicity and race-condition prevention
  * - Idempotent response for already-submitted sessions
  * - Protected answer loading (strictly hidden from clients)
  * - Safe sanitization of student answers
