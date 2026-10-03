@@ -98,7 +98,11 @@ export function useStudentExamSession(
     if (!sessionId || isSubmitting) return null;
     try {
       setIsSubmitting(true);
-      const result = await examRepo.submitSession(sessionId, questions);
+      const result = await examRepo.submitSession(
+        sessionId,
+        session?.answers || {},
+        user
+      );
       return result;
     } catch (err) {
       setError(err.message || 'Ошибка отправки экзамена.');
@@ -106,7 +110,7 @@ export function useStudentExamSession(
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, isSubmitting, examRepo, questions]);
+  }, [sessionId, isSubmitting, examRepo, session, user]);
 
   // 4. Synchronized Timer based on session.expiresAt or exam.endsAt
   useEffect(() => {

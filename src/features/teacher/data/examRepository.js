@@ -25,9 +25,9 @@ import {
 } from '../domain/examLifecycle';
 import {
   createExamSession,
-  submitExamSession,
   updateExamSessionAnswer,
 } from '../domain/examSession';
+import { submitExamSessionService } from './submitExamSessionService';
 
 function generateId(prefix = 'exam') {
   if (
@@ -344,27 +344,19 @@ export function createExamRepository(firestore = defaultDb) {
   }
 
   /**
-   * Submits a student exam session.
-   * Freezes answers and updates status to 'submitted'.
-   * Result is evaluated client-side for UI display.
+   * Submits a student exam session via the secure server-authoritative service.
+   * Calculates score from protected answer bank and writes immutable results.
    */
-  async function submitSession(sessionId, questions = []) {
-    const docRef = doc(firestore, sessionsCollection, sessionId.trim());
-    const snapshot = await getDoc(docRef);
-    if (!snapshot.exists()) return null;
+  async function submitSession(sessionId, answers = {}, authUser = null) {
+    if (!sessionId) return null;
+    const effectiveAuth = authUser?.uid
+      ? authUser
+      : { uid: sessionId.split('_')[1] || '' };
 
-    const currentSession = documentToExamSession(snapshot.id, snapshot.data());
-    const evaluated = submitExamSession(currentSession, questions);
-
-    // Write ONLY the allowed submission fields
-    const patch = {
-      status: 'submitted',
-      submittedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
-    await updateDoc(docRef, patch);
-    return evaluated;
+    return submitExamSessionService(firestore, effectiveAuth, {
+      sessionId: sessionId.trim(),
+      answers,
+    });
   }
 
   return {

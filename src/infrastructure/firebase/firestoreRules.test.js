@@ -118,10 +118,19 @@ describe('Firestore Security Rules Unit Tests', () => {
         answers: {},
       });
 
-      // Questions
+      // Questions (Public data: NO correctAnswers)
       await setDoc(doc(adminDb, 'questions/q1'), {
-        text: 'Python loop question',
-        topicId: 'python_loops',
+        topic: 'python_loops',
+        questionText: 'Python loop question',
+        options: ['for', 'while'],
+        multiple: false,
+      });
+
+      // Protected Question Answers (Admin only)
+      await setDoc(doc(adminDb, 'question_answers/q1'), {
+        questionId: 'q1',
+        correctAnswers: [0],
+        explanation: 'for loop is used for iteration',
       });
 
       // Exams
@@ -300,6 +309,43 @@ describe('Firestore Security Rules Unit Tests', () => {
         topicId: 'security',
       })
     );
+  });
+
+  it('6d. Student CAN read public question data in questions/q1', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    const snap = await getDoc(doc(db, 'questions/q1'));
+    expect(snap.exists()).toBe(true);
+    // Public question document must NOT contain correctAnswers
+    expect(snap.data()).not.toHaveProperty('correctAnswers');
+    expect(snap.data()).not.toHaveProperty('explanation');
+  });
+
+  it('6e. Student CANNOT read, write, or query protected question_answers/q1', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    await assertFails(getDoc(doc(db, 'question_answers/q1')));
+    await assertFails(
+      setDoc(doc(db, 'question_answers/q1'), {
+        correctAnswers: [1],
+      })
+    );
+  });
+
+  it('6f. Teacher CANNOT read protected question_answers/q1 without admin privilege', async () => {
+    if (!isEmulatorAvailable) return;
+    const teacherA = testEnv.authenticatedContext('teacherA', {
+      teacher: true,
+      email: 'teachera@pifagorschool.kz',
+    });
+    const db = teacherA.firestore();
+    await assertFails(getDoc(doc(db, 'question_answers/q1')));
   });
 
   it('7. Ordinary user CANNOT create a profile with role: "teacher" or "admin"', async () => {

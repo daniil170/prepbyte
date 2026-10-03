@@ -3,6 +3,7 @@ import {
   CorruptedQuestionDocumentError,
   documentToQuestion,
   questionToDocument,
+  questionToAnswerDocument,
 } from './questionMappers';
 
 describe('questionMappers', () => {
@@ -52,16 +53,40 @@ describe('questionMappers', () => {
   });
 
   describe('questionToDocument', () => {
-    it('maps question entity to Firestore document format without id', () => {
+    it('maps question entity to public Firestore document format without id and without correctAnswers', () => {
       const question = documentToQuestion('py-001', validData);
       const docData = questionToDocument(question);
 
-      expect(docData).toEqual(validData);
+      expect(docData).toEqual({
+        topic: 'python_loops',
+        questionText:
+          'Какой цикл в Python используется при известном числе итераций?',
+        options: ['for', 'while', 'repeat', 'loop'],
+        multiple: false,
+        difficulty: 'easy',
+        version: 1,
+      });
       expect(docData).not.toHaveProperty('id');
+      expect(docData).not.toHaveProperty('correctAnswers');
+      expect(docData).not.toHaveProperty('explanation');
     });
 
     it('throws error when passed invalid entity', () => {
       expect(() => questionToDocument(null)).toThrow();
+    });
+  });
+
+  describe('questionToAnswerDocument', () => {
+    it('maps question entity to protected answer document format', () => {
+      const question = documentToQuestion('py-001', validData);
+      const answerDoc = questionToAnswerDocument(question);
+
+      expect(answerDoc).toEqual({
+        questionId: 'py-001',
+        correctAnswers: [0],
+        explanation: 'Цикл for используется для перебора последовательностей.',
+        version: 1,
+      });
     });
   });
 });

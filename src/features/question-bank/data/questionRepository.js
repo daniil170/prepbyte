@@ -11,11 +11,17 @@ import {
 } from 'firebase/firestore';
 import { db as defaultDb } from '@infrastructure/firebase/firestore';
 import { chunk } from '@shared/lib/chunk';
-import { documentToQuestion } from './questionMappers';
+import {
+  documentToQuestion,
+  documentToQuestionAnswer,
+  questionToDocument,
+  questionToAnswerDocument,
+} from './questionMappers';
 import { orderQuestionsByIds } from './questionOrdering';
 
 export function createQuestionRepository(firestore = defaultDb) {
   const collectionName = 'questions';
+  const answersCollectionName = 'question_answers';
 
   async function getQuestionById(id) {
     if (!id || typeof id !== 'string' || !id.trim()) {
@@ -84,27 +90,45 @@ export function createQuestionRepository(firestore = defaultDb) {
     return orderQuestionsByIds(foundQuestions, ids);
   }
 
+  async function getQuestionAnswersByIds(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return [];
+    }
+
+    const uniqueIds = [...new Set(ids)];
+    const chunks = chunk(uniqueIds, 30);
+    const answersRef = collection(firestore, answersCollectionName);
+
+    const chunkResults = await Promise.all(
+      chunks.map(async (idChunk) => {
+        const q = query(answersRef, where(documentId(), 'in', idChunk));
+        const snapshot = await getDocs(q);
+        return snapshot.docs
+          .map((docSnap) => documentToQuestionAnswer(docSnap.id, docSnap.data()))
+          .filter(Boolean);
+      })
+    );
+
+    return chunkResults.flat();
+  }
+
   async function saveQuestionsBatch(questions) {
     if (!Array.isArray(questions) || questions.length === 0) {
       return { writtenCount: 0 };
     }
 
-    const chunks = chunk(questions, 500);
+    const chunks = chunk(questions, 250);
     for (const batchChunk of chunks) {
       const batch = writeBatch(firestore);
       for (const q of batchChunk) {
         if (!q || !q.id) continue;
-        const docRef = doc(firestore, collectionName, q.id);
-        const dataToSave = {
-          topic: q.topic,
-          questionText: q.questionText,
-          options: q.options,
-          correctAnswers: q.correctAnswers,
-          explanation: q.explanation,
-          difficulty: q.difficulty,
-          version: q.version || 1,
-        };
-        batch.set(docRef, dataToSave, { merge: true });
+        const publicDocRef = doc(firestore, collectionName, q.id);
+        const answerDocRef = doc(firestore, answersCollectionName, q.id);
+
+        batch.set(publicDocRef, questionToDocument(q), { merge: true });
+        if (q.correctAnswers !== undefined) {
+          batch.set(answerDocRef, questionToAnswerDocument(q), { merge: true });
+        }
       }
       await batch.commit();
     }
@@ -121,6 +145,7 @@ export function createQuestionRepository(firestore = defaultDb) {
   return {
     getQuestionById,
     getQuestionsByIds,
+    getQuestionAnswersByIds,
     getQuestionsByTopics,
     getAllQuestions,
     getQuestionCount,
