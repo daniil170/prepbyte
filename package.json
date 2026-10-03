@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:rules": "firebase emulators:exec --only firestore 'vitest run src/infrastructure/firebase/firestoreRules.test.js'",
     "seed": "node scripts/seed/seedQuestions.js",
     "bank:audit": "node scripts/audit/auditBank.js",
     "auth:set-admin": "node scripts/auth/setAdminClaim.js",
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@eslint/js": "^9.39.5",
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@rolldown/plugin-babel": "^0.2.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
