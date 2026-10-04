@@ -308,6 +308,7 @@ export function useExamBuilder({
   // Save draft
   const saveDraft = useCallback(async () => {
     if (!validateForm()) {
+      setError('Заполните все обязательные поля экзамена (название от 3 символов, целевую группу и хотя бы один вопрос).');
       return false;
     }
 

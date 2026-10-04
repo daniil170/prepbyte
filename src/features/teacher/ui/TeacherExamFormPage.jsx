@@ -53,6 +53,8 @@ export function TeacherExamFormPage() {
     const saved = await saveDraft();
     if (saved) {
       navigate('/teacher/exams');
+    } else if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 

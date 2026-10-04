@@ -196,7 +196,7 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
     return documentToQuestion(cleanId, {
       ...publicData,
       correctAnswers: answerData?.correctAnswers ?? [0],
-      explanation: answerData?.explanation ?? '',
+      explanation: (answerData?.explanation && typeof answerData.explanation === 'string' && answerData.explanation.trim()) ? answerData.explanation.trim() : 'Пояснение к заданию',
     });
   }
 
@@ -224,7 +224,7 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
           return documentToQuestion(pub.id, {
             ...pub,
             correctAnswers: ans?.correctAnswers ?? [0],
-            explanation: ans?.explanation ?? '',
+            explanation: (ans?.explanation && typeof ans.explanation === 'string' && ans.explanation.trim()) ? ans.explanation.trim() : 'Пояснение к заданию',
           });
         } catch (err) {
           console.warn(`Skipping corrupted question document [id=${pub.id}]:`, err.message);
@@ -275,7 +275,7 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
           return documentToQuestion(pub.id, {
             ...pub,
             correctAnswers: ans?.correctAnswers ?? [0],
-            explanation: ans?.explanation ?? '',
+            explanation: (ans?.explanation && typeof ans.explanation === 'string' && ans.explanation.trim()) ? ans.explanation.trim() : 'Пояснение к заданию',
           });
         } catch (err) {
           console.warn(`Skipping corrupted question document [id=${pub.id}]:`, err.message);

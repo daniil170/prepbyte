@@ -181,9 +181,7 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
     } catch (err) {
       if (
         err.code === 'unauthenticated' ||
-        err.code === 'permission-denied' ||
-        err.code === 'invalid-argument' ||
-        err.code === 'not-found'
+        err.code === 'permission-denied'
       ) {
         throw new Error(err.message || 'Ошибка сохранения черновика экзамена.');
       }
