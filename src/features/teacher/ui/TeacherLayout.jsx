@@ -2,6 +2,7 @@ import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useAuth } from '@features/auth';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { ThemeToggle } from '@shared/theme';
+import { DraggableGlassNav } from '@shared/ui/DraggableGlassNav';
 import styles from './TeacherLayout.module.css';
 
 export function TeacherLayout() {
@@ -16,7 +17,7 @@ export function TeacherLayout() {
             <span className={styles.badge}>Кабинет учителя</span>
           </Link>
 
-          <nav className={styles.nav} aria-label="Разделы кабинета учителя">
+          <DraggableGlassNav ariaLabel="Разделы кабинета учителя">
             <NavLink
               to="/teacher"
               end
@@ -58,7 +59,7 @@ export function TeacherLayout() {
             >
               Вопросы
             </NavLink>
-          </nav>
+          </DraggableGlassNav>
         </div>
 
         <div className={styles.headerRight}>
