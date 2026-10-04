@@ -109,6 +109,12 @@ export function TeacherExamLivePage() {
           <span className={styles.statValue}>{stats.submittedCount}</span>
           <span className={styles.statLabel}>Завершили</span>
         </div>
+        {stats.disqualifiedCount > 0 && (
+          <div className={`${styles.statCard} ${styles.statCardError}`}>
+            <span className={styles.statValue}>{stats.disqualifiedCount}</span>
+            <span className={styles.statLabel}>Аннулировано</span>
+          </div>
+        )}
         <div className={styles.statCard}>
           <span className={styles.statValue}>
             {stats.gradedCount > 0 ? `${stats.averageScore} б.` : '—'}
@@ -159,6 +165,11 @@ export function TeacherExamLivePage() {
                       {s.status === 'submitted' && (
                         <span className={styles.statusSubmitted}>
                           ✓ Завершил
+                        </span>
+                      )}
+                      {s.status === 'disqualified' && (
+                        <span className={styles.statusDisqualified}>
+                          ⛔ Аннулирован ({s.violationCount || 3}/3)
                         </span>
                       )}
                     </td>

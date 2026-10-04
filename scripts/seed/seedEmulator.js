@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { generateCurriculumQuestions } from '../../src/features/question-bank/domain/curriculumGenerator.js';
 
 // 1. Safety Check: Force Emulator Environment Ports
 process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
@@ -98,63 +99,34 @@ export async function seedEmulator() {
     updatedAt: Date.now(),
   });
 
-  // --- 3. Seed Public Questions & Protected Answers ---
-  const questionsData = [
-    {
-      id: 'q_emu_1',
-      topic: 'python',
-      questionText: 'Какая функция используется для вывода данных в Python?',
-      options: ['print()', 'input()', 'output()', 'echo()'],
-      multiple: false,
-      difficulty: 'easy',
-      version: 1,
-      correctAnswers: [0],
-      explanation: 'Функция print() выводит указанные объекты на экран.',
-    },
-    {
-      id: 'q_emu_2',
-      topic: 'python',
-      questionText: 'Какой оператор используется для возведения в степень в Python?',
-      options: ['^', '**', 'pow', '//'],
-      multiple: false,
-      difficulty: 'easy',
-      version: 1,
-      correctAnswers: [1],
-      explanation: 'Оператор ** выполняет возведение в степень.',
-    },
-    {
-      id: 'q_emu_3',
-      topic: 'sql',
-      questionText: 'Выберите команды языка DDL (Data Definition Language) в SQL:',
-      options: ['CREATE', 'SELECT', 'ALTER', 'INSERT'],
-      multiple: true,
-      difficulty: 'medium',
-      version: 1,
-      correctAnswers: [0, 2],
-      explanation: 'CREATE и ALTER относятся к DDL, а SELECT и INSERT — к DML.',
-    },
-    {
-      id: 'q_emu_4',
-      topic: 'networks',
-      questionText: 'Какие протоколы относятся к прикладному уровню (Application Layer) модели OSI?',
-      options: ['HTTP', 'IP', 'DNS', 'TCP'],
-      multiple: true,
-      difficulty: 'medium',
-      version: 1,
-      correctAnswers: [0, 2],
-      explanation: 'HTTP и DNS — протоколы прикладного уровня.',
-    },
-  ];
+  // --- 3. Seed Full UNT Variants & Question Bank ---
+  const variantSlugs = ['#00008', '#10001', '#00002'];
+  const allSeededQuestions = [];
 
-  for (const q of questionsData) {
-    // Write public question data (WITHOUT correctAnswers/explanation) to /questions/{id}
+  for (const slug of variantSlugs) {
+    const rawQuestions = generateCurriculumQuestions({ mode: 'full_exam' });
+    rawQuestions.forEach((q, idx) => {
+      const paddedIndex = String(idx + 1).padStart(3, '0');
+      const questionId = `${slug}-${paddedIndex}`;
+      allSeededQuestions.push({
+        ...q,
+        id: questionId,
+        variantSlug: slug,
+      });
+    });
+  }
+
+  for (const q of allSeededQuestions) {
+    // Write public question data to /questions/{id}
     await db.collection('questions').doc(q.id).set({
       topic: q.topic,
       questionText: q.questionText,
       options: q.options,
-      multiple: q.multiple,
+      multiple: (q.correctAnswers || []).length > 1,
       difficulty: q.difficulty,
-      version: q.version,
+      variantSlug: q.variantSlug,
+      status: 'active',
+      version: q.version || 1,
     });
 
     // Write protected correct answers to /question_answers/{id}
@@ -162,7 +134,7 @@ export async function seedEmulator() {
       questionId: q.id,
       correctAnswers: q.correctAnswers,
       explanation: q.explanation,
-      version: q.version,
+      version: q.version || 1,
     });
   }
 
@@ -170,6 +142,7 @@ export async function seedEmulator() {
   const examId = 'exam_emu_101';
   const pin = '123456';
   const now = Date.now();
+  const examQuestionIds = allSeededQuestions.slice(0, 40).map((q) => q.id);
 
   await db.collection('exams').doc(examId).set({
     title: 'Тестовый ЕНТ Информатика',
@@ -177,8 +150,8 @@ export async function seedEmulator() {
     teacherId: 'teacher_user_id',
     groupId,
     groupName: '10A Информатика',
-    questionIds: ['q_emu_1', 'q_emu_2', 'q_emu_3', 'q_emu_4'],
-    totalQuestions: 4,
+    questionIds: examQuestionIds,
+    totalQuestions: examQuestionIds.length,
     durationMinutes: 60,
     durationSeconds: 3600,
     pin,

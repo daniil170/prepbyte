@@ -36,12 +36,17 @@ export function AnswerOptions({
             <label
               key={index}
               className={`${styles.optionLabel} ${isSelected ? styles.selected : ''}`}
+              onClick={() => {
+                if (!disabled && typeof onSelect === 'function') {
+                  onSelect(index);
+                }
+              }}
             >
               <input
                 type={multiple ? 'checkbox' : 'radio'}
                 name="answer-option"
                 checked={isSelected}
-                onChange={() => onSelect(index)}
+                onChange={(e) => e.stopPropagation()}
                 disabled={disabled}
                 className={styles.input}
               />

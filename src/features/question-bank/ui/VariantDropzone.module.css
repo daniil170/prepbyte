@@ -15,13 +15,13 @@
 }
 
 .dropzone:hover:not(.disabled) {
-  border-color: var(--color-text, #ffffff);
-  background-color: #121212;
+  border-color: var(--color-text);
+  background-color: var(--color-surface-hover);
 }
 
 .dragOver {
-  border-color: #ffffff;
-  background-color: #1a1a1a;
+  border-color: var(--color-text);
+  background-color: var(--color-surface-hover);
 }
 
 .disabled {
@@ -41,10 +41,10 @@
   font-family: var(--font-mono, monospace);
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-text, #ffffff);
-  background-color: #181818;
+  color: var(--color-text);
+  background-color: var(--color-surface-hover);
   padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border, #262626);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius, 4px);
   display: inline-block;
 }
@@ -52,7 +52,7 @@
 .prompt {
   font-family: var(--font-mono, monospace);
   font-size: 0.95rem;
-  color: var(--color-text, #ffffff);
+  color: var(--color-text);
   margin-bottom: 0.5rem;
 }
 

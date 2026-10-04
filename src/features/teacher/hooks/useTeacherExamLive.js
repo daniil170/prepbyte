@@ -89,6 +89,9 @@ export function useTeacherExamLive(
     const submittedCount = sessions.filter(
       (s) => s.status === 'submitted'
     ).length;
+    const disqualifiedCount = sessions.filter(
+      (s) => s.status === 'disqualified'
+    ).length;
 
     let totalPoints = 0;
     let gradedCount = 0;
@@ -108,6 +111,7 @@ export function useTeacherExamLive(
       waitingCount,
       inProgressCount,
       submittedCount,
+      disqualifiedCount,
       averageScore,
       gradedCount,
     };

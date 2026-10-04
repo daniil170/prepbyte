@@ -155,13 +155,26 @@ export function useStudentExamSession(
       return () => {};
     }
 
+    const parseMs = (val) => {
+      if (typeof val === 'number') return val;
+      if (!val) return null;
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (typeof val.seconds === 'number') return val.seconds * 1000;
+      if (typeof val === 'string') {
+        const p = Date.parse(val);
+        return Number.isNaN(p) ? null : p;
+      }
+      return null;
+    };
+
+    const startMs = parseMs(session.startedAt);
+    const durSec = session.durationSeconds || (exam?.durationMinutes ? exam.durationMinutes * 60 : 3600);
+
     const calculatedExpiresAt =
-      session.expiresAt ||
-      (session.startedAt && session.durationSeconds
-        ? session.startedAt + session.durationSeconds * 1000
-        : null) ||
-      exam?.endsAt ||
-      null;
+      parseMs(session.expiresAt) ||
+      (startMs && durSec ? startMs + durSec * 1000 : null) ||
+      parseMs(exam?.endsAt) ||
+      (startMs ? startMs + 3600 * 1000 : Date.now() + durSec * 1000);
 
     const effectiveSession = {
       ...session,

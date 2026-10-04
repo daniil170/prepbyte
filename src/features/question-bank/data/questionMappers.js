@@ -41,7 +41,10 @@ export function documentToQuestion(id, data) {
       raw.correctAnswers = data.correctAnswers;
     }
     if (data.explanation !== undefined) {
-      raw.explanation = data.explanation;
+      const expStr = typeof data.explanation === 'string' ? data.explanation.trim() : '';
+      raw.explanation = expStr || 'Пояснение к заданию';
+    } else if (data.correctAnswers !== undefined) {
+      raw.explanation = 'Пояснение к заданию';
     }
     return createQuestion(raw);
   } catch (error) {

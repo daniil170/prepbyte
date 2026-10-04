@@ -37,5 +37,14 @@ Thumbs.db
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+# Firebase service account keys & secrets
+*service_account*.json
+*service_acount*.json
+*service-account*.json
+*serviceaccount*.json
+serviceAccountKey.json
+*.pem
+*.p12
+*.crt
+*.key
 

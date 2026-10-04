@@ -65,9 +65,16 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
     const questionsRef = collection(firestore, collectionName);
     const snapshot = await getDocs(questionsRef);
 
-    return snapshot.docs.map((docSnap) =>
-      documentToQuestion(docSnap.id, docSnap.data())
-    );
+    return snapshot.docs
+      .map((docSnap) => {
+        try {
+          return documentToQuestion(docSnap.id, docSnap.data());
+        } catch (err) {
+          console.warn(`Skipping corrupted question document [id=${docSnap.id}]:`, err.message);
+          return null;
+        }
+      })
+      .filter(Boolean);
   }
 
   async function getQuestionsByIds(ids) {
@@ -189,7 +196,7 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
     return documentToQuestion(cleanId, {
       ...publicData,
       correctAnswers: answerData?.correctAnswers ?? [0],
-      explanation: answerData?.explanation ?? '',
+      explanation: (answerData?.explanation && typeof answerData.explanation === 'string' && answerData.explanation.trim()) ? answerData.explanation.trim() : 'Пояснение к заданию',
     });
   }
 
@@ -210,14 +217,21 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
       // Safe fallback
     }
 
-    return publicDocs.map((pub) => {
-      const ans = answersMap.get(pub.id);
-      return documentToQuestion(pub.id, {
-        ...pub,
-        correctAnswers: ans?.correctAnswers ?? [0],
-        explanation: ans?.explanation ?? '',
-      });
-    });
+    return publicDocs
+      .map((pub) => {
+        try {
+          const ans = answersMap.get(pub.id);
+          return documentToQuestion(pub.id, {
+            ...pub,
+            correctAnswers: ans?.correctAnswers ?? [0],
+            explanation: (ans?.explanation && typeof ans.explanation === 'string' && ans.explanation.trim()) ? ans.explanation.trim() : 'Пояснение к заданию',
+          });
+        } catch (err) {
+          console.warn(`Skipping corrupted question document [id=${pub.id}]:`, err.message);
+          return null;
+        }
+      })
+      .filter(Boolean);
   }
 
   async function getTeacherQuestions(teacherUid, { status = 'all' } = {}) {
@@ -254,14 +268,21 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
       // Safe fallback
     }
 
-    return publicDocs.map((pub) => {
-      const ans = answersMap.get(pub.id);
-      return documentToQuestion(pub.id, {
-        ...pub,
-        correctAnswers: ans?.correctAnswers ?? [0],
-        explanation: ans?.explanation ?? '',
-      });
-    });
+    return publicDocs
+      .map((pub) => {
+        try {
+          const ans = answersMap.get(pub.id);
+          return documentToQuestion(pub.id, {
+            ...pub,
+            correctAnswers: ans?.correctAnswers ?? [0],
+            explanation: (ans?.explanation && typeof ans.explanation === 'string' && ans.explanation.trim()) ? ans.explanation.trim() : 'Пояснение к заданию',
+          });
+        } catch (err) {
+          console.warn(`Skipping corrupted question document [id=${pub.id}]:`, err.message);
+          return null;
+        }
+      })
+      .filter(Boolean);
   }
 
   async function isQuestionUsedInExams(questionId) {

@@ -6,6 +6,7 @@ import { QuestionPreviewEditor } from './QuestionPreviewEditor';
 import { VariantDropzone } from './VariantDropzone';
 import { VariantValidationSummary } from './VariantValidationSummary';
 import { ThemeToggle } from '@shared/theme';
+import { DraggableGlassNav } from '@shared/ui/DraggableGlassNav';
 import styles from './AdminVariantsPage.module.css';
 
 /**
@@ -66,9 +67,9 @@ export function AdminVariantsPage() {
           <Link to="/" className={styles.backLink}>
             ← На главную
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <ThemeToggle />
-            <span className={styles.adminBadge}>[ПАНЕЛЬ АДМИНИСТРАТОРА]</span>
+          <div className={styles.headerRight}>
+            <ThemeToggle showLabel={false} />
+            <span className={styles.adminBadge}>👑 ПАНЕЛЬ АДМИНИСТРАТОРА</span>
           </div>
         </div>
         <h1 className={styles.title}>Управление вариантами ЕНТ</h1>
@@ -79,7 +80,7 @@ export function AdminVariantsPage() {
       </header>
 
       {/* Tab Navigation */}
-      <nav className={styles.tabNav} aria-label="Вкладки управления вариантами">
+      <DraggableGlassNav ariaLabel="Вкладки управления вариантами">
         <button
           type="button"
           className={`${styles.tabBtn} ${
@@ -87,7 +88,7 @@ export function AdminVariantsPage() {
           }`}
           onClick={() => setActiveTab('upload')}
         >
-          1. Загрузка файла (JSON, DOCX, PDF)
+          <span aria-hidden="true">📁 </span>1. Загрузка файла (JSON, DOCX, PDF)
         </button>
         <button
           type="button"
@@ -96,9 +97,9 @@ export function AdminVariantsPage() {
           }`}
           onClick={() => setActiveTab('generator')}
         >
-          2. ИИ-Генератор вариантов
+          <span aria-hidden="true">⚡ </span>2. ИИ-Генератор вариантов
         </button>
-      </nav>
+      </DraggableGlassNav>
 
       {/* Tab 1: Web File Ingestion */}
       {activeTab === 'upload' && (

@@ -365,6 +365,19 @@ export function submitExamSession(
   });
 }
 
+function toTimestampMs(val) {
+  if (typeof val === 'number') return val;
+  if (!val) return null;
+  if (typeof val.toMillis === 'function') return val.toMillis();
+  if (typeof val.seconds === 'number') return val.seconds * 1000 + Math.floor((val.nanoseconds || 0) / 1000000);
+  if (val instanceof Date) return val.getTime();
+  if (typeof val === 'string') {
+    const parsed = Date.parse(val);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return null;
+}
+
 /**
  * Calculates remaining seconds based on expiresAt.
  *
@@ -373,12 +386,17 @@ export function submitExamSession(
  * @returns {number}
  */
 export function getExamSessionRemainingSeconds(session, now = Date.now) {
-  if (!session || !session.expiresAt) {
+  if (!session) {
+    return 0;
+  }
+  const expiresAtMs = toTimestampMs(session.expiresAt);
+  if (!expiresAtMs) {
     return 0;
   }
   const currentTime = resolveTime(now);
-  const diffMs = session.expiresAt - currentTime;
-  return Math.max(0, Math.ceil(diffMs / 1000));
+  const diffMs = expiresAtMs - currentTime;
+  const seconds = Math.max(0, Math.ceil(diffMs / 1000));
+  return Number.isNaN(seconds) ? 0 : seconds;
 }
 
 /**
