@@ -1,89 +1,144 @@
+/* ==========================================================================
+   Student Exam Result Page Tokens & Design
+   Linear / Vercel SaaS Clean Standard
+   Semantic CSS Variables + Light & Dark themes
+   ========================================================================== */
+
 .page {
+  --ea-bg: #0b0f17;
+  --ea-surface: #121824;
+  --ea-surface-hover: #182232;
+  --ea-surface-subtle: #0f1521;
+  --ea-border: #1e293b;
+  --ea-border-hover: #334155;
+  --ea-text-primary: #f8fafc;
+  --ea-text-secondary: #94a3b8;
+  --ea-text-muted: #64748b;
+  --ea-accent: #3b82f6;
+  --ea-accent-hover: #2563eb;
+  --ea-accent-subtle: rgba(59, 130, 246, 0.12);
+  --ea-track-bg: #1e293b;
+  --ea-card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+
+  --ea-success-bg: rgba(34, 197, 94, 0.12);
+  --ea-success-text: #4ade80;
+  --ea-success-border: rgba(34, 197, 94, 0.25);
+
+  --ea-danger-bg: rgba(239, 68, 68, 0.12);
+  --ea-danger-text: #f87171;
+  --ea-danger-border: rgba(239, 68, 68, 0.25);
+
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 32px 24px;
-  background-color: var(--color-bg);
+  background-color: var(--ea-bg);
+  color: var(--ea-text-primary);
+}
+
+:global([data-theme='light']) .page {
+  --ea-bg: #f8fafc;
+  --ea-surface: #ffffff;
+  --ea-surface-hover: #f1f5f9;
+  --ea-surface-subtle: #f8fafc;
+  --ea-border: #e2e8f0;
+  --ea-border-hover: #cbd5e1;
+  --ea-text-primary: #0f172a;
+  --ea-text-secondary: #475569;
+  --ea-text-muted: #94a3b8;
+  --ea-accent: #2563eb;
+  --ea-accent-hover: #1d4ed8;
+  --ea-accent-subtle: rgba(37, 99, 235, 0.08);
+  --ea-track-bg: #f1f5f9;
+  --ea-card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.06);
+
+  --ea-success-bg: rgba(34, 197, 94, 0.1);
+  --ea-success-text: #16a34a;
+  --ea-success-border: rgba(34, 197, 94, 0.2);
+
+  --ea-danger-bg: rgba(239, 68, 68, 0.1);
+  --ea-danger-text: #dc2626;
+  --ea-danger-border: rgba(239, 68, 68, 0.2);
 }
 
 .card {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  background-color: var(--ea-surface);
+  border: 1px solid var(--ea-border);
+  border-radius: 14px;
   padding: 36px 32px;
   width: 100%;
-  max-width: 600px;
+  max-width: 580px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ea-card-shadow);
 }
 
 .header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   text-align: center;
 }
 
 .title {
-  font-family: var(--font-mono);
   font-size: 1.5rem;
   font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ea-text-primary);
 }
 
 .subtitle {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--ea-text-secondary);
 }
 
 .scoreBanner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 24px;
-  background-color: var(--color-surface-hover);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  gap: 10px;
+  padding: 28px 24px;
+  background-color: var(--ea-surface-subtle);
+  border: 1px solid var(--ea-border);
+  border-radius: 12px;
 }
 
 .scoreValue {
   font-family: var(--font-mono);
-  font-size: 2.5rem;
+  font-size: 2.75rem;
   font-weight: 800;
-  color: var(--color-text);
+  color: var(--ea-text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .scoreLabel {
-  font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--ea-text-secondary);
 }
 
 .badgePassed {
-  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  background-color: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background-color: var(--ea-success-bg);
+  color: var(--ea-success-text);
+  border: 1px solid var(--ea-success-border);
 }
 
 .badgeFailed {
-  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background-color: var(--ea-danger-bg);
+  color: var(--ea-danger-text);
+  border: 1px solid var(--ea-danger-border);
 }
 
 .topicsContainer {
@@ -92,39 +147,84 @@
   gap: 12px;
 }
 
-.topicsTitle {
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
+.topicsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.topicRow {
+.topicsTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ea-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.topicsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.topicItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 8px;
+  background-color: var(--ea-surface-subtle);
+  border: 1px solid var(--ea-border);
+}
+
+.topicHeaderRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.topicName {
   font-size: 0.8125rem;
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  background-color: var(--color-bg);
-  border: 1px solid var(--color-border);
+  font-weight: 500;
+  color: var(--ea-text-secondary);
+}
+
+.topicScoreText {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ea-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressBarTrack {
+  width: 100%;
+  height: 6px;
+  background-color: var(--ea-track-bg);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background-color: var(--ea-accent);
+  border-radius: 9999px;
+  transition: width 0.4s ease;
 }
 
 .homeBtn {
-  font-family: var(--font-mono);
   font-size: 0.875rem;
   font-weight: 600;
-  padding: 12px 24px;
-  background-color: var(--color-text);
-  color: var(--color-bg);
-  border: 1px solid var(--color-text);
-  border-radius: var(--radius);
+  padding: 11px 20px;
+  background-color: var(--ea-accent);
+  color: #ffffff;
+  border: 1px solid var(--ea-accent);
+  border-radius: 8px;
   text-decoration: none;
   text-align: center;
-  transition: opacity 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .homeBtn:hover {
-  opacity: 0.9;
+  background-color: var(--ea-accent-hover);
 }

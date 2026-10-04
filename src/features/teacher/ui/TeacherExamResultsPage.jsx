@@ -87,41 +87,48 @@ export function TeacherExamResultsPage() {
         </div>
       </header>
 
-      {/* Summary KPI Cards Grid */}
+      {/* Grouped KPI Cards (Linear / Vercel SaaS style) */}
       <div className={styles.kpiGrid}>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Участников</div>
-          <div className={styles.kpiValue}>{summary?.totalParticipants || 0}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Сдали</div>
-          <div className={styles.kpiValue}>{summary?.completedCount || 0}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>В процессе</div>
-          <div className={styles.kpiValue}>{summary?.inProgressCount || 0}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Не начали</div>
+          <div className={styles.kpiLabel}>Участники</div>
           <div className={styles.kpiValue}>
-            {(summary?.notStartedCount || 0) + (summary?.waitingCount || 0)}
+            {summary?.totalParticipants || 0}
+          </div>
+          <div className={styles.kpiSub}>
+            <span className={styles.kpiSubSuccess}>{summary?.completedCount || 0} сдал</span>
+            <span className={styles.kpiSubDot}>·</span>
+            <span className={styles.kpiSubWarning}>{(summary?.notStartedCount || 0) + (summary?.waitingCount || 0)} не начал</span>
+            <span className={styles.kpiSubDot}>·</span>
+            <span className={styles.kpiSubInfo}>{summary?.inProgressCount || 0} в процессе</span>
           </div>
         </div>
+
         <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Средний балл</div>
-          <div className={styles.kpiValue}>{summary?.averageScore || 0}</div>
+          <div className={styles.kpiLabel}>Средний результат</div>
+          <div className={styles.kpiValue}>
+            {summary?.averagePercentage || 0}%
+          </div>
+          <div className={styles.kpiSub}>
+            <span>{summary?.averageScore || 0} баллов из {exam?.totalQuestions || 'N'}</span>
+          </div>
         </div>
+
         <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Средний %</div>
-          <div className={styles.kpiValue}>{summary?.averagePercentage || 0}%</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Макс. балл</div>
-          <div className={styles.kpiValue}>{summary?.highestScore || 0}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Мин. балл</div>
-          <div className={styles.kpiValue}>{summary?.lowestScore || 0}</div>
+          <div className={styles.kpiLabel}>Диапазон баллов</div>
+          <div className={styles.scoreRangeWrapper}>
+            <div className={styles.scoreRangeItem}>
+              <span className={styles.scoreRangeLabel}>Мин.</span>
+              <span className={styles.scoreRangeVal}>{summary?.lowestScore ?? 0}</span>
+            </div>
+            <div className={styles.scoreRangeDivider} />
+            <div className={styles.scoreRangeItem}>
+              <span className={styles.scoreRangeLabel}>Макс.</span>
+              <span className={styles.scoreRangeVal}>{summary?.highestScore ?? 0}</span>
+            </div>
+          </div>
+          <div className={styles.kpiSub}>
+            <span>Разброс: {(summary?.highestScore || 0) - (summary?.lowestScore || 0)} б.</span>
+          </div>
         </div>
       </div>
 
@@ -129,20 +136,25 @@ export function TeacherExamResultsPage() {
       <div className={styles.visualsGrid}>
         {/* Score Distribution Chart */}
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Распределение результатов</h2>
+          <div className={styles.cardHeader}>
+            <h2 className={styles.cardTitle}>Распределение результатов</h2>
+            <span className={styles.cardHint}>По диапазонам %</span>
+          </div>
           <div className={styles.distContainer}>
             {Object.entries(scoreDist).map(([range, count]) => {
               const pctWidth = Math.round((count / maxDistCount) * 100);
               return (
-                <div key={range} className={styles.distRow}>
-                  <span className={styles.distLabel}>{range}</span>
-                  <div className={styles.distBarBg}>
+                <div key={range} className={styles.progressItem}>
+                  <div className={styles.progressHeader}>
+                    <span className={styles.progressLabel}>{range}</span>
+                    <span className={styles.progressValue}>{count} чел.</span>
+                  </div>
+                  <div className={styles.progressBarTrack}>
                     <div
-                      className={styles.distBarFill}
+                      className={styles.progressBarFillPrimary}
                       style={{ width: `${pctWidth}%` }}
                     />
                   </div>
-                  <span className={styles.distCount}>{count} чел.</span>
                 </div>
               );
             })}
@@ -151,21 +163,26 @@ export function TeacherExamResultsPage() {
 
         {/* Topic Performance Chart */}
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Успеваемость по темам (класс)</h2>
+          <div className={styles.cardHeader}>
+            <h2 className={styles.cardTitle}>Успеваемость по темам (класс)</h2>
+            <span className={styles.cardHint}>Средний балл темы</span>
+          </div>
           {Object.keys(topicPerf).length === 0 ? (
             <div className={styles.emptyChartBox}>Данные по темам отсутствуют</div>
           ) : (
             <div className={styles.topicsContainer}>
               {Object.entries(topicPerf).map(([tName, tPct]) => (
-                <div key={tName} className={styles.topicRow}>
-                  <span className={styles.topicName}>{tName}</span>
-                  <div className={styles.topicBarBg}>
+                <div key={tName} className={styles.progressItem}>
+                  <div className={styles.progressHeader}>
+                    <span className={styles.progressLabel}>{tName}</span>
+                    <span className={styles.progressValue}>{tPct}%</span>
+                  </div>
+                  <div className={styles.progressBarTrack}>
                     <div
-                      className={styles.topicBarFill}
+                      className={styles.progressBarFillSuccess}
                       style={{ width: `${tPct}%` }}
                     />
                   </div>
-                  <span className={styles.topicPct}>{tPct}%</span>
                 </div>
               ))}
             </div>

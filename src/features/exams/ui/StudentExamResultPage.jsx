@@ -31,15 +31,27 @@ export function StudentExamResultPage({ session, exam }) {
 
         {Object.keys(breakdown).length > 0 && (
           <div className={styles.topicsContainer}>
-            <span className={styles.topicsTitle}>Результаты по темам</span>
-            {Object.values(breakdown).map((t) => (
-              <div key={t.topic} className={styles.topicRow}>
-                <span>{t.topic}</span>
-                <strong>
-                  {t.score} / {t.maxScore} б. ({t.percentage}%)
-                </strong>
-              </div>
-            ))}
+            <div className={styles.topicsHeader}>
+              <span className={styles.topicsTitle}>Результаты по темам</span>
+            </div>
+            <div className={styles.topicsList}>
+              {Object.values(breakdown).map((t) => (
+                <div key={t.topic} className={styles.topicItem}>
+                  <div className={styles.topicHeaderRow}>
+                    <span className={styles.topicName}>{t.topic}</span>
+                    <strong className={styles.topicScoreText}>
+                      {t.score} / {t.maxScore} б. ({t.percentage}%)
+                    </strong>
+                  </div>
+                  <div className={styles.progressBarTrack}>
+                    <div
+                      className={styles.progressBarFill}
+                      style={{ width: `${t.percentage || 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

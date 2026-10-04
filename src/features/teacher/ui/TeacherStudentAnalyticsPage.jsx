@@ -93,97 +93,122 @@ export function TeacherStudentAnalyticsPage() {
         <Link to={`/teacher/exams/${examId}/results`} className={styles.backLink}>
           &larr; Назад к результатам экзамена
         </Link>
-        <h1 className={styles.title}>
-          Аналитика ученика: {student?.studentName || studentId}
-        </h1>
-        <div className={styles.subtitle}>
-          Экзамен: <strong>{exam?.title || 'Экзамен'}</strong> • Статус:{' '}
-          <span className={styles.statusBadge}>{student?.status}</span>
+        <div className={styles.headerTitleRow}>
+          <div>
+            <h1 className={styles.title}>
+              Аналитика ученика: {student?.studentName || studentId}
+            </h1>
+            <div className={styles.subtitle}>
+              Экзамен: <strong>{exam?.title || 'Экзамен'}</strong> • Статус:{' '}
+              <span className={styles.statusBadge}>{student?.status}</span>
+            </div>
+          </div>
         </div>
 
         {/* Attempt History Switcher (Requirement 6L) */}
         {attemptsList.length > 0 && (
           <div className={styles.attemptsBar}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Попытки:</span>
-            {attemptsList.map((att) => {
-              const isSelected = (selectedAttempt || currentAttemptNum) === att.attemptNumber;
-              return (
-                <button
-                  key={att.attemptNumber}
-                  type="button"
-                  className={`${styles.attemptTab} ${isSelected ? styles.attemptTabActive : ''}`}
-                  onClick={() => setSelectedAttempt(att.attemptNumber)}
-                >
-                  Попытка {att.attemptNumber} {att.status === 'disqualified' ? '(Аннулирован)' : `(${att.percentage}%)`}
-                </button>
-              );
-            })}
+            <span className={styles.attemptsLabel}>Попытка:</span>
+            <div className={styles.attemptsTabsWrapper}>
+              {attemptsList.map((att) => {
+                const isSelected = (selectedAttempt || currentAttemptNum) === att.attemptNumber;
+                return (
+                  <button
+                    key={att.attemptNumber}
+                    type="button"
+                    className={`${styles.attemptTab} ${isSelected ? styles.attemptTabActive : ''}`}
+                    onClick={() => setSelectedAttempt(att.attemptNumber)}
+                  >
+                    Попытка {att.attemptNumber} {att.status === 'disqualified' ? '(Аннулирован)' : `(${att.percentage}%)`}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </header>
 
-      {/* Summary KPI Cards Grid */}
+      {/* Summary KPI Cards Grid (Linear / SaaS Style) */}
       <div className={styles.kpiGrid}>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Итоговый балл</div>
+          <div className={styles.kpiLabel}>Итоговый результат</div>
           <div className={styles.kpiValue}>
             {student?.score ?? 0} / {student?.maxPossibleScore ?? 0}
           </div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Результат %</div>
-          <div className={styles.kpiValue}>{scorePct}%</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Правильных</div>
-          <div className={`${styles.kpiValue} ${styles.valCorrect}`}>{correctCount}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Неправильных</div>
-          <div className={`${styles.kpiValue} ${styles.valIncorrect}`}>{incorrectCount}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Пропущено</div>
-          <div className={`${styles.kpiValue} ${styles.valUnanswered}`}>{unansweredCount}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>Длительность</div>
-          <div className={styles.kpiValueSub}>
-            {formatDuration(student?.durationSeconds)}
+          <div className={styles.kpiSub}>
+            <span>{scorePct}% от максимального балла</span>
           </div>
         </div>
-      </div>
 
-      {/* Timestamps Card */}
-      <div className={styles.timestampsCard}>
-        <div>Время начала: <strong>{formatDate(student?.startedAt)}</strong></div>
-        <div>Время сдачи: <strong>{formatDate(student?.submittedAt)}</strong></div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiLabel}>Ответы</div>
+          <div className={styles.kpiAnswersRow}>
+            <div className={styles.kpiAnswerStat}>
+              <span className={styles.kpiAnswerValCorrect}>{correctCount}</span>
+              <span className={styles.kpiAnswerLabel}>Верно</span>
+            </div>
+            <div className={styles.kpiAnswerDivider} />
+            <div className={styles.kpiAnswerStat}>
+              <span className={styles.kpiAnswerValIncorrect}>{incorrectCount}</span>
+              <span className={styles.kpiAnswerLabel}>Ошибка</span>
+            </div>
+            <div className={styles.kpiAnswerDivider} />
+            <div className={styles.kpiAnswerStat}>
+              <span className={styles.kpiAnswerValUnanswered}>{unansweredCount}</span>
+              <span className={styles.kpiAnswerLabel}>Пропуск</span>
+            </div>
+          </div>
+          <div className={styles.kpiSub}>
+            <span>Всего вопросов: {totalQCount}</span>
+          </div>
+        </div>
+
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiLabel}>Время и длительность</div>
+          <div className={styles.kpiValue}>
+            {formatDuration(student?.durationSeconds)}
+          </div>
+          <div className={styles.kpiSub}>
+            <span>{formatDate(student?.startedAt)} → {formatDate(student?.submittedAt)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Exam Security Block (Requirement 6K) */}
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Exam Security</h2>
-        <div style={{ fontSize: '0.9rem', display: 'flex', gap: '24px', color: 'var(--text-color)' }}>
-          <div>
-            Попытка: <strong>{student?.attemptNumber || 1} / 3</strong>
+        <div className={styles.cardHeader}>
+          <div className={styles.securityHeaderLeft}>
+            <h2 className={styles.cardTitle}>Безопасность сессии</h2>
+            <span className={styles.cardHint}>Контроль честности и прокторинг</span>
           </div>
-          <div>
-            Нарушений: <strong>{student?.violationCount || 0} / {student?.maxViolations || 3}</strong>
+          <div className={styles.securityBadges}>
+            <span className={styles.securityBadge}>
+              Попытка {student?.attemptNumber || 1} из 3
+            </span>
+            <span
+              className={
+                (student?.violationCount || 0) > 0
+                  ? styles.securityBadgeWarn
+                  : styles.securityBadgeGood
+              }
+            >
+              Нарушений: {student?.violationCount || 0} / {student?.maxViolations || 3}
+            </span>
+            {student?.status === 'disqualified' && (
+              <span className={styles.securityBadgeDanger}>
+                Аннулирован ({student?.disqualificationReason || 'Превышен лимит'})
+              </span>
+            )}
           </div>
-          {student?.status === 'disqualified' && (
-            <div style={{ color: '#ef4444', fontWeight: 600 }}>
-              Экзамен аннулирован ({student?.disqualificationReason || 'Превышен лимит'})
-            </div>
-          )}
         </div>
 
-        <div style={{ marginTop: '8px' }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '8px', color: 'var(--text-muted)' }}>
-            Хронология нарушений (Violation timeline):
-          </h3>
+        <div className={styles.timelineSection}>
+          <div className={styles.timelineHeader}>
+            <span className={styles.timelineTitle}>Хронология событий (Timeline)</span>
+          </div>
           {violations.length === 0 ? (
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              Нарушений во время этой попытки не зафиксировано.
+            <div className={styles.emptyTimelineBox}>
+              ✓ Нарушений во время этой попытки не зафиксировано
             </div>
           ) : (
             <div className={styles.timelineContainer}>
@@ -205,7 +230,11 @@ export function TeacherStudentAnalyticsPage() {
       <div className={styles.visualsGrid}>
         {/* Score Overview Chart */}
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Обзор результатов по вопросам</h2>
+          <div className={styles.cardHeader}>
+            <h2 className={styles.cardTitle}>Обзор результатов по вопросам</h2>
+            <span className={styles.cardHint}>Структура ответов</span>
+          </div>
+
           <div className={styles.scoreOverviewBar}>
             {correctPct > 0 && (
               <div
@@ -233,41 +262,45 @@ export function TeacherStudentAnalyticsPage() {
           <div className={styles.chartLegend}>
             <div className={styles.legendItem}>
               <span className={`${styles.legendDot} ${styles.dotCorrect}`} />
-              <span>Правильно: {correctCount}</span>
+              <span>Правильно: <strong>{correctCount}</strong> ({correctPct}%)</span>
             </div>
             <div className={styles.legendItem}>
               <span className={`${styles.legendDot} ${styles.dotIncorrect}`} />
-              <span>Неправильно: {incorrectCount}</span>
+              <span>Ошибка: <strong>{incorrectCount}</strong> ({incorrectPct}%)</span>
             </div>
             <div className={styles.legendItem}>
               <span className={`${styles.legendDot} ${styles.dotUnanswered}`} />
-              <span>Пропущено: {unansweredCount}</span>
+              <span>Пропущено: <strong>{unansweredCount}</strong> ({unansweredPct}%)</span>
             </div>
           </div>
         </div>
 
         {/* Topic Breakdown Card */}
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Успеваемость по темам</h2>
+          <div className={styles.cardHeader}>
+            <h2 className={styles.cardTitle}>Успеваемость по темам</h2>
+            <span className={styles.cardHint}>Процент освоения</span>
+          </div>
+
           {Object.keys(topicBreakdown).length === 0 ? (
             <div className={styles.emptyBox}>Данные по темам отсутствуют</div>
           ) : (
-            <div className={styles.topicsList}>
+            <div className={styles.topicsContainer}>
               {Object.entries(topicBreakdown).map(([tKey, tData]) => {
                 const tScore = tData.score || 0;
                 const tMax = tData.maxScore || 1;
                 const tPct = tData.percentage ?? Math.round((tScore / tMax) * 100);
                 return (
-                  <div key={tKey} className={styles.topicRow}>
-                    <div className={styles.topicHeader}>
-                      <span className={styles.topicName}>{tKey}</span>
-                      <span className={styles.topicStats}>
-                        {tScore} / {tMax} ({tPct}%)
+                  <div key={tKey} className={styles.progressItem}>
+                    <div className={styles.progressHeader}>
+                      <span className={styles.progressLabel}>{tKey}</span>
+                      <span className={styles.progressValue}>
+                        {tScore} / {tMax} б. ({tPct}%)
                       </span>
                     </div>
-                    <div className={styles.topicBarBg}>
+                    <div className={styles.progressBarTrack}>
                       <div
-                        className={styles.topicBarFill}
+                        className={styles.progressBarFillPrimary}
                         style={{ width: `${tPct}%` }}
                       />
                     </div>
@@ -279,9 +312,18 @@ export function TeacherStudentAnalyticsPage() {
         </div>
       </div>
 
-      {/* Detailed Questions Review Table */}
+      {/* Detailed Questions Review (Requirement 5) */}
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Детальный разбор вопросов</h2>
+        <div className={styles.cardHeader}>
+          <div>
+            <h2 className={styles.cardTitle}>Детальный разбор вопросов</h2>
+            <span className={styles.cardHint}>Анализ ответов ученика с пояснениями</span>
+          </div>
+          <span className={styles.questionCounterBadge}>
+            Вопросов: {questions.length}
+          </span>
+        </div>
+
         {questions.length === 0 ? (
           <div className={styles.emptyBox}>Список вопросов пуст.</div>
         ) : (
@@ -302,26 +344,32 @@ export function TeacherStudentAnalyticsPage() {
                   }`}
                 >
                   <div className={styles.qHeader}>
-                    <span className={styles.qIndex}>Вопрос {q.index}</span>
-                    <span className={styles.qTopic}>{q.topic}</span>
-                    <span className={`${styles.diffTag} ${styles[`diff_${q.difficulty}`]}`}>
-                      {q.difficulty}
-                    </span>
-                    <span
-                      className={
-                        isCorrect
-                          ? styles.tagCorrect
+                    <div className={styles.qHeaderLeft}>
+                      <span className={styles.qIndexBadge}>№ {q.index}</span>
+                      {q.topic && <span className={styles.qTopicBadge}>{q.topic}</span>}
+                      {q.difficulty && (
+                        <span className={`${styles.diffTag} ${styles[`diff_${q.difficulty}`]}`}>
+                          {q.difficulty}
+                        </span>
+                      )}
+                    </div>
+                    <div className={styles.qHeaderRight}>
+                      <span
+                        className={
+                          isCorrect
+                            ? styles.tagCorrect
+                            : isIncorrect
+                              ? styles.tagIncorrect
+                              : styles.tagUnanswered
+                        }
+                      >
+                        {isCorrect
+                          ? `✓ Верно (${q.pointsAwarded}/${q.maxPoints} б.)`
                           : isIncorrect
-                            ? styles.tagIncorrect
-                            : styles.tagUnanswered
-                      }
-                    >
-                      {isCorrect
-                        ? `✓ Верно (${q.pointsAwarded}/${q.maxPoints} б.)`
-                        : isIncorrect
-                          ? `✗ Ошибка (${q.pointsAwarded}/${q.maxPoints} б.)`
-                          : '— Не отвечен (0 б.)'}
-                    </span>
+                            ? `✗ Ошибка (${q.pointsAwarded}/${q.maxPoints} б.)`
+                            : '— Не отвечен (0 б.)'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className={styles.qText}>{q.questionText}</div>
@@ -329,8 +377,10 @@ export function TeacherStudentAnalyticsPage() {
                   <div className={styles.optionsList}>
                     {Array.isArray(q.options) &&
                       q.options.map((optText, oIdx) => {
-                        const isStudentChoice = Array.isArray(q.studentAnswer) && q.studentAnswer.includes(oIdx);
-                        const isCorrectChoice = Array.isArray(q.correctAnswers) && q.correctAnswers.includes(oIdx);
+                        const isStudentChoice =
+                          Array.isArray(q.studentAnswer) && q.studentAnswer.includes(oIdx);
+                        const isCorrectChoice =
+                          Array.isArray(q.correctAnswers) && q.correctAnswers.includes(oIdx);
 
                         let optClass = styles.optItem;
                         if (isStudentChoice && isCorrectChoice) {
@@ -344,15 +394,17 @@ export function TeacherStudentAnalyticsPage() {
                         return (
                           <div key={oIdx} className={optClass}>
                             <span className={styles.optLetter}>
-                              {String.fromCharCode(65 + oIdx)}.
+                              {String.fromCharCode(65 + oIdx)}
                             </span>
                             <span className={styles.optText}>{optText}</span>
-                            {isStudentChoice && (
-                              <span className={styles.choiceBadge}>Ответ ученика</span>
-                            )}
-                            {isCorrectChoice && (
-                              <span className={styles.correctBadge}>Правильный</span>
-                            )}
+                            <div className={styles.optBadges}>
+                              {isStudentChoice && (
+                                <span className={styles.choiceBadge}>Выбор ученика</span>
+                              )}
+                              {isCorrectChoice && (
+                                <span className={styles.correctBadge}>Правильный ответ</span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -360,7 +412,11 @@ export function TeacherStudentAnalyticsPage() {
 
                   {q.explanation && (
                     <div className={styles.explanationBox}>
-                      <strong>Пояснение:</strong> {q.explanation}
+                      <div className={styles.explanationHeader}>
+                        <span className={styles.explanationIcon}>💡</span>
+                        <strong className={styles.explanationTitle}>Пояснение к вопросу:</strong>
+                      </div>
+                      <div className={styles.explanationText}>{q.explanation}</div>
                     </div>
                   )}
                 </div>
