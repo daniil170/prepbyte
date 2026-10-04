@@ -108,7 +108,7 @@ describe('Cloud Functions index.js logic tests', () => {
   });
 
   describe('Cloud Functions exports', () => {
-    it('exports saveQuestion, archiveQuestion, saveExamDraft, deleteExamDraft, publishExam, and changeExamStatus callable functions', async () => {
+    it('exports saveQuestion, archiveQuestion, saveExamDraft, deleteExamDraft, publishExam, changeExamStatus, getExamResults, and getStudentExamAnalytics callable functions', async () => {
       const funcModule = await import('./index');
       expect(typeof funcModule.saveQuestion).toBe('function');
       expect(typeof funcModule.archiveQuestion).toBe('function');
@@ -116,6 +116,8 @@ describe('Cloud Functions index.js logic tests', () => {
       expect(typeof funcModule.deleteExamDraft).toBe('function');
       expect(typeof funcModule.publishExam).toBe('function');
       expect(typeof funcModule.changeExamStatus).toBe('function');
+      expect(typeof funcModule.getExamResults).toBe('function');
+      expect(typeof funcModule.getStudentExamAnalytics).toBe('function');
     });
   });
 });

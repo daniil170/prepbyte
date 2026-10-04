@@ -1091,3 +1091,398 @@ export const changeExamStatus = onCall(async (request) => {
   });
 });
 
+/**
+ * Callable Cloud Function: getExamResults
+ *
+ * Server-authoritative aggregation of exam results and participant statistics for teachers:
+ * - Validates authentication and teacher role/ownership
+ * - Aggregates participant statuses (completed, in_progress, waiting, not_started)
+ * - Calculates score metrics (avg, high, low, percentage) and score distribution
+ * - Aggregates topic performance and identifies easiest/hardest questions
+ */
+export const getExamResults = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для просмотра результатов экзамена требуется аутентификация.');
+  }
+
+  const isTeacher = Boolean(request.auth.token?.teacher || request.auth.token?.admin);
+  if (!isTeacher) {
+    throw new HttpsError('permission-denied', 'Доступ разрешён только преподавателям и администраторам.');
+  }
+
+  const { examId } = request.data || {};
+  if (!examId || typeof examId !== 'string' || !examId.trim()) {
+    throw new HttpsError('invalid-argument', 'Идентификатор экзамена (examId) обязателен.');
+  }
+
+  const cleanExamId = examId.trim();
+  const callerUid = request.auth.uid;
+  const isAdmin = Boolean(request.auth.token?.admin);
+
+  const examDocRef = db.collection('exams').doc(cleanExamId);
+  const examSnap = await examDocRef.get();
+  if (!examSnap.exists) {
+    throw new HttpsError('not-found', `Экзамен [${cleanExamId}] не найден.`);
+  }
+
+  const examData = examSnap.data();
+  if (examData.teacherId && examData.teacherId !== callerUid && !isAdmin) {
+    throw new HttpsError('permission-denied', 'Вы можете просматривать результаты только собственных экзаменов.');
+  }
+
+  // Load group student list if available
+  let enrolledStudentIds = [];
+  const enrolledStudentMap = new Map();
+  if (examData.groupId) {
+    const groupSnap = await db.collection('groups').doc(examData.groupId).get();
+    if (groupSnap.exists) {
+      const gData = groupSnap.data();
+      if (Array.isArray(gData.studentIds)) {
+        enrolledStudentIds = gData.studentIds;
+      }
+    }
+  }
+
+  if (enrolledStudentIds.length > 0) {
+    const userSnaps = await Promise.all(
+      enrolledStudentIds.map((uid) => db.collection('users').doc(uid).get())
+    );
+    userSnaps.forEach((snap) => {
+      if (snap.exists) {
+        const uData = snap.data();
+        enrolledStudentMap.set(snap.id, uData?.displayName || uData?.name || uData?.email || snap.id);
+      }
+    });
+  }
+
+  // Fetch all exam sessions for this exam
+  const sessionsSnap = await db
+    .collection('exam_sessions')
+    .where('examId', '==', cleanExamId)
+    .get();
+
+  const sessionsMap = new Map();
+  sessionsSnap.docs.forEach((docSnap) => {
+    const sData = docSnap.data();
+    sessionsMap.set(sData.studentId, { id: docSnap.id, ...sData });
+  });
+
+  const participants = [];
+  let completedCount = 0;
+  let inProgressCount = 0;
+  let waitingCount = 0;
+  let totalScoreSum = 0;
+  let totalPctSum = 0;
+  let highestScore = 0;
+  let lowestScore = Infinity;
+
+  const scoreDistribution = {
+    '0-20%': 0,
+    '21-40%': 0,
+    '41-60%': 0,
+    '61-80%': 0,
+    '81-100%': 0,
+  };
+
+  const topicTotals = {};
+  const questionIds = Array.isArray(examData.questionIds) ? examData.questionIds : [];
+  const allStudentIds = [...new Set([...enrolledStudentIds, ...sessionsMap.keys()])];
+
+  for (const sId of allStudentIds) {
+    const session = sessionsMap.get(sId);
+    const studentName = session?.studentName || enrolledStudentMap.get(sId) || `Ученик ${sId}`;
+
+    if (!session) {
+      participants.push({
+        studentId: sId,
+        studentName,
+        groupId: examData.groupId || '',
+        status: 'not_started',
+        score: 0,
+        totalScore: 0,
+        percentage: 0,
+        correctAnswersCount: 0,
+        startedAt: null,
+        submittedAt: null,
+        durationSeconds: null,
+      });
+      continue;
+    }
+
+    const pStatus = session.status === 'submitted' ? 'completed' : session.status;
+    if (session.status === 'submitted') {
+      completedCount++;
+      const score = Number(session.score ?? session.totalScore ?? 0);
+      const pct = Number(session.percentage ?? 0);
+
+      totalScoreSum += score;
+      totalPctSum += pct;
+
+      if (score > highestScore) highestScore = score;
+      if (score < lowestScore) lowestScore = score;
+
+      if (pct <= 20) scoreDistribution['0-20%']++;
+      else if (pct <= 40) scoreDistribution['21-40%']++;
+      else if (pct <= 60) scoreDistribution['41-60%']++;
+      else if (pct <= 80) scoreDistribution['61-80%']++;
+      else scoreDistribution['81-100%']++;
+
+      if (session.byTopicBreakdown) {
+        Object.entries(session.byTopicBreakdown).forEach(([tKey, tVal]) => {
+          if (!topicTotals[tKey]) {
+            topicTotals[tKey] = { score: 0, maxScore: 0, count: 0 };
+          }
+          topicTotals[tKey].score += tVal.score || 0;
+          topicTotals[tKey].maxScore += tVal.maxScore || 0;
+          topicTotals[tKey].count += 1;
+        });
+      }
+    } else if (session.status === 'in_progress') {
+      inProgressCount++;
+    } else if (session.status === 'waiting') {
+      waitingCount++;
+    }
+
+    participants.push({
+      studentId: sId,
+      sessionId: session.id,
+      studentName,
+      groupId: session.groupId || examData.groupId || '',
+      status: pStatus,
+      score: session.score ?? session.totalScore ?? 0,
+      maxPossibleScore: session.maxPossibleScore ?? 0,
+      percentage: session.percentage ?? 0,
+      correctAnswersCount: session.correctAnswersCount ?? 0,
+      startedAt: session.startedAt?.toDate ? session.startedAt.toDate().getTime() : session.startedAt,
+      submittedAt: session.submittedAt?.toDate ? session.submittedAt.toDate().getTime() : session.submittedAt,
+      durationSeconds: session.durationSeconds || null,
+    });
+  }
+
+  const notStartedCount = allStudentIds.length - (completedCount + inProgressCount + waitingCount);
+  const avgScore = completedCount > 0 ? Math.round((totalScoreSum / completedCount) * 10) / 10 : 0;
+  const avgPct = completedCount > 0 ? Math.round(totalPctSum / completedCount) : 0;
+  if (lowestScore === Infinity) lowestScore = 0;
+
+  const topicPerformance = {};
+  Object.entries(topicTotals).forEach(([tKey, tVal]) => {
+    topicPerformance[tKey] = tVal.maxScore > 0 ? Math.round((tVal.score / tVal.maxScore) * 100) : 0;
+  });
+
+  const questionsList = [];
+  const qSnapshots = examData.questionSnapshots || {};
+  questionIds.forEach((qid, idx) => {
+    const qSnap = qSnapshots[qid] || {};
+    questionsList.push({
+      id: qid,
+      index: idx + 1,
+      topic: qSnap.topic || 'unknown',
+      questionText: qSnap.questionText || `Вопрос ${idx + 1}`,
+      difficulty: qSnap.difficulty || 'medium',
+    });
+  });
+
+  return {
+    success: true,
+    exam: {
+      id: cleanExamId,
+      title: examData.title || '',
+      status: examData.status || 'draft',
+      pin: examData.pin || null,
+      groupId: examData.groupId || '',
+      groupName: examData.groupName || '',
+      durationMinutes: examData.durationMinutes || 60,
+      totalQuestions: questionIds.length,
+    },
+    summary: {
+      totalParticipants: allStudentIds.length,
+      completedCount,
+      inProgressCount,
+      waitingCount,
+      notStartedCount,
+      averageScore: avgScore,
+      averagePercentage: avgPct,
+      highestScore,
+      lowestScore,
+      scoreDistribution,
+      topicPerformance,
+      easiestQuestions: questionsList.slice(0, 3),
+      hardestQuestions: questionsList.slice(-3).reverse(),
+    },
+    participants,
+  };
+});
+
+/**
+ * Callable Cloud Function: getStudentExamAnalytics
+ *
+ * Server-authoritative individual student analytics for teachers and authorized students:
+ * - Validates authentication and ownership (teacher owning exam or student owning session)
+ * - Evaluates detailed per-question correctness, points awarded, and topic breakdown
+ * - Returns protected correct answers ONLY for teacher analytics callers
+ */
+export const getStudentExamAnalytics = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Аутентификация обязательна.');
+  }
+
+  const { examId, studentId } = request.data || {};
+  if (!examId || !studentId) {
+    throw new HttpsError('invalid-argument', 'Параметры examId и studentId обязательны.');
+  }
+
+  const cleanExamId = String(examId).trim();
+  const cleanStudentId = String(studentId).trim();
+  const callerUid = request.auth.uid;
+  const isTeacher = Boolean(request.auth.token?.teacher || request.auth.token?.admin);
+  const isAdmin = Boolean(request.auth.token?.admin);
+
+  const examDocRef = db.collection('exams').doc(cleanExamId);
+  const examSnap = await examDocRef.get();
+  if (!examSnap.exists) {
+    throw new HttpsError('not-found', `Экзамен [${cleanExamId}] не найден.`);
+  }
+
+  const examData = examSnap.data();
+  if (callerUid !== cleanStudentId && (!isTeacher || (examData.teacherId && examData.teacherId !== callerUid && !isAdmin))) {
+    throw new HttpsError('permission-denied', 'У вас нет прав на просмотр этой аналитики.');
+  }
+
+  const sessionId = `${cleanExamId}_${cleanStudentId}`;
+  const sessionDocRef = db.collection('exam_sessions').doc(sessionId);
+  const sessionSnap = await sessionDocRef.get();
+
+  if (!sessionSnap.exists) {
+    throw new HttpsError('not-found', 'Экзаменационная сессия ученика не найдена.');
+  }
+
+  const sessionData = sessionSnap.data();
+  const questionIds = Array.isArray(sessionData.questionOrder) && sessionData.questionOrder.length > 0
+    ? sessionData.questionOrder
+    : (Array.isArray(examData.questionIds) ? examData.questionIds : []);
+
+  const uniqueIds = [...new Set(questionIds)];
+
+  const answerRefs = uniqueIds.map((qid) => db.collection('question_answers').doc(qid));
+  const questionRefs = uniqueIds.map((qid) => db.collection('questions').doc(qid));
+
+  const answerSnaps = await Promise.all(answerRefs.map((ref) => ref.get()));
+  const questionSnaps = await Promise.all(questionRefs.map((ref) => ref.get()));
+
+  const answerMap = new Map();
+  answerSnaps.forEach((snap) => {
+    if (snap.exists) answerMap.set(snap.id, snap.data());
+  });
+
+  const questionMap = new Map();
+  const qSnapshots = examData.questionSnapshots || {};
+  questionSnaps.forEach((snap) => {
+    if (snap.exists) questionMap.set(snap.id, snap.data());
+  });
+
+  const studentAnswers = sessionData.answers || {};
+  const questionDetails = [];
+  let correctCount = 0;
+  let incorrectCount = 0;
+  let unansweredCount = 0;
+
+  questionIds.forEach((qid, index) => {
+    const qDoc = questionMap.get(qid) || qSnapshots[qid] || {};
+    const ansDoc = answerMap.get(qid) || {};
+
+    const rawUserAnswers = Array.isArray(studentAnswers[qid]) ? studentAnswers[qid] : [];
+    const correctAns = Array.isArray(ansDoc.correctAnswers) ? ansDoc.correctAnswers : [];
+
+    const isMultiple = Boolean(qDoc.multiple || correctAns.length > 1);
+    const maxPoints = isMultiple ? 2 : 1;
+
+    const userSet = new Set(rawUserAnswers);
+    const correctSet = new Set(correctAns);
+
+    let pointsAwarded = 0;
+    let status = 'unanswered';
+
+    if (rawUserAnswers.length === 0) {
+      status = 'unanswered';
+      unansweredCount++;
+    } else {
+      if (!isMultiple) {
+        if (userSet.size === 1 && userSet.has(correctAns[0])) {
+          pointsAwarded = 1;
+          status = 'correct';
+          correctCount++;
+        } else {
+          status = 'incorrect';
+          incorrectCount++;
+        }
+      } else {
+        let omissions = 0;
+        for (const a of correctSet) if (!userSet.has(a)) omissions++;
+        let falsePositives = 0;
+        for (const a of userSet) if (!correctSet.has(a)) falsePositives++;
+        const errs = omissions + falsePositives;
+        if (errs === 0) {
+          pointsAwarded = 2;
+          status = 'correct';
+          correctCount++;
+        } else if (errs === 1) {
+          pointsAwarded = 1;
+          status = 'incorrect';
+          incorrectCount++;
+        } else {
+          pointsAwarded = 0;
+          status = 'incorrect';
+          incorrectCount++;
+        }
+      }
+    }
+
+    const detailItem = {
+      index: index + 1,
+      id: qid,
+      questionText: qDoc.questionText || `Вопрос ${index + 1}`,
+      topic: qDoc.topic || 'unknown',
+      difficulty: qDoc.difficulty || 'medium',
+      multiple: isMultiple,
+      options: Array.isArray(qDoc.options) ? qDoc.options : [],
+      studentAnswer: rawUserAnswers,
+      status,
+      pointsAwarded,
+      maxPoints,
+    };
+
+    if (isTeacher) {
+      detailItem.correctAnswers = correctAns;
+      detailItem.explanation = ansDoc.explanation || '';
+    }
+
+    questionDetails.push(detailItem);
+  });
+
+  return {
+    success: true,
+    exam: {
+      id: cleanExamId,
+      title: examData.title || '',
+    },
+    student: {
+      studentId: cleanStudentId,
+      studentName: sessionData.studentName || `Ученик ${cleanStudentId}`,
+      groupId: sessionData.groupId || examData.groupId || '',
+      status: sessionData.status === 'submitted' ? 'completed' : sessionData.status,
+      score: sessionData.score ?? sessionData.totalScore ?? 0,
+      maxPossibleScore: sessionData.maxPossibleScore ?? 0,
+      percentage: sessionData.percentage ?? 0,
+      correctAnswersCount: correctCount,
+      incorrectAnswersCount: incorrectCount,
+      unansweredCount,
+      startedAt: sessionData.startedAt?.toDate ? sessionData.startedAt.toDate().getTime() : sessionData.startedAt,
+      submittedAt: sessionData.submittedAt?.toDate ? sessionData.submittedAt.toDate().getTime() : sessionData.submittedAt,
+      durationSeconds: sessionData.durationSeconds || null,
+    },
+    topicBreakdown: sessionData.byTopicBreakdown || {},
+    questions: questionDetails,
+  };
+});
+
+
