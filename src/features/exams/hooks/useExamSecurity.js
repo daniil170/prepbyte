@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { isDebugMode } from '@features/debug-mode';
 
 /**
  * Custom hook for client-side browser violation detection during active exams.
@@ -21,6 +22,7 @@ export function useExamSecurity({
 
   const report = useCallback(
     (type, metadata = {}) => {
+       if (isDebugMode()) return;  
       if (!sessionId || !isActive || typeof onViolation !== 'function') return;
 
       const now = Date.now();

@@ -37,6 +37,8 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { functions as defaultFunctions } from '@infrastructure/firebase/functions';
 
+import { isDebugMode } from '@features/debug-mode';
+
 function generateId(prefix = 'exam') {
   if (
     typeof crypto !== 'undefined' &&
@@ -597,6 +599,7 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
    * Reports a browser violation to the server via Cloud Function.
    */
   async function reportViolation(sessionId, type, eventId = null, metadata = {}) {
+    if (isDebugMode()) return { success: true, skipped: true };
     if (!sessionId || !type) return null;
     const cleanSessionId = String(sessionId).trim();
     const cleanType = String(type).trim();
