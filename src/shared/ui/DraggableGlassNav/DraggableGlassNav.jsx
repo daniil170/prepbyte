@@ -3,7 +3,7 @@ import styles from './DraggableGlassNav.module.css';
 
 /**
  * Apple-style Liquid Glass Navbar with click-and-drag horizontal scroll,
- * mouse wheel support, and smooth spring hover/active visual effects.
+ * tactile elastic spring offset, mouse wheel support, and smooth visual effects.
  */
 export function DraggableGlassNav({ children, className = '', ariaLabel = 'Навигация' }) {
   const navRef = useRef(null);
@@ -11,39 +11,53 @@ export function DraggableGlassNav({ children, className = '', ariaLabel = 'На�
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [draggedDistance, setDraggedDistance] = useState(0);
+  const [elasticOffset, setElasticOffset] = useState(0);
 
   const handleMouseDown = useCallback((e) => {
     if (!navRef.current) return;
     setIsDragging(true);
-    setStartX(e.pageX - navRef.current.offsetLeft);
+    setStartX(e.pageX);
     setScrollLeft(navRef.current.scrollLeft);
     setDraggedDistance(0);
+    setElasticOffset(0);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     setIsDragging(false);
+    setElasticOffset(0);
   }, []);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    setElasticOffset(0);
   }, []);
 
   const handleMouseMove = useCallback(
     (e) => {
       if (!isDragging || !navRef.current) return;
       e.preventDefault();
-      const x = e.pageX - navRef.current.offsetLeft;
-      const walk = (x - startX) * 1.5; // Scroll speed factor
-      navRef.current.scrollLeft = scrollLeft - walk;
-      setDraggedDistance((prev) => prev + Math.abs(x - startX));
+      const deltaX = e.pageX - startX;
+      setDraggedDistance((prev) => prev + Math.abs(deltaX));
+
+      const { scrollWidth, clientWidth } = navRef.current;
+      const canScroll = scrollWidth > clientWidth;
+
+      if (canScroll) {
+        // Scroll horizontally if overflowing
+        navRef.current.scrollLeft = scrollLeft - deltaX * 1.5;
+      } else {
+        // If content fits comfortably, apply elastic Apple-style spring offset
+        const damping = 0.35;
+        setElasticOffset(deltaX * damping);
+      }
     },
     [isDragging, startX, scrollLeft]
   );
 
   const handleWheel = useCallback((e) => {
     if (!navRef.current) return;
-    if (e.deltaY !== 0) {
-      navRef.current.scrollLeft += e.deltaY * 0.8;
+    if (e.deltaY !== 0 || e.deltaX !== 0) {
+      navRef.current.scrollLeft += (e.deltaX || e.deltaY) * 0.8;
     }
   }, []);
 
@@ -68,9 +82,18 @@ export function DraggableGlassNav({ children, className = '', ariaLabel = 'На�
       onMouseUp={handleMouseUp}
       onMouseMove={handleMouseMove}
       onWheel={handleWheel}
+      onDragStart={(e) => e.preventDefault()}
       onClickCapture={handleClickCapture}
     >
-      <div className={styles.innerTrack}>{children}</div>
+      <div
+        className={styles.innerTrack}
+        style={{
+          transform: `translateX(${elasticOffset}px)`,
+          transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        }}
+      >
+        {children}
+      </div>
     </nav>
   );
 }
