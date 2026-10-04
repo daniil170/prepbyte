@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { AnswerOptions } from '@features/testing/ui/AnswerOptions';
+import { CalculatorModal } from '@shared/ui/Calculator';
+import { ThemeToggle } from '@shared/theme';
 import { useStudentExamSession } from '../hooks/useStudentExamSession';
 import { StudentExamResultPage } from './StudentExamResultPage';
 import styles from './StudentExamPage.module.css';
@@ -7,14 +10,20 @@ import styles from './StudentExamPage.module.css';
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
+  const num = Number(seconds);
+  if (Number.isNaN(num) || num <= 0) {
+    return '00:00';
+  }
+  const total = Math.floor(num);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export function StudentExamPage() {
   const { examId } = useParams();
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [isPrepAccepted, setIsPrepAccepted] = useState(false);
   const [toastViolation, setToastViolation] = useState(null);
 
@@ -209,6 +218,17 @@ export function StudentExamPage() {
         </div>
 
         <div className={styles.headerRight}>
+          <button
+            type="button"
+            className={styles.calcBtn}
+            onClick={() => setIsCalcOpen(true)}
+            title="Открыть калькулятор"
+          >
+            🧮 Калькулятор
+          </button>
+
+          <ThemeToggle showLabel={false} />
+
           <div className={styles.violationBadge}>
             🛡️ Нарушения: {violationCount}/{maxViolations}
           </div>
@@ -231,6 +251,9 @@ export function StudentExamPage() {
           </button>
         </div>
       </header>
+
+      {/* Calculator Modal */}
+      <CalculatorModal isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} />
 
       {/* Violation Toast Notification */}
       {toastViolation && (
@@ -256,31 +279,13 @@ export function StudentExamPage() {
 
             <h2 className={styles.questionText}>{currentQuestion.questionText}</h2>
 
-            <p className={styles.choiceInstruction}>
-              {isMultipleChoice
-                ? 'Выберите один или несколько правильных ответов:'
-                : 'Выберите один правильный ответ:'}
-            </p>
-
-            <div className={styles.optionsList}>
-              {Array.isArray(currentQuestion.options) &&
-                currentQuestion.options.map((option, idx) => {
-                  const isSelected = selectedOptions.includes(idx);
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      className={`${styles.optionBtn} ${
-                        isSelected ? styles.optionSelected : ''
-                      }`}
-                      onClick={() => handleOptionClick(idx)}
-                    >
-                      <span className={styles.optionLetter}>{OPTION_LETTERS[idx] || idx + 1}</span>
-                      <span className={styles.optionText}>{option}</span>
-                    </button>
-                  );
-                })}
-            </div>
+            <AnswerOptions
+              options={currentQuestion.options}
+              selectedAnswers={selectedOptions}
+              multiple={isMultipleChoice}
+              onSelect={handleOptionClick}
+              disabled={isSubmitting}
+            />
           </div>
         )}
 
@@ -304,9 +309,9 @@ export function StudentExamPage() {
               const isCur = idx === currentIndex;
 
               let btnClass = styles.navGridBtn;
-              if (isCur) btnClass += ` ${styles.navGridCurrent}`;
-              if (isAns) btnClass += ` ${styles.navGridAnswered}`;
-              if (isFlg) btnClass += ` ${styles.navGridFlagged}`;
+              if (isAns) btnClass += ` ${styles.navGridBtnAnswered}`;
+              if (isFlg) btnClass += ` ${styles.navGridBtnFlagged}`;
+              if (isCur) btnClass += ` ${styles.navGridBtnCurrent}`;
 
               return (
                 <button

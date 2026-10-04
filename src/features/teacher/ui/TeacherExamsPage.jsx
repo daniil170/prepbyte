@@ -209,17 +209,15 @@ export function TeacherExamsPage() {
                     </Link>
                   )}
 
-                  {exam.status === EXAM_STATUS.DRAFT && (
-                    <button
-                      type="button"
-                      className={styles.deleteBtn}
-                      onClick={() => setConfirmModal({ action: 'delete', examId: exam.id, title: exam.title })}
-                      disabled={isActing}
-                      title="Удалить черновик"
-                    >
-                      Удалить
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className={styles.deleteBtn}
+                    onClick={() => setConfirmModal({ action: 'delete', examId: exam.id, title: exam.title })}
+                    disabled={isActing}
+                    title="Удалить экзамен"
+                  >
+                    Удалить
+                  </button>
                 </div>
               </div>
             );
@@ -234,7 +232,7 @@ export function TeacherExamsPage() {
               {confirmModal.action === 'publish' && 'Опубликовать экзамен?'}
               {confirmModal.action === 'start' && 'Запустить экзамен?'}
               {confirmModal.action === 'finish' && 'Завершить экзамен?'}
-              {confirmModal.action === 'delete' && 'Удалить черновик?'}
+              {confirmModal.action === 'delete' && 'Удалить экзамен?'}
             </h3>
             <p>
               {confirmModal.action === 'publish' &&
@@ -244,7 +242,7 @@ export function TeacherExamsPage() {
               {confirmModal.action === 'finish' &&
                 `Завершить "${confirmModal.title}"? Все активные сессии сдачи будут остановлены, а доступ по PIN-коду заблокирован.`}
               {confirmModal.action === 'delete' &&
-                `Удалить черновик "${confirmModal.title}"? Действие необратимо.`}
+                `Удалить экзамен "${confirmModal.title}"? Все связанные данные и сессии будут удалены. Действие необратимо.`}
             </p>
             <div className={styles.modalActions}>
               <button

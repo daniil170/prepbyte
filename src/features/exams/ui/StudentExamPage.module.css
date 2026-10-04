@@ -103,6 +103,27 @@
   color: var(--color-error);
 }
 
+.calcBtn {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.calcBtn:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border-strong);
+}
+
 .finishBtn {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
@@ -273,9 +294,13 @@
 }
 
 .navGridBtnCurrent {
-  border-color: var(--color-text);
-  background-color: var(--color-text);
-  color: var(--color-bg);
+  border-color: var(--color-text) !important;
+  background-color: var(--color-text) !important;
+  color: var(--color-bg) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-text);
+  transform: scale(1.08);
+  z-index: 2;
 }
 
 .navGridBtnAnswered {
