@@ -46,6 +46,12 @@ describe('StudentExamPage Component', () => {
       isWaiting: false,
       isActive: true,
       isSubmitted: false,
+      isDisqualified: false,
+      violationCount: 0,
+      maxViolations: 3,
+      disqualificationReason: null,
+      latestViolation: null,
+      requestFullscreen: vi.fn(),
       isLoading: false,
       isSubmitting: false,
       error: null,
@@ -67,11 +73,12 @@ describe('StudentExamPage Component', () => {
     );
   }
 
-  it('renders header with exam title, progress, timer and finish button', () => {
+  it('renders header with exam title, progress, timer, violation counter and finish button', () => {
     renderPage();
 
     expect(screen.getByText(/ЕНТ — Информатика • Вопрос 1 из 3/i)).toBeInTheDocument();
     expect(screen.getByText(/⏱ 20:00/i)).toBeInTheDocument();
+    expect(screen.getByText(/🛡️ Нарушения: 0\/3/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Завершить экзамен' })).toBeInTheDocument();
   });
 
@@ -79,7 +86,7 @@ describe('StudentExamPage Component', () => {
     renderPage();
 
     expect(screen.getByText('Что такое алгоритм?')).toBeInTheDocument();
-    expect(screen.getByText(/Тема: Тема 1/i)).toBeInTheDocument();
+    expect(screen.getByText('Тема 1')).toBeInTheDocument();
     expect(screen.getByText('Вариант A')).toBeInTheDocument();
     expect(screen.getByText('Вариант B')).toBeInTheDocument();
     expect(screen.getByText('Вариант C')).toBeInTheDocument();
@@ -97,7 +104,7 @@ describe('StudentExamPage Component', () => {
   it('calls toggleFlag when flag button is clicked', () => {
     renderPage();
 
-    const flagBtn = screen.getByRole('button', { name: /⚑ Отметить/i });
+    const flagBtn = screen.getByRole('button', { name: /Добавить закладку/i });
     fireEvent.click(flagBtn);
 
     expect(mockHookReturn.toggleFlag).toHaveBeenCalledWith('q1');
@@ -126,10 +133,9 @@ describe('StudentExamPage Component', () => {
     const finishBtn = screen.getByRole('button', { name: 'Завершить экзамен' });
     fireEvent.click(finishBtn);
 
-    expect(screen.getByText('Завершение экзамена')).toBeInTheDocument();
-    expect(screen.getByText(/Отвечено:/i)).toBeInTheDocument();
+    expect(screen.getByText('Завершить экзамен?')).toBeInTheDocument();
 
-    const confirmBtn = screen.getByRole('button', { name: 'Завершить' });
+    const confirmBtn = screen.getByRole('button', { name: 'Да, завершить' });
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
@@ -137,22 +143,25 @@ describe('StudentExamPage Component', () => {
     });
   });
 
-  it('renders results page when session is submitted', () => {
+  it('renders disqualification screen when status is disqualified', () => {
     useStudentExamSession.mockReturnValue({
       ...mockHookReturn,
-      isSubmitted: true,
+      isDisqualified: true,
+      violationCount: 3,
+      maxViolations: 3,
+      disqualificationReason: 'Превышен допустимый лимит нарушений.',
       session: {
         ...mockSession,
-        status: 'submitted',
-        totalScore: 45,
-        maxPossibleScore: 50,
-        percentage: 90,
+        status: 'disqualified',
+        violationCount: 3,
       },
     });
 
     renderPage();
 
-    expect(screen.getByText('Экзамен завершён')).toBeInTheDocument();
-    expect(screen.getByText('45 / 50')).toBeInTheDocument();
+    expect(screen.getByText('Экзамен аннулирован')).toBeInTheDocument();
+    expect(screen.getByText(/Превышен допустимый лимит нарушений/i)).toBeInTheDocument();
+    expect(screen.getByText(/3\/3/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Вернуться на главную' })).toBeInTheDocument();
   });
 });

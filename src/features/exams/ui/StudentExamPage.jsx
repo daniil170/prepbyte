@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useStudentExamSession } from '../hooks/useStudentExamSession';
 import { StudentExamResultPage } from './StudentExamResultPage';
@@ -15,6 +15,9 @@ function formatTime(seconds) {
 export function StudentExamPage() {
   const { examId } = useParams();
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [isPrepAccepted, setIsPrepAccepted] = useState(false);
+  const [toastViolation, setToastViolation] = useState(null);
+
   const {
     exam,
     session,
@@ -27,6 +30,12 @@ export function StudentExamPage() {
     flagged,
     isWaiting,
     isSubmitted,
+    isDisqualified,
+    violationCount,
+    maxViolations,
+    disqualificationReason,
+    latestViolation,
+    requestFullscreen,
     isLoading,
     isSubmitting,
     error,
@@ -34,6 +43,18 @@ export function StudentExamPage() {
     toggleFlag,
     submit,
   } = useStudentExamSession(examId);
+
+  useEffect(() => {
+    if (latestViolation) {
+      const showTimer = setTimeout(() => setToastViolation(latestViolation), 0);
+      const hideTimer = setTimeout(() => setToastViolation(null), 4000);
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+      };
+    }
+    return () => {};
+  }, [latestViolation]);
 
   if (isLoading) {
     return (
@@ -56,12 +77,35 @@ export function StudentExamPage() {
     );
   }
 
-  // 1. Submitted State -> View Results
+  // 1. Disqualified State -> Lock Exam completely (Requirement 6I)
+  if (isDisqualified) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.disqualifiedContainer}>
+          <div className={styles.disqualifiedCard}>
+            <div className={styles.disqualifiedIcon}>🛑</div>
+            <h1 className={styles.disqualifiedTitle}>Экзамен аннулирован</h1>
+            <p className={styles.disqualifiedReason}>
+              Причина: {disqualificationReason || 'Превышен допустимый лимит нарушений.'}
+            </p>
+            <div className={styles.disqualifiedCounter}>
+              Нарушения: <strong>{violationCount}/{maxViolations}</strong>
+            </div>
+            <Link to="/" className={styles.disqualifiedHomeBtn}>
+              Вернуться на главную
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Submitted State -> View Results
   if (isSubmitted) {
     return <StudentExamResultPage session={session} exam={exam} />;
   }
 
-  // 2. Waiting Room State
+  // 3. Waiting Room State
   if (isWaiting) {
     return (
       <div className={styles.page}>
@@ -85,7 +129,46 @@ export function StudentExamPage() {
     );
   }
 
-  // 3. Active Exam State
+  // 4. Preparation Box / Screen (Requirement 6H)
+  if (!isPrepAccepted && session?.status !== 'in_progress') {
+    const handleStartClick = async () => {
+      await requestFullscreen();
+      setIsPrepAccepted(true);
+    };
+
+    return (
+      <div className={styles.page}>
+        <div className={styles.prepContainer}>
+          <div className={styles.prepCard}>
+            <h1 className={styles.prepTitle}>Подготовка к экзамену</h1>
+            <div style={{ width: '100%' }}>
+              <p style={{ fontSize: '0.875rem', marginBottom: 12, color: 'var(--color-text-muted)' }}>
+                Для прохождения необходимо:
+              </p>
+              <ul className={styles.prepList}>
+                <li className={styles.prepItem}>• Полноэкранный режим</li>
+                <li className={styles.prepItem}>• Не переключаться между вкладками</li>
+                <li className={styles.prepItem}>• Не копировать и не вставлять текст</li>
+                <li className={styles.prepItem}>• Не использовать контекстное меню</li>
+              </ul>
+            </div>
+            <div className={styles.violationBadge}>
+              Нарушения: <strong>{violationCount}/{maxViolations}</strong>
+            </div>
+            <button
+              type="button"
+              className={styles.prepStartBtn}
+              onClick={handleStartClick}
+            >
+              Начать экзамен
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. Active Exam State
   const selectedOptions = currentQuestion
     ? session?.answers?.[currentQuestion.id] || []
     : [];
@@ -126,6 +209,10 @@ export function StudentExamPage() {
         </div>
 
         <div className={styles.headerRight}>
+          <div className={styles.violationBadge}>
+            🛡️ Нарушения: {violationCount}/{maxViolations}
+          </div>
+
           <div
             className={`${styles.timer} ${
               isWarningTimer ? styles.timerWarning : ''
@@ -145,107 +232,87 @@ export function StudentExamPage() {
         </div>
       </header>
 
+      {/* Violation Toast Notification */}
+      {toastViolation && (
+        <div className={styles.violationToast}>
+          ⚠️ Нарушение зафиксировано: {violationCount}/{maxViolations}
+        </div>
+      )}
+
       <main className={styles.mainContent}>
         {/* Current Question View */}
         {currentQuestion && (
           <div className={styles.questionCard}>
             <div className={styles.questionMeta}>
-              <span>
-                {isMultipleChoice
-                  ? 'Несколько правильных ответов (до 2 баллов)'
-                  : 'Один правильный ответ (1 балл)'} • Тема: {currentQuestion.topic || 'Общая'}
-              </span>
-
+              <span className={styles.questionTopic}>{currentQuestion.topic || 'Информатика'}</span>
               <button
                 type="button"
-                className={`${styles.flagBtn} ${
-                  isCurrentFlagged ? styles.flagBtnActive : ''
-                }`}
+                className={`${styles.flagBtn} ${isCurrentFlagged ? styles.flagBtnActive : ''}`}
                 onClick={handleToggleFlag}
-                disabled={isSubmitting}
               >
-                {isCurrentFlagged ? '🚩 Отмечен' : '⚑ Отметить'}
+                {isCurrentFlagged ? '🚩 В закладках' : '🏳️ Добавить закладку'}
               </button>
             </div>
 
-            <div className={styles.questionText}>
-              {currentQuestion.questionText}
-            </div>
+            <h2 className={styles.questionText}>{currentQuestion.questionText}</h2>
+
+            <p className={styles.choiceInstruction}>
+              {isMultipleChoice
+                ? 'Выберите один или несколько правильных ответов:'
+                : 'Выберите один правильный ответ:'}
+            </p>
 
             <div className={styles.optionsList}>
-              {(currentQuestion.options || []).map((optionText, idx) => {
-                const isSelected = selectedOptions.includes(idx);
-                const letter = OPTION_LETTERS[idx] || String(idx + 1);
-
-                return (
-                  <div
-                    key={idx}
-                    className={`${styles.optionItem} ${
-                      isSelected ? styles.optionItemSelected : ''
-                    }`}
-                    onClick={() => handleOptionClick(idx)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        handleOptionClick(idx);
-                      }
-                    }}
-                  >
-                    <span className={styles.optionLetter}>{letter}.</span>
-                    <span className={styles.optionText}>{optionText}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className={styles.navigationControls}>
-              <button
-                type="button"
-                className={styles.navBtn}
-                onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-                disabled={currentIndex === 0 || isSubmitting}
-              >
-                ← Назад
-              </button>
-
-              <button
-                type="button"
-                className={styles.navBtn}
-                onClick={() =>
-                  setCurrentIndex((prev) =>
-                    Math.min(totalQuestions - 1, prev + 1)
-                  )
-                }
-                disabled={isLastQuestion || isSubmitting}
-              >
-                Вперёд →
-              </button>
+              {Array.isArray(currentQuestion.options) &&
+                currentQuestion.options.map((option, idx) => {
+                  const isSelected = selectedOptions.includes(idx);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`${styles.optionBtn} ${
+                        isSelected ? styles.optionSelected : ''
+                      }`}
+                      onClick={() => handleOptionClick(idx)}
+                    >
+                      <span className={styles.optionLetter}>{OPTION_LETTERS[idx] || idx + 1}</span>
+                      <span className={styles.optionText}>{option}</span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
         )}
 
-        {/* Question Navigator Grid */}
-        <div className={styles.navGridContainer}>
-          <span className={styles.navGridTitle}>Навигация по заданиям</span>
+        {/* Navigation & Controls */}
+        <div className={styles.bottomBar}>
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
+            disabled={currentIndex === 0}
+          >
+            ← Назад
+          </button>
+
           <div className={styles.navGrid}>
             {questions.map((q, idx) => {
-              const isCurrent = idx === currentIndex;
-              const isAnswered =
-                session?.answers?.[q.id] && session.answers[q.id].length > 0;
-              const isFlagged = flagged.includes(q.id);
+              const isAns =
+                Array.isArray(session?.answers?.[q.id]) &&
+                session.answers[q.id].length > 0;
+              const isFlg = flagged.includes(q.id);
+              const isCur = idx === currentIndex;
+
+              let btnClass = styles.navGridBtn;
+              if (isCur) btnClass += ` ${styles.navGridCurrent}`;
+              if (isAns) btnClass += ` ${styles.navGridAnswered}`;
+              if (isFlg) btnClass += ` ${styles.navGridFlagged}`;
 
               return (
                 <button
                   key={q.id || idx}
                   type="button"
-                  className={`${styles.navGridBtn} ${
-                    isCurrent
-                      ? styles.navGridBtnCurrent
-                      : isAnswered
-                      ? styles.navGridBtnAnswered
-                      : ''
-                  } ${isFlagged ? styles.navGridBtnFlagged : ''}`}
+                  className={btnClass}
                   onClick={() => setCurrentIndex(idx)}
                 >
                   {idx + 1}
@@ -253,31 +320,34 @@ export function StudentExamPage() {
               );
             })}
           </div>
+
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={() => setCurrentIndex((prev) => Math.min(totalQuestions - 1, prev + 1))}
+            disabled={isLastQuestion}
+          >
+            Вперёд →
+          </button>
         </div>
       </main>
 
       {/* Confirmation Modal */}
       {showSubmitModal && (
-        <div className={styles.modalOverlay}>
+        <div className={styles.modalBackdrop}>
           <div className={styles.modalCard}>
-            <h2 className={styles.modalTitle}>Завершение экзамена</h2>
+            <h3 className={styles.modalTitle}>Завершить экзамен?</h3>
             <p className={styles.modalText}>
-              Вы уверены, что хотите завершить экзамен и отправить свои ответы на проверку?
-            </p>
-            <div className={styles.modalSummary}>
-              Отвечено: <strong>{answeredCount}</strong> из <strong>{totalQuestions}</strong> вопросов
-            </div>
-            <p className={styles.modalText} style={{ fontSize: '0.8125rem', color: '#ef4444' }}>
-              После завершения изменить ответы будет нельзя.
+              Вы ответили на {answeredCount} из {totalQuestions} вопросов. После завершения
+              изменение ответов будет невозможно.
             </p>
             <div className={styles.modalActions}>
               <button
                 type="button"
                 className={styles.modalCancelBtn}
                 onClick={() => setShowSubmitModal(false)}
-                disabled={isSubmitting}
               >
-                Продолжить экзамен
+                Отмена
               </button>
               <button
                 type="button"
@@ -285,7 +355,7 @@ export function StudentExamPage() {
                 onClick={handleConfirmSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Отправка...' : 'Завершить'}
+                {isSubmitting ? 'Отправка...' : 'Да, завершить'}
               </button>
             </div>
           </div>

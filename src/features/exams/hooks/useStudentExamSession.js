@@ -7,6 +7,7 @@ import {
   EXAM_STATUS,
 } from '@features/teacher';
 import { questionRepository as defaultQuestionRepo } from '@features/question-bank';
+import { useExamSecurity } from './useExamSecurity';
 
 export function useStudentExamSession(
   examId,
@@ -24,14 +25,16 @@ export function useStudentExamSession(
   const [isLoading, setIsLoading] = useState(Boolean(examId && user?.id));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [latestViolation, setLatestViolation] = useState(null);
 
-  const sessionId = examId && user?.id ? `${examId}_${user.id}` : null;
+  const initialSessionId = examId && user?.id ? `${examId}_${user.id}` : null;
+  const activeSessionId = session?.id || initialSessionId;
   const questionsLoadedRef = useRef(false);
   const isAutoSubmittingRef = useRef(false);
 
   // 1. Subscribe to Exam and Student Session
   useEffect(() => {
-    if (!examId || !sessionId) {
+    if (!examId || !user?.id) {
       return () => {};
     }
 
@@ -42,19 +45,19 @@ export function useStudentExamSession(
         setIsLoading(false);
       },
       (err) => {
-        setError(err.message || 'Ошибка подписки на экзамен.');
+        setError(err?.message || 'Ошибка подписки на экзамен.');
         setIsLoading(false);
       }
     );
 
     const unsubSession = examRepo.subscribeToStudentSession(
-      sessionId,
+      activeSessionId,
       (updatedSession) => {
         setSession(updatedSession);
         setIsLoading(false);
       },
       (err) => {
-        setError(err.message || 'Ошибка подписки на сессию экзамена.');
+        setError(err?.message || 'Ошибка подписки на сессию экзамена.');
         setIsLoading(false);
       }
     );
@@ -63,7 +66,7 @@ export function useStudentExamSession(
       unsubExam();
       unsubSession();
     };
-  }, [examId, sessionId, examRepo]);
+  }, [examId, user?.id, activeSessionId, examRepo]);
 
   // 2. Load Questions when questionIds are ready
   useEffect(() => {
@@ -95,13 +98,45 @@ export function useStudentExamSession(
     return ordered.length > 0 ? ordered : rawQuestions;
   }, [rawQuestions, session?.questionOrder, exam?.questionIds]);
 
-  // 3. Submit Session Action
+  // 3. Violation Reporting Action
+  const reportViolation = useCallback(
+    async ({ sessionId: targetSid, type, eventId, metadata }) => {
+      const sid = targetSid || activeSessionId;
+      if (!sid || !type) return;
+
+      try {
+        const result = await examRepo.reportViolation(sid, type, eventId, metadata);
+        if (result?.session) {
+          setSession(result.session);
+          const vCount = result.session.violationCount || result.violationCount || 0;
+          setLatestViolation({
+            type,
+            violationCount: vCount,
+            maxViolations: result.session.maxViolations || 3,
+            timestamp: Date.now(),
+          });
+        }
+      } catch (err) {
+        console.error('Failed to report violation:', err);
+      }
+    },
+    [activeSessionId, examRepo]
+  );
+
+  // 4. Client Security Hook
+  const { requestFullscreen } = useExamSecurity({
+    sessionId: activeSessionId,
+    isActive: Boolean(session?.status === 'in_progress'),
+    onViolation: reportViolation,
+  });
+
+  // 5. Submit Session Action
   const submit = useCallback(async () => {
-    if (!sessionId || isSubmitting) return null;
+    if (!activeSessionId || isSubmitting) return null;
     try {
       setIsSubmitting(true);
       const result = await examRepo.submitSession(
-        sessionId,
+        activeSessionId,
         session?.answers || {},
         user
       );
@@ -112,9 +147,9 @@ export function useStudentExamSession(
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, isSubmitting, examRepo, session, user]);
+  }, [activeSessionId, isSubmitting, examRepo, session, user]);
 
-  // 4. Synchronized Timer based on session.expiresAt or exam.endsAt
+  // 6. Synchronized Timer based on session.expiresAt or exam.endsAt
   useEffect(() => {
     if (!session || session.status !== 'in_progress') {
       return () => {};
@@ -150,10 +185,10 @@ export function useStudentExamSession(
     return () => clearInterval(interval);
   }, [session, exam?.endsAt, submit]);
 
-  // 5. Select/Toggle Answer
+  // 7. Select/Toggle Answer
   const selectAnswer = useCallback(
     async (questionId, optionIndex, { multiple = false } = {}) => {
-      if (!sessionId || !session || session.status !== 'in_progress') return;
+      if (!activeSessionId || !session || session.status !== 'in_progress') return;
 
       const currentAnswers = session.answers[questionId] || [];
       let updatedOptions;
@@ -169,7 +204,6 @@ export function useStudentExamSession(
         updatedOptions = [optionIndex];
       }
 
-      // Optimistic local update
       setSession((prev) => ({
         ...prev,
         answers: {
@@ -178,20 +212,19 @@ export function useStudentExamSession(
         },
       }));
 
-      // Persist to Firestore
       try {
-        await examRepo.saveStudentAnswer(sessionId, questionId, updatedOptions);
+        await examRepo.saveStudentAnswer(activeSessionId, questionId, updatedOptions);
       } catch (err) {
         console.error('Failed to save student answer:', err);
       }
     },
-    [sessionId, session, examRepo]
+    [activeSessionId, session, examRepo]
   );
 
-  // 6. Toggle Flag Question
+  // 8. Toggle Flag Question
   const toggleFlag = useCallback(
     async (questionId) => {
-      if (!sessionId || !session || session.status !== 'in_progress' || !questionId) return;
+      if (!activeSessionId || !session || session.status !== 'in_progress' || !questionId) return;
 
       const currentFlagged = session.flagged || [];
       const isAlreadyFlagged = currentFlagged.includes(questionId);
@@ -199,20 +232,18 @@ export function useStudentExamSession(
         ? currentFlagged.filter((id) => id !== questionId)
         : [...currentFlagged, questionId];
 
-      // Optimistic local update
       setSession((prev) => ({
         ...prev,
         flagged: updatedFlagged,
       }));
 
-      // Persist to Firestore
       try {
-        await examRepo.toggleQuestionFlag(sessionId, questionId);
+        await examRepo.toggleQuestionFlag(activeSessionId, questionId);
       } catch (err) {
         console.error('Failed to toggle question flag:', err);
       }
     },
-    [sessionId, session, examRepo]
+    [activeSessionId, session, examRepo]
   );
 
   // Auto-activate waiting session when teacher launches exam
@@ -239,12 +270,15 @@ export function useStudentExamSession(
     }
   }, [exam?.status, session?.status, examId, user, exam, examRepo]);
 
+  const isDisqualified = session?.status === 'disqualified';
   const isSubmitted = session?.status === 'submitted';
   const isWaiting =
+    !isDisqualified &&
     !isSubmitted &&
     (exam?.status === EXAM_STATUS.WAITING ||
       (session?.status === 'waiting' && exam?.status !== EXAM_STATUS.ACTIVE));
   const isActive =
+    !isDisqualified &&
     !isSubmitted &&
     !isWaiting &&
     (exam?.status === EXAM_STATUS.ACTIVE || session?.status === 'in_progress');
@@ -262,6 +296,12 @@ export function useStudentExamSession(
     isWaiting,
     isActive,
     isSubmitted,
+    isDisqualified,
+    violationCount: session?.violationCount || 0,
+    maxViolations: session?.maxViolations || 3,
+    disqualificationReason: session?.disqualificationReason || null,
+    latestViolation,
+    requestFullscreen,
     isLoading,
     isSubmitting,
     error,
