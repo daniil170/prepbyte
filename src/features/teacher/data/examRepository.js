@@ -34,6 +34,9 @@ import {
   startExamSessionClient,
 } from './submitExamSessionService';
 
+import { httpsCallable } from 'firebase/functions';
+import { functions as defaultFunctions } from '@infrastructure/firebase/functions';
+
 function generateId(prefix = 'exam') {
   if (
     typeof crypto !== 'undefined' &&
@@ -44,7 +47,7 @@ function generateId(prefix = 'exam') {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export function createExamRepository(firestore = defaultDb) {
+export function createExamRepository(firestore = defaultDb, functionsInstance = defaultFunctions) {
   const examsCollection = 'exams';
   const pinLookupCollection = 'exam_pin_lookup';
   const sessionsCollection = 'exam_sessions';
@@ -160,6 +163,55 @@ export function createExamRepository(firestore = defaultDb) {
   }
 
   /**
+   * Saves or updates an exam draft via server-authoritative Cloud Function.
+   */
+  async function saveExamDraft(draftData) {
+    if (!draftData || typeof draftData !== 'object') {
+      throw new Error('Данные черновика экзамена отсутствуют.');
+    }
+
+    try {
+      if (functionsInstance) {
+        const callable = httpsCallable(functionsInstance, 'saveExamDraft');
+        const res = await callable(draftData);
+        if (res.data?.exam) {
+          return documentToExam(res.data.id || res.data.exam.id, res.data.exam);
+        }
+      }
+    } catch (err) {
+      if (
+        err.code === 'unauthenticated' ||
+        err.code === 'permission-denied' ||
+        err.code === 'invalid-argument' ||
+        err.code === 'not-found'
+      ) {
+        throw new Error(err.message || 'Ошибка сохранения черновика экзамена.');
+      }
+    }
+
+    // Direct fallback for local test environment
+    const isNew = !draftData.id || !String(draftData.id).trim();
+    const examId = isNew ? generateId('exam') : String(draftData.id).trim();
+
+    const examEntity = createExam({
+      ...draftData,
+      id: examId,
+      status: EXAM_STATUS.DRAFT,
+      now: Date.now,
+    });
+
+    const docRef = doc(firestore, examsCollection, examId);
+    const docData = {
+      ...examToDocument(examEntity),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    await setDoc(docRef, docData, { merge: true });
+    return examEntity;
+  }
+
+  /**
    * Transitions an exam to a new status.
    */
   async function updateExamStatus(examId, nextStatus) {
@@ -209,8 +261,29 @@ export function createExamRepository(firestore = defaultDb) {
    */
   async function deleteExam(examId) {
     if (!examId) return;
-    const exam = await getExamById(examId);
-    const docRef = doc(firestore, examsCollection, examId.trim());
+    const cleanId = String(examId).trim();
+
+    try {
+      if (functionsInstance) {
+        const callable = httpsCallable(functionsInstance, 'deleteExamDraft');
+        const res = await callable({ examId: cleanId });
+        if (res.data?.success) {
+          return;
+        }
+      }
+    } catch (err) {
+      if (
+        err.code === 'unauthenticated' ||
+        err.code === 'permission-denied' ||
+        err.code === 'failed-precondition' ||
+        err.code === 'not-found'
+      ) {
+        throw new Error(err.message || 'Ошибка удаления черновика.');
+      }
+    }
+
+    const exam = await getExamById(cleanId);
+    const docRef = doc(firestore, examsCollection, cleanId);
     await deleteDoc(docRef);
 
     if (exam?.pin) {
@@ -423,6 +496,7 @@ export function createExamRepository(firestore = defaultDb) {
     getExamById,
     findExamByPin,
     createNewExam,
+    saveExamDraft,
     updateExamStatus,
     deleteExam,
     subscribeToExam,

@@ -78,6 +78,7 @@ export function createExam({
   groupId,
   groupName = '',
   questionIds = [],
+  questionSnapshots = {},
   durationMinutes = DEFAULT_EXAM_DURATION_MINUTES,
   pin,
   status = EXAM_STATUS.DRAFT,
@@ -104,7 +105,12 @@ export function createExam({
 
   const currentTime = typeof now === 'function' ? now() : now;
   const durationSeconds = durationMinutes * 60;
-  const assignedPin = pin && isValidExamPin(pin) ? String(pin) : generateExamPin();
+  const assignedPin =
+    pin === null
+      ? null
+      : pin && isValidExamPin(pin)
+      ? String(pin)
+      : generateExamPin();
 
   return Object.freeze({
     id,
@@ -114,6 +120,7 @@ export function createExam({
     groupId: groupId.trim(),
     groupName: (groupName || '').trim(),
     questionIds: [...questionIds],
+    questionSnapshots: questionSnapshots && typeof questionSnapshots === 'object' ? { ...questionSnapshots } : {},
     totalQuestions: questionIds.length,
     durationMinutes,
     durationSeconds,

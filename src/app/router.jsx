@@ -19,6 +19,7 @@ import {
   TeacherGroupDetailPage,
   TeacherExamsPage,
   TeacherExamLivePage,
+  TeacherExamFormPage,
   TeacherQuestionsPage,
   TeacherQuestionFormPage,
 } from '@features/teacher';
@@ -78,6 +79,14 @@ export const routes = [
       {
         path: 'exams',
         element: <TeacherExamsPage />,
+      },
+      {
+        path: 'exams/new',
+        element: <TeacherExamFormPage />,
+      },
+      {
+        path: 'exams/:examId/edit',
+        element: <TeacherExamFormPage />,
       },
       {
         path: 'exams/:examId',

@@ -621,3 +621,229 @@ export const archiveQuestion = onCall(async (request) => {
     };
   });
 });
+
+/**
+ * Callable Cloud Function: saveExamDraft
+ *
+ * Server-authoritative exam draft creation and editing:
+ * - Validates authentication and teacher/admin role
+ * - Validates title (3-120 chars), group existence, duration (5-240 min), question selection
+ * - Loads public question documents to verify accessibility and build questionSnapshots
+ * - Binds teacherId to request.auth.uid (never trusts client input)
+ * - Updates or creates the exam document in 'draft' status
+ */
+export const saveExamDraft = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для сохранения черновика экзамена требуется аутентификация.');
+  }
+
+  const isTeacher = Boolean(request.auth.token?.teacher || request.auth.token?.admin);
+  if (!isTeacher) {
+    throw new HttpsError('permission-denied', 'Доступ разрешён только преподавателям и администраторам.');
+  }
+
+  const {
+    id,
+    title,
+    description = '',
+    groupId,
+    groupName = '',
+    durationMinutes = 60,
+    questionIds = [],
+  } = request.data || {};
+
+  // 1. Validation of title
+  const cleanTitle = typeof title === 'string' ? title.trim() : '';
+  if (!cleanTitle || cleanTitle.length < 3 || cleanTitle.length > 120) {
+    throw new HttpsError('invalid-argument', 'Название экзамена должно содержать от 3 до 120 символов.');
+  }
+
+  // 2. Validation of group
+  const cleanGroupId = typeof groupId === 'string' ? groupId.trim() : '';
+  if (!cleanGroupId) {
+    throw new HttpsError('invalid-argument', 'Выберите группу учащихся для экзамена.');
+  }
+
+  // 3. Validation of duration
+  const durNum = Number(durationMinutes);
+  if (!Number.isInteger(durNum) || durNum < 5 || durNum > 240) {
+    throw new HttpsError('invalid-argument', 'Длительность экзамена должна быть от 5 до 240 минут.');
+  }
+
+  // 4. Validation of questions selection
+  if (!Array.isArray(questionIds) || questionIds.length === 0) {
+    throw new HttpsError('invalid-argument', 'Выберите хотя бы один вопрос для экзамена.');
+  }
+
+  const cleanQuestionIds = questionIds.map((qid) => (typeof qid === 'string' ? qid.trim() : '')).filter(Boolean);
+  if (cleanQuestionIds.length === 0) {
+    throw new HttpsError('invalid-argument', 'Список вопросов не должен быть пустым.');
+  }
+
+  const callerUid = request.auth.uid;
+  const isAdmin = Boolean(request.auth.token?.admin);
+
+  // 5. Verify Group existence and teacher permission
+  const groupDocRef = db.collection('groups').doc(cleanGroupId);
+  const groupSnap = await groupDocRef.get();
+  if (!groupSnap.exists) {
+    throw new HttpsError('not-found', `Указанная группа [${cleanGroupId}] не найдена.`);
+  }
+
+  const groupData = groupSnap.data();
+  if (groupData.teacherId && groupData.teacherId !== callerUid && !isAdmin) {
+    throw new HttpsError('permission-denied', 'Вы можете создавать экзамены только для своих групп.');
+  }
+
+  // 6. Verify selected questions and build public questionSnapshots
+  const uniqueQuestionIds = [...new Set(cleanQuestionIds)];
+  const questionRefs = uniqueQuestionIds.map((qid) => db.collection('questions').doc(qid));
+  const questionSnaps = await Promise.all(questionRefs.map((ref) => ref.get()));
+
+  const questionMap = new Map();
+  questionSnaps.forEach((snap) => {
+    if (snap.exists) {
+      questionMap.set(snap.id, snap.data());
+    }
+  });
+
+  const missingIds = uniqueQuestionIds.filter((qid) => !questionMap.has(qid));
+  if (missingIds.length > 0) {
+    throw new HttpsError('not-found', `Вопросы с ID [${missingIds.join(', ')}] не найдены в банке вопросов.`);
+  }
+
+  // Check question ownership/accessibility
+  for (const qid of uniqueQuestionIds) {
+    const qData = questionMap.get(qid);
+    if (qData.createdBy && qData.createdBy !== callerUid && !isAdmin) {
+      throw new HttpsError('permission-denied', `Вопрос [${qid}] принадлежит другому преподавателю.`);
+    }
+  }
+
+  // Build public snapshots (NO correctAnswers or explanation!)
+  const questionSnapshots = {};
+  for (const qid of cleanQuestionIds) {
+    const qData = questionMap.get(qid);
+    questionSnapshots[qid] = {
+      id: qid,
+      questionText: qData.questionText || '',
+      topic: qData.topic || '',
+      difficulty: qData.difficulty || 'medium',
+      multiple: Boolean(qData.multiple),
+      options: Array.isArray(qData.options) ? [...qData.options] : [],
+      version: qData.version || 1,
+    };
+  }
+
+  const targetExamId = id && typeof id === 'string' && id.trim()
+    ? id.trim()
+    : `exam_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+  const examDocRef = db.collection('exams').doc(targetExamId);
+
+  return await db.runTransaction(async (transaction) => {
+    const existingSnap = await transaction.get(examDocRef);
+    let ownerTeacherId = callerUid;
+    let currentPin = null;
+
+    if (existingSnap.exists) {
+      const existingData = existingSnap.data();
+      if (existingData.teacherId && existingData.teacherId !== callerUid && !isAdmin) {
+        throw new HttpsError('permission-denied', 'Вы можете редактировать только собственные экзамены.');
+      }
+      if (existingData.status !== 'draft') {
+        throw new HttpsError('failed-precondition', `Экзамен находится в статусе [${existingData.status}] и недоступен для редактирования как черновик.`);
+      }
+      ownerTeacherId = existingData.teacherId || callerUid;
+      currentPin = existingData.pin || null;
+    }
+
+    const payload = {
+      title: cleanTitle,
+      description: typeof description === 'string' ? description.trim() : '',
+      teacherId: ownerTeacherId,
+      groupId: cleanGroupId,
+      groupName: (groupName || groupData.name || '').trim(),
+      questionIds: cleanQuestionIds,
+      questionSnapshots,
+      totalQuestions: cleanQuestionIds.length,
+      durationMinutes: durNum,
+      durationSeconds: durNum * 60,
+      pin: currentPin,
+      status: 'draft',
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (!existingSnap.exists) {
+      payload.createdAt = FieldValue.serverTimestamp();
+    }
+
+    transaction.set(examDocRef, payload, { merge: true });
+
+    return {
+      success: true,
+      id: targetExamId,
+      exam: {
+        id: targetExamId,
+        ...payload,
+      },
+    };
+  });
+});
+
+/**
+ * Callable Cloud Function: deleteExamDraft
+ *
+ * Server-authoritative deletion of an exam draft:
+ * - Validates authentication and teacher role
+ * - Validates teacher ownership
+ * - Validates status === 'draft'
+ */
+export const deleteExamDraft = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для удаления черновика требуется аутентификация.');
+  }
+
+  const isTeacher = Boolean(request.auth.token?.teacher || request.auth.token?.admin);
+  if (!isTeacher) {
+    throw new HttpsError('permission-denied', 'Доступ разрешён только преподавателям и администраторам.');
+  }
+
+  const { examId } = request.data || {};
+  if (!examId || typeof examId !== 'string' || !examId.trim()) {
+    throw new HttpsError('invalid-argument', 'Идентификатор экзамена (examId) обязателен.');
+  }
+
+  const cleanExamId = examId.trim();
+  const callerUid = request.auth.uid;
+  const isAdmin = Boolean(request.auth.token?.admin);
+
+  const examDocRef = db.collection('exams').doc(cleanExamId);
+
+  return await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(examDocRef);
+    if (!snap.exists) {
+      throw new HttpsError('not-found', `Экзамен [${cleanExamId}] не найден.`);
+    }
+
+    const data = snap.data();
+    if (data.teacherId && data.teacherId !== callerUid && !isAdmin) {
+      throw new HttpsError('permission-denied', 'Вы можете удалять только собственные черновики.');
+    }
+    if (data.status !== 'draft') {
+      throw new HttpsError('failed-precondition', `Экзамен в статусе [${data.status}] не может быть удалён как черновик.`);
+    }
+
+    transaction.delete(examDocRef);
+
+    if (data.pin) {
+      const pinDocRef = db.collection('exam_pin_lookup').doc(data.pin);
+      transaction.delete(pinDocRef);
+    }
+
+    return {
+      success: true,
+      id: cleanExamId,
+    };
+  });
+});

@@ -63,11 +63,12 @@ export function TeacherExamsPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          className={styles.createButton}
-          onClick={() => setIsModalOpen(true)}
-          disabled={groups.length === 0}
+        <Link
+          to="/teacher/exams/new"
+          className={`${styles.createButton} ${groups.length === 0 ? styles.disabledLink : ''}`}
+          onClick={(e) => {
+            if (groups.length === 0) e.preventDefault();
+          }}
           title={
             groups.length === 0
               ? 'Сначала создайте группу во вкладке "Группы"'
@@ -75,7 +76,7 @@ export function TeacherExamsPage() {
           }
         >
           + Создать экзамен
-        </button>
+        </Link>
       </header>
 
       {/* Filter Tabs */}
@@ -181,6 +182,15 @@ export function TeacherExamsPage() {
                     >
                       {isActing ? 'Завершение...' : 'Завершить ⏹'}
                     </button>
+                  )}
+
+                  {exam.status === EXAM_STATUS.DRAFT && (
+                    <Link
+                      to={`/teacher/exams/${exam.id}/edit`}
+                      className={styles.editLink}
+                    >
+                      Редактировать
+                    </Link>
                   )}
 
                   <Link

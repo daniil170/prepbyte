@@ -221,6 +221,24 @@
   text-decoration: underline;
 }
 
+.editLink {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-primary, #3b82f6);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.editLink:hover {
+  text-decoration: underline;
+}
+
+.disabledLink {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .deleteBtn {
   font-family: var(--font-mono);
   font-size: 0.75rem;
