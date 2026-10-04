@@ -4,7 +4,6 @@ import { StartTestPanel } from '@features/testing';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { HeroBackgroundAnimation } from '@shared/ui/BackgroundAnimation/HeroBackgroundAnimation';
 import { ThemeToggle } from '@shared/theme';
-import { DraggableGlassNav } from '@shared/ui/DraggableGlassNav';
 import styles from './HomePage.module.css';
 
 const PLATFORM_METRICS = [
@@ -77,7 +76,7 @@ export default function HomePage() {
           <Link to="/" className={styles.brandLink}>
             <Logo variant="full" size={24} />
           </Link>
-          <DraggableGlassNav ariaLabel="Основная навигация">
+          <nav className={styles.navLinks} aria-label="Основная навигация">
             <Link to="/analytics" className={styles.navLink}>
               Дашборд
             </Link>
@@ -91,7 +90,7 @@ export default function HomePage() {
                 Админ-панель
               </Link>
             )}
-          </DraggableGlassNav>
+          </nav>
         </div>
 
         <div className={styles.userNav}>
