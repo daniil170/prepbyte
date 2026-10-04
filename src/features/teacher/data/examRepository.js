@@ -596,9 +596,80 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
   }
 
   /**
+   * Reports a browser violation to the server via Cloud Function.
+   */
+  async function reportViolation(sessionId, type, eventId = null, metadata = {}) {
+    if (!sessionId || !type) return null;
+    const cleanSessionId = String(sessionId).trim();
+    const cleanType = String(type).trim();
+
+    try {
+      if (functionsInstance) {
+        const callable = httpsCallable(functionsInstance, 'reportExamViolation');
+        const res = await callable({
+          sessionId: cleanSessionId,
+          type: cleanType,
+          eventId,
+          metadata,
+        });
+        if (res.data?.success) {
+          return res.data;
+        }
+      }
+    } catch (err) {
+      if (
+        err.code === 'unauthenticated' ||
+        err.code === 'permission-denied' ||
+        err.code === 'failed-precondition' ||
+        err.code === 'invalid-argument' ||
+        err.code === 'not-found'
+      ) {
+        throw new Error(err.message || 'Ошибка регистрации нарушения.');
+      }
+    }
+
+    // Direct fallback for local test/mock environments
+    const docRef = doc(firestore, sessionsCollection, cleanSessionId);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) return null;
+
+    const currentSession = documentToExamSession(snapshot.id, snapshot.data());
+    const newViolationCount = (currentSession.violationCount || 0) + 1;
+    const maxViolations = currentSession.maxViolations || 3;
+    const isDisqualified = newViolationCount >= maxViolations;
+
+    const patch = {
+      violationCount: newViolationCount,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (isDisqualified) {
+      patch.status = 'disqualified';
+      patch.disqualifiedAt = serverTimestamp();
+      patch.disqualificationReason = 'Превышен допустимый лимит нарушений (3/3).';
+    }
+
+    await updateDoc(docRef, patch);
+
+    return {
+      success: true,
+      disqualified: isDisqualified,
+      violationCount: newViolationCount,
+      maxViolations,
+      session: {
+        ...currentSession,
+        violationCount: newViolationCount,
+        status: isDisqualified ? 'disqualified' : currentSession.status,
+        disqualifiedAt: isDisqualified ? Date.now() : currentSession.disqualifiedAt,
+        disqualificationReason: isDisqualified ? 'Превышен допустимый лимит нарушений (3/3).' : currentSession.disqualificationReason,
+      },
+    };
+  }
+
+  /**
    * Fetches detailed individual student exam analytics via Cloud Function.
    */
-  async function getStudentExamAnalytics(examId, studentId) {
+  async function getStudentExamAnalytics(examId, studentId, attemptNumber = null) {
     if (!examId || !studentId) throw new Error('Идентификаторы экзамена и ученика обязательны.');
     const cleanExamId = String(examId).trim();
     const cleanStudentId = String(studentId).trim();
@@ -606,7 +677,11 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
     try {
       if (functionsInstance) {
         const callable = httpsCallable(functionsInstance, 'getStudentExamAnalytics');
-        const res = await callable({ examId: cleanExamId, studentId: cleanStudentId });
+        const res = await callable({
+          examId: cleanExamId,
+          studentId: cleanStudentId,
+          attemptNumber: attemptNumber ? Number(attemptNumber) : undefined,
+        });
         if (res.data?.success) {
           return res.data;
         }
@@ -631,6 +706,11 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
         studentName: `Ученик ${cleanStudentId}`,
         groupId: '',
         status: 'not_started',
+        attemptNumber: attemptNumber || 1,
+        violationCount: 0,
+        maxViolations: 3,
+        disqualifiedAt: null,
+        disqualificationReason: null,
         score: 0,
         totalScore: 0,
         percentage: 0,
@@ -641,6 +721,8 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
         submittedAt: null,
         durationSeconds: null,
       },
+      attemptsList: [],
+      violations: [],
       topicBreakdown: {},
       questions: [],
     };
@@ -664,6 +746,7 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
     saveStudentAnswer,
     toggleQuestionFlag,
     submitSession,
+    reportViolation,
   };
 }
 

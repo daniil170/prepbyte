@@ -3,7 +3,11 @@ export const EXAM_SESSION_STATUS = Object.freeze({
   IN_PROGRESS: 'in_progress',
   SUBMITTED: 'submitted',
   ABANDONED: 'abandoned',
+  DISQUALIFIED: 'disqualified',
 });
+
+export const MAX_VIOLATIONS = 3;
+export const MAX_ATTEMPTS = 3;
 
 function resolveTime(now) {
   if (typeof now === 'function') {
@@ -163,6 +167,11 @@ export function createExamSession({
   questionOrder,
   durationSeconds = 3600,
   status = EXAM_SESSION_STATUS.WAITING,
+  attemptNumber = 1,
+  violationCount = 0,
+  maxViolations = MAX_VIOLATIONS,
+  disqualifiedAt = null,
+  disqualificationReason = null,
   random = Math.random,
   now = Date.now,
 }) {
@@ -194,6 +203,11 @@ export function createExamSession({
     groupId: (groupId || '').trim(),
     questionOrder: effectiveQuestionOrder,
     status,
+    attemptNumber: Number(attemptNumber) || 1,
+    violationCount: Number(violationCount) || 0,
+    maxViolations: Number(maxViolations) || MAX_VIOLATIONS,
+    disqualifiedAt,
+    disqualificationReason,
     durationSeconds,
     startedAt,
     expiresAt,

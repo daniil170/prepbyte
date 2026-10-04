@@ -184,4 +184,40 @@ describe('examSession domain module', () => {
     expect(isExamSessionExpired(session, 5000)).toBe(true);
     expect(isExamSessionExpired(session, 7000)).toBe(true);
   });
+
+  it('initializes secure exam fields correctly with defaults', () => {
+    const session = createExamSession({
+      id: 'sess-sec-1',
+      examId: 'exam-1',
+      studentId: 'student-1',
+      groupId: 'grp-1',
+    });
+
+    expect(session.attemptNumber).toBe(1);
+    expect(session.violationCount).toBe(0);
+    expect(session.maxViolations).toBe(3);
+    expect(session.disqualifiedAt).toBe(null);
+    expect(session.disqualificationReason).toBe(null);
+  });
+
+  it('supports custom attemptNumber, violationCount, and disqualified state', () => {
+    const session = createExamSession({
+      id: 'sess-sec-2',
+      examId: 'exam-1',
+      studentId: 'student-1',
+      groupId: 'grp-1',
+      attemptNumber: 2,
+      violationCount: 3,
+      maxViolations: 3,
+      status: 'disqualified',
+      disqualifiedAt: 1700000000000,
+      disqualificationReason: 'Превышен лимит нарушений (3/3).',
+    });
+
+    expect(session.attemptNumber).toBe(2);
+    expect(session.violationCount).toBe(3);
+    expect(session.status).toBe('disqualified');
+    expect(session.disqualifiedAt).toBe(1700000000000);
+    expect(session.disqualificationReason).toBe('Превышен лимит нарушений (3/3).');
+  });
 });

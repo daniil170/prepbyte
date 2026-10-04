@@ -138,26 +138,40 @@ export const startExamSession = onCall(async (request) => {
 
   const cleanExamId = examId.trim();
   const studentId = request.auth.uid;
-  const sessionId = `${cleanExamId}_${studentId}`;
 
-  const sessionDocRef = db.collection('exam_sessions').doc(sessionId);
+  // Query all existing sessions for this student & exam
+  const sessionsQuerySnap = await db
+    .collection('exam_sessions')
+    .where('examId', '==', cleanExamId)
+    .where('studentId', '==', studentId)
+    .get();
 
-  return await db.runTransaction(async (transaction) => {
-    const sessionSnap = await transaction.get(sessionDocRef);
+  const existingSessions = sessionsQuerySnap.docs.map((d) => ({
+    id: d.id,
+    ref: d.ref,
+    ...d.data(),
+  }));
+  existingSessions.sort((a, b) => (a.attemptNumber || 1) - (b.attemptNumber || 1));
 
-    const examDocRef = db.collection('exams').doc(cleanExamId);
-    const examSnap = await transaction.get(examDocRef);
+  // Find active session (in_progress or waiting)
+  let activeSession = existingSessions.find(
+    (s) => s.status === 'in_progress' || s.status === 'waiting'
+  );
 
-    if (!examSnap.exists) {
-      throw new HttpsError('not-found', `Экзамен [${cleanExamId}] не найден.`);
-    }
+  const examDocRef = db.collection('exams').doc(cleanExamId);
+  const examSnap = await examDocRef.get();
+  if (!examSnap.exists) {
+    throw new HttpsError('not-found', `Экзамен [${cleanExamId}] не найден.`);
+  }
+  const examData = examSnap.data();
 
-    const examData = examSnap.data();
+  if (activeSession) {
+    const sessionDocRef = db.collection('exam_sessions').doc(activeSession.id);
+    return await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(sessionDocRef);
+      if (!snap.exists) return activeSession;
+      const data = snap.data();
 
-    if (sessionSnap.exists) {
-      const data = sessionSnap.data();
-
-      // If existing session is in 'waiting' state and exam has been activated, transition to 'in_progress'
       if (data.status === 'waiting' && examData.status === 'active') {
         const durationSeconds =
           Number(data.durationSeconds) ||
@@ -175,7 +189,7 @@ export const startExamSession = onCall(async (request) => {
         });
 
         return {
-          id: sessionId,
+          id: activeSession.id,
           examId: cleanExamId,
           studentId,
           ...data,
@@ -186,89 +200,116 @@ export const startExamSession = onCall(async (request) => {
       }
 
       return {
-        id: sessionId,
+        id: activeSession.id,
         examId: cleanExamId,
         studentId,
         ...data,
       };
-    }
+    });
+  }
 
-    if (examData.status !== 'waiting' && examData.status !== 'active') {
-      throw new HttpsError(
-        'failed-precondition',
-        `Экзамен находится в статусе [${examData.status}] и недоступен для сдачи.`
-      );
-    }
+  // Count finished sessions (submitted, disqualified, abandoned)
+  const finishedSessions = existingSessions.filter(
+    (s) => s.status === 'submitted' || s.status === 'disqualified' || s.status === 'abandoned'
+  );
 
-    const groupId = examData.groupId;
-    if (!groupId) {
-      throw new HttpsError('failed-precondition', 'У экзамена отсутствует привязка к группе.');
-    }
+  const maxAttempts = 3;
+  if (finishedSessions.length >= maxAttempts) {
+    throw new HttpsError(
+      'failed-precondition',
+      `Достигнут лимит попыток (${finishedSessions.length}/${maxAttempts}). Запуск экзамена невозможен.`
+    );
+  }
 
-    const groupDocRef = db.collection('groups').doc(groupId);
-    const groupSnap = await transaction.get(groupDocRef);
+  if (examData.status !== 'waiting' && examData.status !== 'active') {
+    throw new HttpsError(
+      'failed-precondition',
+      `Экзамен находится в статусе [${examData.status}] и недоступен для сдачи.`
+    );
+  }
 
-    if (!groupSnap.exists) {
-      throw new HttpsError('not-found', `Группа [${groupId}] не найдена.`);
-    }
+  const groupId = examData.groupId;
+  if (!groupId) {
+    throw new HttpsError('failed-precondition', 'У экзамена отсутствует привязка к группе.');
+  }
 
-    const groupData = groupSnap.data();
-    const studentIds = Array.isArray(groupData.studentIds) ? groupData.studentIds : [];
+  const groupSnap = await db.collection('groups').doc(groupId).get();
+  if (!groupSnap.exists) {
+    throw new HttpsError('not-found', `Группа [${groupId}] не найдена.`);
+  }
 
-    if (!studentIds.includes(studentId)) {
-      throw new HttpsError(
-        'permission-denied',
-        'Вы не состоите в группе, для которой назначен этот экзамен.'
-      );
-    }
+  const groupData = groupSnap.data();
+  const studentIds = Array.isArray(groupData.studentIds) ? groupData.studentIds : [];
 
-    const questionIds = Array.isArray(examData.questionIds) ? examData.questionIds : [];
-    if (questionIds.length === 0) {
-      throw new HttpsError('failed-precondition', 'В экзамене отсутствуют вопросы.');
-    }
+  if (!studentIds.includes(studentId)) {
+    throw new HttpsError(
+      'permission-denied',
+      'Вы не состоите в группе, для которой назначен этот экзамен.'
+    );
+  }
 
-    const durationSeconds = Number(examData.durationSeconds) || (Number(examData.durationMinutes) || 60) * 60;
-    const initialStatus = examData.status === 'active' ? 'in_progress' : 'waiting';
-    const serverNowMs = Date.now();
-    const startedAt = initialStatus === 'in_progress' ? serverNowMs : null;
-    const expiresAt = startedAt ? startedAt + durationSeconds * 1000 : null;
+  const questionIds = Array.isArray(examData.questionIds) ? examData.questionIds : [];
+  if (questionIds.length === 0) {
+    throw new HttpsError('failed-precondition', 'В экзамене отсутствуют вопросы.');
+  }
 
-    const sessionDocData = {
-      examId: cleanExamId,
-      studentId,
-      studentName: request.auth.token?.name || request.auth.token?.email || studentId,
-      groupId,
-      questionOrder: [...questionIds],
-      status: initialStatus,
-      durationSeconds,
-      startedAt: startedAt ? FieldValue.serverTimestamp() : null,
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
-      submittedAt: null,
-      answers: {},
-      flagged: [],
-      currentIndex: 0,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
+  const nextAttemptNumber = finishedSessions.length + 1;
+  const sessionId =
+    nextAttemptNumber === 1 && !existingSessions.some((s) => s.id === `${cleanExamId}_${studentId}`)
+      ? `${cleanExamId}_${studentId}`
+      : `${cleanExamId}_${studentId}_${nextAttemptNumber}`;
 
-    transaction.set(sessionDocRef, sessionDocData);
+  const sessionDocRef = db.collection('exam_sessions').doc(sessionId);
 
-    return {
-      id: sessionId,
-      examId: cleanExamId,
-      studentId,
-      studentName: sessionDocData.studentName,
-      groupId,
-      questionOrder: questionIds,
-      status: initialStatus,
-      durationSeconds,
-      startedAt,
-      expiresAt,
-      answers: {},
-      flagged: [],
-      currentIndex: 0,
-    };
-  });
+  const durationSeconds = Number(examData.durationSeconds) || (Number(examData.durationMinutes) || 60) * 60;
+  const initialStatus = examData.status === 'active' ? 'in_progress' : 'waiting';
+  const serverNowMs = Date.now();
+  const startedAt = initialStatus === 'in_progress' ? serverNowMs : null;
+  const expiresAt = startedAt ? startedAt + durationSeconds * 1000 : null;
+
+  const sessionDocData = {
+    examId: cleanExamId,
+    studentId,
+    studentName: request.auth.token?.name || request.auth.token?.email || studentId,
+    groupId,
+    questionOrder: [...questionIds],
+    status: initialStatus,
+    attemptNumber: nextAttemptNumber,
+    violationCount: 0,
+    maxViolations: 3,
+    disqualifiedAt: null,
+    disqualificationReason: null,
+    durationSeconds,
+    startedAt: startedAt ? FieldValue.serverTimestamp() : null,
+    expiresAt: expiresAt ? new Date(expiresAt) : null,
+    submittedAt: null,
+    answers: {},
+    flagged: [],
+    currentIndex: 0,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  await sessionDocRef.set(sessionDocData);
+
+  return {
+    id: sessionId,
+    examId: cleanExamId,
+    studentId,
+    studentName: sessionDocData.studentName,
+    groupId,
+    questionOrder: questionIds,
+    status: initialStatus,
+    attemptNumber: nextAttemptNumber,
+    violationCount: 0,
+    maxViolations: 3,
+    durationSeconds,
+    startedAt,
+    expiresAt,
+    answers: {},
+    flagged: [],
+    currentIndex: 0,
+  };
 });
 
 /**
@@ -425,6 +466,149 @@ export const submitExamSession = onCall(async (request) => {
       passed: evaluation.passed,
       byTopicBreakdown: evaluation.byTopicBreakdown,
       alreadySubmitted: false,
+    };
+  });
+});
+
+/**
+ * Callable Cloud Function: reportExamViolation
+ *
+ * Server-authoritative violation registration and 3-strike disqualification handling:
+ * - Validates authenticated student ownership of the session
+ * - Verifies session status is 'in_progress' and not expired
+ * - Enforces idempotency via eventId
+ * - Atomically increments violationCount
+ * - Disqualifies session server-side if violationCount >= maxViolations (3)
+ */
+export const reportExamViolation = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для отправки нарушения требуется аутентификация.');
+  }
+
+  const { sessionId, type, eventId, metadata } = request.data || {};
+  if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
+    throw new HttpsError('invalid-argument', 'Идентификатор сессии (sessionId) обязателен.');
+  }
+  if (!type || typeof type !== 'string' || !type.trim()) {
+    throw new HttpsError('invalid-argument', 'Тип нарушения (type) обязателен.');
+  }
+
+  const cleanSessionId = sessionId.trim();
+  const cleanType = type.trim();
+  const cleanEventId = eventId && typeof eventId === 'string' ? eventId.trim() : null;
+  const studentId = request.auth.uid;
+
+  const validTypes = [
+    'EXIT_FULLSCREEN',
+    'TAB_SWITCH',
+    'WINDOW_BLUR',
+    'COPY_ATTEMPT',
+    'CUT_ATTEMPT',
+    'PASTE_ATTEMPT',
+    'CONTEXT_MENU',
+    'KEYBOARD_SHORTCUT',
+  ];
+
+  if (!validTypes.includes(cleanType)) {
+    throw new HttpsError('invalid-argument', `Недопустимый тип нарушения: [${cleanType}].`);
+  }
+
+  const sessionDocRef = db.collection('exam_sessions').doc(cleanSessionId);
+
+  return await db.runTransaction(async (transaction) => {
+    const sessionSnap = await transaction.get(sessionDocRef);
+    if (!sessionSnap.exists) {
+      throw new HttpsError('not-found', `Сессия экзамена [${cleanSessionId}] не найдена.`);
+    }
+
+    const sessionData = sessionSnap.data();
+
+    if (sessionData.studentId !== studentId) {
+      throw new HttpsError('permission-denied', 'Вы не можете отправлять нарушения для чужой сессии.');
+    }
+
+    if (sessionData.status === 'disqualified' || sessionData.status === 'submitted') {
+      return {
+        success: true,
+        disqualified: sessionData.status === 'disqualified',
+        violationCount: sessionData.violationCount || 0,
+        session: { id: cleanSessionId, ...sessionData },
+      };
+    }
+
+    if (sessionData.status !== 'in_progress' && sessionData.status !== 'waiting') {
+      throw new HttpsError('failed-precondition', `Нарушение не принимается, так как сессия находится в статусе [${sessionData.status}].`);
+    }
+
+    if (sessionData.expiresAt) {
+      const expiresMs = typeof sessionData.expiresAt.toMillis === 'function'
+        ? sessionData.expiresAt.toMillis()
+        : (sessionData.expiresAt instanceof Date ? sessionData.expiresAt.getTime() : Number(sessionData.expiresAt));
+      if (expiresMs && Date.now() > expiresMs) {
+        throw new HttpsError('failed-precondition', 'Нарушение не принимается, так как время сессии истекло.');
+      }
+    }
+
+    const violationDocId = cleanEventId ? `viol_${cleanEventId}` : `viol_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const violationDocRef = sessionDocRef.collection('violations').doc(violationDocId);
+    const violationSnap = await transaction.get(violationDocRef);
+
+    if (violationSnap.exists) {
+      return {
+        success: true,
+        duplicate: true,
+        disqualified: sessionData.status === 'disqualified',
+        violationCount: sessionData.violationCount || 0,
+        session: { id: cleanSessionId, ...sessionData },
+      };
+    }
+
+    const currentViolations = Number(sessionData.violationCount) || 0;
+    const maxViolations = Number(sessionData.maxViolations) || 3;
+    const newViolationCount = currentViolations + 1;
+    const isDisqualified = newViolationCount >= maxViolations;
+
+    const violationData = {
+      type: cleanType,
+      timestamp: FieldValue.serverTimestamp(),
+      timestampMs: Date.now(),
+      attemptNumber: sessionData.attemptNumber || 1,
+      sessionId: cleanSessionId,
+      studentId,
+      examId: sessionData.examId,
+      metadata: metadata && typeof metadata === 'object' ? metadata : {},
+      eventId: cleanEventId || null,
+    };
+
+    transaction.set(violationDocRef, violationData);
+
+    const updatePatch = {
+      violationCount: newViolationCount,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (isDisqualified) {
+      updatePatch.status = 'disqualified';
+      updatePatch.disqualifiedAt = FieldValue.serverTimestamp();
+      updatePatch.disqualificationReason = 'Превышен допустимый лимит нарушений (3/3).';
+    }
+
+    transaction.update(sessionDocRef, updatePatch);
+
+    const updatedSession = {
+      ...sessionData,
+      violationCount: newViolationCount,
+      status: isDisqualified ? 'disqualified' : sessionData.status,
+      disqualifiedAt: isDisqualified ? Date.now() : sessionData.disqualifiedAt || null,
+      disqualificationReason: isDisqualified ? 'Превышен допустимый лимит нарушений (3/3).' : sessionData.disqualificationReason || null,
+    };
+
+    return {
+      success: true,
+      disqualified: isDisqualified,
+      violationCount: newViolationCount,
+      maxViolations,
+      session: { id: cleanSessionId, ...updatedSession },
     };
   });
 });
@@ -1164,7 +1348,11 @@ export const getExamResults = onCall(async (request) => {
   const sessionsMap = new Map();
   sessionsSnap.docs.forEach((docSnap) => {
     const sData = docSnap.data();
-    sessionsMap.set(sData.studentId, { id: docSnap.id, ...sData });
+    const sId = sData.studentId;
+    if (!sessionsMap.has(sId)) {
+      sessionsMap.set(sId, []);
+    }
+    sessionsMap.get(sId).push({ id: docSnap.id, ...sData });
   });
 
   const participants = [];
@@ -1189,7 +1377,9 @@ export const getExamResults = onCall(async (request) => {
   const allStudentIds = [...new Set([...enrolledStudentIds, ...sessionsMap.keys()])];
 
   for (const sId of allStudentIds) {
-    const session = sessionsMap.get(sId);
+    const studentSessions = sessionsMap.get(sId) || [];
+    studentSessions.sort((a, b) => (a.attemptNumber || 1) - (b.attemptNumber || 1));
+    const session = studentSessions[studentSessions.length - 1]; // latest attempt session
     const studentName = session?.studentName || enrolledStudentMap.get(sId) || `Ученик ${sId}`;
 
     if (!session) {
@@ -1198,6 +1388,12 @@ export const getExamResults = onCall(async (request) => {
         studentName,
         groupId: examData.groupId || '',
         status: 'not_started',
+        attemptNumber: 0,
+        attemptsCount: 0,
+        violationCount: 0,
+        maxViolations: 3,
+        disqualifiedAt: null,
+        disqualificationReason: null,
         score: 0,
         totalScore: 0,
         percentage: 0,
@@ -1249,6 +1445,12 @@ export const getExamResults = onCall(async (request) => {
       studentName,
       groupId: session.groupId || examData.groupId || '',
       status: pStatus,
+      attemptNumber: session.attemptNumber || 1,
+      attemptsCount: studentSessions.length,
+      violationCount: session.violationCount || 0,
+      maxViolations: session.maxViolations || 3,
+      disqualifiedAt: session.disqualifiedAt?.toDate ? session.disqualifiedAt.toDate().getTime() : session.disqualifiedAt || null,
+      disqualificationReason: session.disqualificationReason || null,
       score: session.score ?? session.totalScore ?? 0,
       maxPossibleScore: session.maxPossibleScore ?? 0,
       percentage: session.percentage ?? 0,
@@ -1348,15 +1550,60 @@ export const getStudentExamAnalytics = onCall(async (request) => {
     throw new HttpsError('permission-denied', 'У вас нет прав на просмотр этой аналитики.');
   }
 
-  const sessionId = `${cleanExamId}_${cleanStudentId}`;
-  const sessionDocRef = db.collection('exam_sessions').doc(sessionId);
-  const sessionSnap = await sessionDocRef.get();
+  const sessionsQuerySnap = await db
+    .collection('exam_sessions')
+    .where('examId', '==', cleanExamId)
+    .where('studentId', '==', cleanStudentId)
+    .get();
 
-  if (!sessionSnap.exists) {
+  if (sessionsQuerySnap.empty) {
     throw new HttpsError('not-found', 'Экзаменационная сессия ученика не найдена.');
   }
 
-  const sessionData = sessionSnap.data();
+  const allSessions = sessionsQuerySnap.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ref: docSnap.ref,
+    ...docSnap.data(),
+  }));
+  allSessions.sort((a, b) => (a.attemptNumber || 1) - (b.attemptNumber || 1));
+
+  const requestedAttempt = Number(request.data.attemptNumber);
+  const sessionData = requestedAttempt
+    ? allSessions.find((s) => s.attemptNumber === requestedAttempt) || allSessions[allSessions.length - 1]
+    : allSessions[allSessions.length - 1];
+
+  const selectedSessionId = sessionData.id;
+  const sessionDocRef = db.collection('exam_sessions').doc(selectedSessionId);
+
+  // Fetch violation timeline for the selected session
+  const violationsSnap = await sessionDocRef.collection('violations').get();
+  const violationsList = violationsSnap.docs.map((vDoc) => {
+    const vData = vDoc.data();
+    return {
+      id: vDoc.id,
+      type: vData.type,
+      timestamp: vData.timestampMs || (vData.timestamp?.toDate ? vData.timestamp.toDate().getTime() : null),
+      attemptNumber: vData.attemptNumber || sessionData.attemptNumber || 1,
+      metadata: vData.metadata || {},
+    };
+  });
+  violationsList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+  const attemptsList = allSessions.map((s) => ({
+    attemptNumber: s.attemptNumber || 1,
+    sessionId: s.id,
+    status: s.status === 'submitted' ? 'completed' : s.status,
+    score: s.score ?? s.totalScore ?? 0,
+    maxPossibleScore: s.maxPossibleScore ?? 0,
+    percentage: s.percentage ?? 0,
+    violationCount: s.violationCount || 0,
+    maxViolations: s.maxViolations || 3,
+    disqualifiedAt: s.disqualifiedAt?.toDate ? s.disqualifiedAt.toDate().getTime() : s.disqualifiedAt || null,
+    disqualificationReason: s.disqualificationReason || null,
+    startedAt: s.startedAt?.toDate ? s.startedAt.toDate().getTime() : s.startedAt || null,
+    submittedAt: s.submittedAt?.toDate ? s.submittedAt.toDate().getTime() : s.submittedAt || null,
+  }));
+
   const questionIds = Array.isArray(sessionData.questionOrder) && sessionData.questionOrder.length > 0
     ? sessionData.questionOrder
     : (Array.isArray(examData.questionIds) ? examData.questionIds : []);
@@ -1470,6 +1717,11 @@ export const getStudentExamAnalytics = onCall(async (request) => {
       studentName: sessionData.studentName || `Ученик ${cleanStudentId}`,
       groupId: sessionData.groupId || examData.groupId || '',
       status: sessionData.status === 'submitted' ? 'completed' : sessionData.status,
+      attemptNumber: sessionData.attemptNumber || 1,
+      violationCount: sessionData.violationCount || 0,
+      maxViolations: sessionData.maxViolations || 3,
+      disqualifiedAt: sessionData.disqualifiedAt?.toDate ? sessionData.disqualifiedAt.toDate().getTime() : sessionData.disqualifiedAt || null,
+      disqualificationReason: sessionData.disqualificationReason || null,
       score: sessionData.score ?? sessionData.totalScore ?? 0,
       maxPossibleScore: sessionData.maxPossibleScore ?? 0,
       percentage: sessionData.percentage ?? 0,
@@ -1480,6 +1732,8 @@ export const getStudentExamAnalytics = onCall(async (request) => {
       submittedAt: sessionData.submittedAt?.toDate ? sessionData.submittedAt.toDate().getTime() : sessionData.submittedAt,
       durationSeconds: sessionData.durationSeconds || null,
     },
+    attemptsList,
+    violations: violationsList,
     topicBreakdown: sessionData.byTopicBreakdown || {},
     questions: questionDetails,
   };
