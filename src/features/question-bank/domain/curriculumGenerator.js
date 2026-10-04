@@ -1,4 +1,4 @@
-import { TOPICS } from './topics';
+import { TOPICS } from './topics.js';
 
 const TOPIC_TEMPLATES = {
   python_loops: [
