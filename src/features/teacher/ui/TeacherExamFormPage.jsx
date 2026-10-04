@@ -19,6 +19,10 @@ export function TeacherExamFormPage() {
     groups,
     pickerQuestions,
     availableTopics,
+    availableVariants = [],
+    variantFilter = 'all',
+    setVariantFilter,
+    loadVariantQuestions,
     searchQuery,
     setSearchQuery,
     topicFilter,
@@ -40,6 +44,7 @@ export function TeacherExamFormPage() {
   } = useExamBuilder({ examId });
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedVariantToLoad, setSelectedVariantToLoad] = useState('');
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -230,6 +235,45 @@ export function TeacherExamFormPage() {
           )}
         </div>
 
+        {/* Quick Load Variant Card */}
+        {availableVariants && availableVariants.length > 0 && (
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>⚡ Быстрая загрузка варианта (Пробник ЕНТ)</h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: 12 }}>
+              Выберите готовый вариант ЕНТ из банка заданий, чтобы автоматически заполнить экзамен всеми его вопросами.
+            </p>
+            <div className={styles.row}>
+              <div className={styles.formGroup}>
+                <select
+                  className={styles.select}
+                  value={selectedVariantToLoad}
+                  onChange={(e) => setSelectedVariantToLoad(e.target.value)}
+                >
+                  <option value="">Выберите вариант / пробник...</option>
+                  {availableVariants.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.title} ({v.count} вопросов)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className={styles.addBtn}
+                disabled={!selectedVariantToLoad}
+                onClick={() => {
+                  if (loadVariantQuestions && selectedVariantToLoad) {
+                    loadVariantQuestions(selectedVariantToLoad);
+                  }
+                }}
+                style={{ height: 42, alignSelf: 'flex-end', marginBottom: 16 }}
+              >
+                + Загрузить весь вариант
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Question Bank Picker Card */}
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Банк Вопросов (Добавление вопросов)</h2>
@@ -243,6 +287,21 @@ export function TeacherExamFormPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+
+            {availableVariants && availableVariants.length > 0 && (
+              <select
+                className={styles.filterSelect}
+                value={variantFilter || 'all'}
+                onChange={(e) => setVariantFilter && setVariantFilter(e.target.value)}
+              >
+                <option value="all">Все варианты</option>
+                {availableVariants.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.title} ({v.count} вопр.)
+                  </option>
+                ))}
+              </select>
+            )}
 
             <select
               className={styles.filterSelect}

@@ -4,6 +4,17 @@ import { questionRepository as defaultQuestionRepo } from '@features/question-ba
 import { examRepository as defaultExamRepo } from '../data/examRepository';
 import { groupRepository as defaultGroupRepo } from '../data/groupRepository';
 
+export function extractQuestionVariant(q) {
+  if (!q) return null;
+  if (q.variantSlug) return String(q.variantSlug).trim();
+  if (q.variantId) return String(q.variantId).trim();
+  if (typeof q.id === 'string') {
+    const match = q.id.match(/^((?:#[0-9]{5})|(?:v-[a-z0-9-]+)|(?:unt-[a-z0-9-]+))/i);
+    if (match) return match[1].trim();
+  }
+  return null;
+}
+
 export function useExamBuilder({
   examId = null,
   examRepo = defaultExamRepo,
@@ -27,6 +38,7 @@ export function useExamBuilder({
   const [topicFilter, setTopicFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [variantFilter, setVariantFilter] = useState('all');
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,7 +47,7 @@ export function useExamBuilder({
 
   const isEditMode = Boolean(examId);
 
-  // Load initial data (groups, questions, and existing exam if in edit mode)
+  // Load initial data (groups, questions/variants, and existing exam if in edit mode)
   useEffect(() => {
     let isCancelled = false;
 
@@ -51,9 +63,24 @@ export function useExamBuilder({
         setIsLoading(true);
         setError(null);
 
+        const fetchQuestionsPromise = async () => {
+          if (questionRepo.getAllQuestionsWithAnswers) {
+            const all = await questionRepo.getAllQuestionsWithAnswers();
+            if (all && all.length > 0) return all;
+          }
+          if (questionRepo.getAllQuestions) {
+            const all = await questionRepo.getAllQuestions();
+            if (all && all.length > 0) return all;
+          }
+          if (questionRepo.getTeacherQuestions) {
+            return await questionRepo.getTeacherQuestions(userId);
+          }
+          return [];
+        };
+
         const [fetchedGroups, fetchedQuestions, existingExam] = await Promise.all([
           groupRepo.getTeacherGroups(userId),
-          questionRepo.getTeacherQuestions(userId),
+          fetchQuestionsPromise(),
           examId ? examRepo.getExamById(examId) : Promise.resolve(null),
         ]);
 
@@ -122,6 +149,41 @@ export function useExamBuilder({
       .filter(Boolean);
   }, [questionIds, questionsMap]);
 
+  // Available variants grouped from availableQuestions
+  const availableVariants = useMemo(() => {
+    const variantMap = new Map();
+    availableQuestions.forEach((q) => {
+      const vKey = extractQuestionVariant(q);
+      if (vKey) {
+        if (!variantMap.has(vKey)) {
+          variantMap.set(vKey, {
+            id: vKey,
+            title: `Вариант ${vKey}`,
+            questionIds: [],
+          });
+        }
+        variantMap.get(vKey).questionIds.push(q.id);
+      }
+    });
+
+    return Array.from(variantMap.values()).map((v) => ({
+      ...v,
+      count: v.questionIds.length,
+    }));
+  }, [availableQuestions]);
+
+  // Load entire variant questions into current exam composition
+  const loadVariantQuestions = useCallback(
+    (variantId) => {
+      if (!variantId) return;
+      const targetVariant = availableVariants.find((v) => v.id === variantId);
+      if (targetVariant && targetVariant.questionIds.length > 0) {
+        setQuestionIds(targetVariant.questionIds);
+      }
+    },
+    [availableVariants]
+  );
+
   // Filtered available questions for the picker
   const filteredPickerQuestions = useMemo(() => {
     return availableQuestions.filter((q) => {
@@ -146,9 +208,15 @@ export function useExamBuilder({
       if (typeFilter === 'single' && q.multiple) return false;
       if (typeFilter === 'multiple' && !q.multiple) return false;
 
+      // Filter by variant
+      if (variantFilter !== 'all') {
+        const qVariant = extractQuestionVariant(q);
+        if (qVariant !== variantFilter) return false;
+      }
+
       return true;
     });
-  }, [availableQuestions, questionIds, searchQuery, topicFilter, difficultyFilter, typeFilter]);
+  }, [availableQuestions, questionIds, searchQuery, topicFilter, difficultyFilter, typeFilter, variantFilter]);
 
   // Unique topics from available questions for filter dropdown
   const availableTopics = useMemo(() => {
@@ -284,9 +352,13 @@ export function useExamBuilder({
     questionIds,
     selectedQuestions,
     groups,
-    // Picker
+    // Picker & Variants
     pickerQuestions: filteredPickerQuestions,
     availableTopics,
+    availableVariants,
+    variantFilter,
+    setVariantFilter,
+    loadVariantQuestions,
     searchQuery,
     setSearchQuery,
     topicFilter,
