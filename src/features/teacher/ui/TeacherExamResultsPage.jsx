@@ -17,6 +17,8 @@ function getStatusBadge(status) {
   switch (status) {
     case 'completed':
       return <span className={`${styles.badge} ${styles.badgeCompleted}`}>Завершён</span>;
+    case 'disqualified':
+      return <span className={`${styles.badge} ${styles.badgeDisqualified}`}>Аннулирован</span>;
     case 'in_progress':
       return <span className={`${styles.badge} ${styles.badgeInProgress}`}>● В процессе</span>;
     case 'waiting':
@@ -171,7 +173,7 @@ export function TeacherExamResultsPage() {
         </div>
       </div>
 
-      {/* Participants List & Table */}
+      {/* Participants List & Table (Requirements 6J) */}
       <div className={styles.card}>
         <div className={styles.tableHeaderRow}>
           <h2 className={styles.cardTitle}>
@@ -194,6 +196,7 @@ export function TeacherExamResultsPage() {
             >
               <option value="all">Все статусы</option>
               <option value="completed">Завершённые</option>
+              <option value="disqualified">Аннулированные</option>
               <option value="in_progress">В процессе</option>
               <option value="waiting">Ожидают</option>
               <option value="not_started">Не начали</option>
@@ -229,6 +232,8 @@ export function TeacherExamResultsPage() {
                 <tr>
                   <th>Ученик</th>
                   <th>Статус</th>
+                  <th>Попытка</th>
+                  <th>Нарушения</th>
                   <th>Балл</th>
                   <th>Процент</th>
                   <th>Начало</th>
@@ -244,6 +249,18 @@ export function TeacherExamResultsPage() {
                     </td>
                     <td>{getStatusBadge(p.status)}</td>
                     <td>
+                      {p.attemptNumber ? `Attempt ${p.attemptNumber}` : '—'}
+                    </td>
+                    <td>
+                      {p.status !== 'not_started' ? (
+                        <span style={{ color: p.violationCount > 0 ? '#ef4444' : 'inherit' }}>
+                          {p.violationCount || 0} / {p.maxViolations || 3}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td>
                       {p.status === 'completed'
                         ? `${p.score} / ${p.maxPossibleScore}`
                         : '—'}
@@ -258,7 +275,7 @@ export function TeacherExamResultsPage() {
                     <td>{formatDate(p.startedAt)}</td>
                     <td>{formatDate(p.submittedAt)}</td>
                     <td>
-                      {p.status === 'completed' || p.status === 'in_progress' ? (
+                      {p.status !== 'not_started' ? (
                         <Link
                           to={`/teacher/exams/${examId}/results/${p.studentId}`}
                           className={styles.analyticsLink}

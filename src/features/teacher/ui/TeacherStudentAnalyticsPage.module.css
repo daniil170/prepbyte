@@ -345,3 +345,75 @@
   color: #94a3b8;
   font-weight: 500;
 }
+
+/* Attempts & Violation Timeline Styles */
+.attemptsBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.attemptTab {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background-color: var(--surface-color, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.attemptTab:hover {
+  border-color: #3b82f6;
+  color: #f1f5f9;
+}
+
+.attemptTabActive {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.timelineContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.timelineTime {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #f87171;
+  min-width: 65px;
+}
+
+.timelineLabel {
+  color: var(--text-color, #f1f5f9);
+  flex: 1;
+}
+
+.timelineTypeCode {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+

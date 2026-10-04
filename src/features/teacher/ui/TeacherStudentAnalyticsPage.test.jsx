@@ -57,7 +57,7 @@ describe('TeacherStudentAnalyticsPage component', () => {
 
     expect(screen.getByText('Аналитика ученика: Иван Иванов')).toBeInTheDocument();
     expect(screen.getByText('Решите уравнение x + 2 = 5')).toBeInTheDocument();
-    expect(screen.getByText('✓ Верно')).toBeInTheDocument();
+    expect(screen.getByText(/✓ Верно/)).toBeInTheDocument();
     expect(screen.getByText('10 / 10')).toBeInTheDocument();
   });
 });
