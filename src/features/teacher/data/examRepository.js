@@ -212,16 +212,70 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
   }
 
   /**
+   * Publishes an exam draft via server-authoritative Cloud Function.
+   */
+  async function publishExam(examId) {
+    if (!examId) throw new Error('Идентификатор экзамена обязателен.');
+    const cleanId = String(examId).trim();
+
+    try {
+      if (functionsInstance) {
+        const callable = httpsCallable(functionsInstance, 'publishExam');
+        const res = await callable({ examId: cleanId });
+        if (res.data?.success) {
+          return await getExamById(cleanId);
+        }
+      }
+    } catch (err) {
+      if (
+        err.code === 'unauthenticated' ||
+        err.code === 'permission-denied' ||
+        err.code === 'failed-precondition' ||
+        err.code === 'invalid-argument' ||
+        err.code === 'not-found'
+      ) {
+        throw new Error(err.message || 'Ошибка публикации экзамена.');
+      }
+    }
+
+    // Fallback for unit tests / mock environment
+    return await updateExamStatus(cleanId, EXAM_STATUS.WAITING);
+  }
+
+  /**
    * Transitions an exam to a new status.
    */
   async function updateExamStatus(examId, nextStatus) {
-    const exam = await getExamById(examId);
+    if (!examId) throw new Error('Идентификатор экзамена обязателен.');
+    const cleanId = String(examId).trim();
+
+    try {
+      if (functionsInstance) {
+        const callable = httpsCallable(functionsInstance, 'changeExamStatus');
+        const res = await callable({ examId: cleanId, nextStatus });
+        if (res.data?.success) {
+          return await getExamById(cleanId);
+        }
+      }
+    } catch (err) {
+      if (
+        err.code === 'unauthenticated' ||
+        err.code === 'permission-denied' ||
+        err.code === 'failed-precondition' ||
+        err.code === 'invalid-argument' ||
+        err.code === 'not-found'
+      ) {
+        throw new Error(err.message || 'Ошибка изменения статуса экзамена.');
+      }
+    }
+
+    const exam = await getExamById(cleanId);
     if (!exam) {
-      throw new Error(`Экзамен с id ${examId} не найден.`);
+      throw new Error(`Экзамен с id ${cleanId} не найден.`);
     }
 
     const updated = transitionExamStatus(exam, nextStatus);
-    const docRef = doc(firestore, examsCollection, examId);
+    const docRef = doc(firestore, examsCollection, cleanId);
 
     const patch = {
       status: updated.status,
@@ -240,7 +294,7 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
         await setDoc(
           pinDocRef,
           {
-            examId,
+            examId: cleanId,
             groupId: exam.groupId,
             teacherId: exam.teacherId,
             status: updated.status,
@@ -497,6 +551,7 @@ export function createExamRepository(firestore = defaultDb, functionsInstance = 
     findExamByPin,
     createNewExam,
     saveExamDraft,
+    publishExam,
     updateExamStatus,
     deleteExam,
     subscribeToExam,

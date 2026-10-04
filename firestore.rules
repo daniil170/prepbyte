@@ -230,7 +230,7 @@ service cloud.firestore {
         && request.resource.data.questionIds is list
         && request.resource.data.status in ['draft', 'waiting', 'active'];
 
-      // Updating allowed only for teacher owner or admin, preserving teacherId & groupId ownership and enforcing lifecycle rules
+      // Updating allowed only for teacher owner or admin, preserving teacherId & groupId ownership and preventing PIN/timestamp forgery
       allow update: if isAuthenticated() && (
         isAdmin()
         || (
@@ -239,6 +239,8 @@ service cloud.firestore {
           && request.resource.data.groupId == resource.data.groupId
           && (resource.data.status != 'finished' || request.resource.data.status == 'finished')
           && (resource.data.status != 'active' || request.resource.data.status in ['active', 'finished'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['publishedAt', 'startedAt', 'finishedAt']) || isAdmin())
+          && (!resource.data.keys().hasAny(['pin']) || !request.resource.data.keys().hasAny(['pin']) || request.resource.data.pin == resource.data.pin || isAdmin())
         )
       );
 

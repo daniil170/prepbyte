@@ -108,12 +108,14 @@ describe('Cloud Functions index.js logic tests', () => {
   });
 
   describe('Cloud Functions exports', () => {
-    it('exports saveQuestion, archiveQuestion, saveExamDraft, and deleteExamDraft callable functions', async () => {
+    it('exports saveQuestion, archiveQuestion, saveExamDraft, deleteExamDraft, publishExam, and changeExamStatus callable functions', async () => {
       const funcModule = await import('./index');
       expect(typeof funcModule.saveQuestion).toBe('function');
       expect(typeof funcModule.archiveQuestion).toBe('function');
       expect(typeof funcModule.saveExamDraft).toBe('function');
       expect(typeof funcModule.deleteExamDraft).toBe('function');
+      expect(typeof funcModule.publishExam).toBe('function');
+      expect(typeof funcModule.changeExamStatus).toBe('function');
     });
   });
 });

@@ -163,6 +163,25 @@ export function useTeacherExams({
     [examRepo]
   );
 
+  const publishExam = useCallback(
+    async (examId) => {
+      try {
+        setActionLoadingId(examId);
+        const updated = await examRepo.publishExam(examId);
+        setExams((prev) =>
+          prev.map((e) => (e.id === examId ? { ...e, ...updated } : e))
+        );
+        return updated;
+      } catch (err) {
+        setError(err.message || 'Ошибка публикации экзамена.');
+        throw err;
+      } finally {
+        setActionLoadingId(null);
+      }
+    },
+    [examRepo]
+  );
+
   const filteredExams = exams.filter((e) => {
     if (statusFilter === 'all') return true;
     return e.status === statusFilter;
@@ -179,7 +198,7 @@ export function useTeacherExams({
     actionLoadingId,
     refresh: fetchExamsAndGroups,
     createExam,
-    publishExam: (id) => changeExamStatus(id, EXAM_STATUS.WAITING),
+    publishExam,
     startExam: (id) => changeExamStatus(id, EXAM_STATUS.ACTIVE),
     finishExam: (id) => changeExamStatus(id, EXAM_STATUS.FINISHED),
     unpublishExam: (id) => changeExamStatus(id, EXAM_STATUS.DRAFT),

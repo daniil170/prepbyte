@@ -847,3 +847,247 @@ export const deleteExamDraft = onCall(async (request) => {
     };
   });
 });
+
+/**
+ * Callable Cloud Function: publishExam
+ *
+ * Server-authoritative exam publishing:
+ * - Validates authentication and teacher role
+ * - Validates teacher ownership and current status === 'draft'
+ * - Validates title, group, duration, and non-empty question bank selection
+ * - Refreshes public questionSnapshots from /questions
+ * - Generates unique 6-digit PIN with collision checking in /exam_pin_lookup
+ * - Transitions status to 'waiting', binds publishedAt timestamp
+ */
+export const publishExam = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для публикации экзамена требуется аутентификация.');
+  }
+
+  const isTeacher = Boolean(request.auth.token?.teacher || request.auth.token?.admin);
+  if (!isTeacher) {
+    throw new HttpsError('permission-denied', 'Доступ разрешён только преподавателям и администраторам.');
+  }
+
+  const { examId } = request.data || {};
+  if (!examId || typeof examId !== 'string' || !examId.trim()) {
+    throw new HttpsError('invalid-argument', 'Идентификатор экзамена (examId) обязателен.');
+  }
+
+  const cleanExamId = examId.trim();
+  const callerUid = request.auth.uid;
+  const isAdmin = Boolean(request.auth.token?.admin);
+
+  const examDocRef = db.collection('exams').doc(cleanExamId);
+
+  return await db.runTransaction(async (transaction) => {
+    const examSnap = await transaction.get(examDocRef);
+    if (!examSnap.exists) {
+      throw new HttpsError('not-found', `Экзамен [${cleanExamId}] не найден.`);
+    }
+
+    const examData = examSnap.data();
+    if (examData.teacherId && examData.teacherId !== callerUid && !isAdmin) {
+      throw new HttpsError('permission-denied', 'Вы можете публиковать только собственные экзамены.');
+    }
+    if (examData.status !== 'draft') {
+      throw new HttpsError('failed-precondition', `Экзамен находится в статусе [${examData.status}] и не может быть опубликован повторно.`);
+    }
+
+    // Validate title, group, duration, questions
+    const title = typeof examData.title === 'string' ? examData.title.trim() : '';
+    if (!title || title.length < 3 || title.length > 120) {
+      throw new HttpsError('failed-precondition', 'Название экзамена должно содержать от 3 до 120 символов.');
+    }
+
+    const groupId = typeof examData.groupId === 'string' ? examData.groupId.trim() : '';
+    if (!groupId) {
+      throw new HttpsError('failed-precondition', 'У экзамена должна быть выбрана группа.');
+    }
+
+    const groupDocRef = db.collection('groups').doc(groupId);
+    const groupSnap = await transaction.get(groupDocRef);
+    if (!groupSnap.exists) {
+      throw new HttpsError('not-found', `Группа [${groupId}] не найдена.`);
+    }
+
+    const questionIds = Array.isArray(examData.questionIds) ? examData.questionIds : [];
+    if (questionIds.length === 0) {
+      throw new HttpsError('failed-precondition', 'Нельзя опубликовать экзамен без вопросов.');
+    }
+
+    // Fetch and verify public question documents for fresh snapshots
+    const uniqueIds = [...new Set(questionIds)];
+    const questionRefs = uniqueIds.map((qid) => db.collection('questions').doc(qid));
+    const questionSnaps = await Promise.all(questionRefs.map((ref) => transaction.get(ref)));
+
+    const questionMap = new Map();
+    questionSnaps.forEach((snap) => {
+      if (snap.exists) questionMap.set(snap.id, snap.data());
+    });
+
+    const missingIds = uniqueIds.filter((qid) => !questionMap.has(qid));
+    if (missingIds.length > 0) {
+      throw new HttpsError('not-found', `Вопросы [${missingIds.join(', ')}] не найдены в банке вопросов.`);
+    }
+
+    const freshSnapshots = {};
+    for (const qid of questionIds) {
+      const qData = questionMap.get(qid);
+      freshSnapshots[qid] = {
+        id: qid,
+        questionText: qData.questionText || '',
+        topic: qData.topic || '',
+        difficulty: qData.difficulty || 'medium',
+        multiple: Boolean(qData.multiple),
+        options: Array.isArray(qData.options) ? [...qData.options] : [],
+        version: qData.version || 1,
+      };
+    }
+
+    // Generate unique 6-digit PIN with collision retry
+    let generatedPin = examData.pin;
+    if (!generatedPin) {
+      let candidatePin = '';
+      let isUnique = false;
+      for (let i = 0; i < 10; i++) {
+        candidatePin = Math.floor(100000 + Math.random() * 900000).toString();
+        const pinDocRef = db.collection('exam_pin_lookup').doc(candidatePin);
+        const pinSnap = await transaction.get(pinDocRef);
+        if (!pinSnap.exists) {
+          isUnique = true;
+          break;
+        }
+      }
+      if (!isUnique) {
+        throw new HttpsError('internal', 'Не удалось сгенерировать уникальный PIN-код.');
+      }
+      generatedPin = candidatePin;
+    }
+
+    // Update exam document
+    transaction.update(examDocRef, {
+      status: 'waiting',
+      pin: generatedPin,
+      questionSnapshots: freshSnapshots,
+      publishedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // Save pin lookup
+    const pinLookupRef = db.collection('exam_pin_lookup').doc(generatedPin);
+    transaction.set(pinLookupRef, {
+      examId: cleanExamId,
+      groupId,
+      teacherId: examData.teacherId || callerUid,
+      status: 'waiting',
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    return {
+      success: true,
+      examId: cleanExamId,
+      pin: generatedPin,
+      status: 'waiting',
+    };
+  });
+});
+
+/**
+ * Callable Cloud Function: changeExamStatus
+ *
+ * Server-authoritative exam lifecycle status transitions:
+ * - Validates authentication and teacher role
+ * - Validates teacher ownership
+ * - Enforces valid transition paths (waiting -> active, active -> finished, waiting -> finished)
+ * - Updates status, startsAt/endsAt/finishedAt timestamps, and syncs PIN lookup
+ */
+export const changeExamStatus = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для изменения статуса экзамена требуется аутентификация.');
+  }
+
+  const isTeacher = Boolean(request.auth.token?.teacher || request.auth.token?.admin);
+  if (!isTeacher) {
+    throw new HttpsError('permission-denied', 'Доступ разрешён только преподавателям и администраторам.');
+  }
+
+  const { examId, nextStatus } = request.data || {};
+  if (!examId || typeof examId !== 'string' || !examId.trim()) {
+    throw new HttpsError('invalid-argument', 'Идентификатор экзамена (examId) обязателен.');
+  }
+  if (!['draft', 'waiting', 'active', 'finished'].includes(nextStatus)) {
+    throw new HttpsError('invalid-argument', `Некорректный целевой статус [${nextStatus}].`);
+  }
+
+  const cleanExamId = examId.trim();
+  const callerUid = request.auth.uid;
+  const isAdmin = Boolean(request.auth.token?.admin);
+
+  const examDocRef = db.collection('exams').doc(cleanExamId);
+
+  return await db.runTransaction(async (transaction) => {
+    const examSnap = await transaction.get(examDocRef);
+    if (!examSnap.exists) {
+      throw new HttpsError('not-found', `Экзамен [${cleanExamId}] не найден.`);
+    }
+
+    const examData = examSnap.data();
+    if (examData.teacherId && examData.teacherId !== callerUid && !isAdmin) {
+      throw new HttpsError('permission-denied', 'Вы можете управлять только собственными экзаменами.');
+    }
+
+    const currentStatus = examData.status || 'draft';
+    if (currentStatus === nextStatus) {
+      return { success: true, examId: cleanExamId, status: nextStatus };
+    }
+
+    // Validate lifecycle transitions
+    const allowedMap = {
+      draft: ['waiting', 'active'],
+      waiting: ['draft', 'active', 'finished'],
+      active: ['finished'],
+      finished: [],
+    };
+
+    const allowed = allowedMap[currentStatus] || [];
+    if (!allowed.includes(nextStatus)) {
+      throw new HttpsError('failed-precondition', `Недопустимый переход статуса с [${currentStatus}] на [${nextStatus}].`);
+    }
+
+    const updatePayload = {
+      status: nextStatus,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (nextStatus === 'active' && !examData.startsAt) {
+      const durationSeconds = Number(examData.durationSeconds) || (Number(examData.durationMinutes) || 60) * 60;
+      const serverNowMs = Date.now();
+      updatePayload.startsAt = FieldValue.serverTimestamp();
+      updatePayload.endsAt = new Date(serverNowMs + durationSeconds * 1000);
+    } else if (nextStatus === 'finished') {
+      updatePayload.finishedAt = FieldValue.serverTimestamp();
+      if (!examData.endsAt) {
+        updatePayload.endsAt = FieldValue.serverTimestamp();
+      }
+    }
+
+    transaction.update(examDocRef, updatePayload);
+
+    // Sync PIN lookup
+    if (examData.pin) {
+      const pinDocRef = db.collection('exam_pin_lookup').doc(examData.pin);
+      transaction.set(pinDocRef, {
+        status: nextStatus,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+
+    return {
+      success: true,
+      examId: cleanExamId,
+      status: nextStatus,
+    };
+  });
+});
+

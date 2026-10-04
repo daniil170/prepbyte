@@ -824,6 +824,37 @@ describe('Firestore Security Rules Unit Tests', () => {
     );
   });
 
+  it('24. Teacher CANNOT forge PIN, publishedAt, startedAt, or finishedAt directly on exam update', async () => {
+    if (!isEmulatorAvailable) return;
+    const teacherA = testEnv.authenticatedContext('teacherA', {
+      teacher: true,
+      email: 'teachera@pifagorschool.kz',
+    });
+    const db = teacherA.firestore();
+    // Forge PIN
+    await assertFails(
+      updateDoc(doc(db, 'exams/examA'), {
+        pin: '999999',
+      })
+    );
+    // Forge publishedAt / startedAt / finishedAt
+    await assertFails(
+      updateDoc(doc(db, 'exams/examA'), {
+        publishedAt: Date.now(),
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exams/examA'), {
+        startedAt: Date.now(),
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'exams/examA'), {
+        finishedAt: Date.now(),
+      })
+    );
+  });
+
   it('rules structure sanity test', () => {
     expect(rulesContent).toContain('rules_version = \'2\';');
     expect(rulesContent).toContain('match /users/{userId}');

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTeacherExams } from '../hooks/useTeacherExams';
-import { CreateExamModal } from './CreateExamModal';
 import { EXAM_STATUS } from '../domain/examLifecycle';
 import styles from './TeacherExamsPage.module.css';
 
@@ -14,14 +13,13 @@ export function TeacherExamsPage() {
     isLoading,
     error,
     actionLoadingId,
-    createExam,
     publishExam,
     startExam,
     finishExam,
     deleteExam,
   } = useTeacherExams();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(null);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -155,7 +153,7 @@ export function TeacherExamsPage() {
                     <button
                       type="button"
                       className={styles.primaryActionBtn}
-                      onClick={() => publishExam(exam.id)}
+                      onClick={() => setConfirmModal({ action: 'publish', examId: exam.id, title: exam.title })}
                       disabled={isActing}
                     >
                       {isActing ? 'Публикация...' : 'Опубликовать (PIN)'}
@@ -166,7 +164,7 @@ export function TeacherExamsPage() {
                     <button
                       type="button"
                       className={styles.primaryActionBtn}
-                      onClick={() => startExam(exam.id)}
+                      onClick={() => setConfirmModal({ action: 'start', examId: exam.id, title: exam.title })}
                       disabled={isActing}
                     >
                       {isActing ? 'Запуск...' : 'Запустить экзамен ▶'}
@@ -177,7 +175,7 @@ export function TeacherExamsPage() {
                     <button
                       type="button"
                       className={styles.primaryActionBtn}
-                      onClick={() => finishExam(exam.id)}
+                      onClick={() => setConfirmModal({ action: 'finish', examId: exam.id, title: exam.title })}
                       disabled={isActing}
                     >
                       {isActing ? 'Завершение...' : 'Завершить ⏹'}
@@ -208,7 +206,7 @@ export function TeacherExamsPage() {
                     <button
                       type="button"
                       className={styles.deleteBtn}
-                      onClick={() => deleteExam(exam.id)}
+                      onClick={() => setConfirmModal({ action: 'delete', examId: exam.id, title: exam.title })}
                       disabled={isActing}
                       title="Удалить черновик"
                     >
@@ -222,12 +220,55 @@ export function TeacherExamsPage() {
         </div>
       )}
 
-      <CreateExamModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={createExam}
-        groups={groups}
-      />
+      {confirmModal && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalContent}>
+            <h3>
+              {confirmModal.action === 'publish' && 'Опубликовать экзамен?'}
+              {confirmModal.action === 'start' && 'Запустить экзамен?'}
+              {confirmModal.action === 'finish' && 'Завершить экзамен?'}
+              {confirmModal.action === 'delete' && 'Удалить черновик?'}
+            </h3>
+            <p>
+              {confirmModal.action === 'publish' &&
+                `Опубликовать "${confirmModal.title}"? Экзамену будет присвоен 6-значный PIN-код, а редактирование структуры будет заблокировано.`}
+              {confirmModal.action === 'start' &&
+                `Запустить "${confirmModal.title}"? Ученики с PIN-кодом смогут переходить к сдаче заданий.`}
+              {confirmModal.action === 'finish' &&
+                `Завершить "${confirmModal.title}"? Все активные сессии сдачи будут остановлены, а доступ по PIN-коду заблокирован.`}
+              {confirmModal.action === 'delete' &&
+                `Удалить черновик "${confirmModal.title}"? Действие необратимо.`}
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalCancelBtn}
+                onClick={() => setConfirmModal(null)}
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                className={
+                  confirmModal.action === 'delete' || confirmModal.action === 'finish'
+                    ? styles.modalDangerBtn
+                    : styles.modalPrimaryBtn
+                }
+                onClick={async () => {
+                  const { action, examId } = confirmModal;
+                  setConfirmModal(null);
+                  if (action === 'publish') await publishExam(examId);
+                  else if (action === 'start') await startExam(examId);
+                  else if (action === 'finish') await finishExam(examId);
+                  else if (action === 'delete') await deleteExam(examId);
+                }}
+              >
+                Подтвердить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
