@@ -74,7 +74,9 @@ export default function HomePage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <Logo variant="full" size={24} />
+          <Link to="/" className={styles.brandLink}>
+            <Logo variant="full" size={24} />
+          </Link>
           <DraggableGlassNav ariaLabel="Основная навигация">
             <Link to="/analytics" className={styles.navLink}>
               Дашборд
@@ -93,15 +95,26 @@ export default function HomePage() {
         </div>
 
         <div className={styles.userNav}>
-          <ThemeToggle />
-          <span className={styles.email}>{user?.email || 'Пользователь'}</span>
-          <button
-            type="button"
-            onClick={signOut}
-            className={styles.signOutButton}
-          >
-            Выйти
-          </button>
+          <ThemeToggle showLabel={false} />
+          {user && (
+            <div className={styles.userBadge}>
+              <span className={styles.userIcon}>👤</span>
+              <span className={styles.email}>{user.email}</span>
+            </div>
+          )}
+          {user ? (
+            <button
+              type="button"
+              onClick={signOut}
+              className={styles.signOutButton}
+            >
+              Выйти
+            </button>
+          ) : (
+            <Link to="/login" className={styles.signInButton}>
+              Войти
+            </Link>
+          )}
         </div>
       </header>
 
