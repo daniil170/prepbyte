@@ -161,7 +161,7 @@ export default function HomePage() {
                     gap: '6px',
                   }}
                 >
-                  <span>🔑 Вход на экзамен по PIN</span>
+                  <span>Вход на экзамен по PIN</span>
                 </Link>
               </div>
             </div>

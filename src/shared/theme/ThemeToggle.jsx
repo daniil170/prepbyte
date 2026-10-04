@@ -16,7 +16,7 @@ export function ThemeToggle({ showLabel = true, className = '' }) {
       title={isDark ? 'Включить светлую тему' : 'Включить тёмную тему'}
     >
       <span className={styles.icon} aria-hidden="true">
-        {isDark ? '☀️' : '🌙'}
+        {isDark ? 'Светлая' : 'Темная'}
       </span>
       {showLabel && (
         <span className={styles.label}>

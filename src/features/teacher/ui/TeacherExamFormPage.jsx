@@ -226,7 +226,7 @@ export function TeacherExamFormPage() {
                     className={styles.compactToggleBtn}
                     onClick={() => setIsListCollapsed((prev) => !prev)}
                   >
-                    {isListCollapsed ? '📜 Развернуть список' : '📋 Свернуть список'}
+                    {isListCollapsed ? 'Развернуть список' : 'Свернуть список'}
                   </button>
                   {removeAllQuestions && (
                     <button

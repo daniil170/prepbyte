@@ -93,7 +93,7 @@ export default function PrivacyPolicyPage() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>6. Контактная информация</h2>
           <div className={styles.placeholderNote}>
-            [Проект Pifagor School &bull; Контактный email ответственного лица: privacy@pifagorschool.kz &bull; Адрес: Республика Казахстан, г. Алматы]
+            [Проект Pifagor School &bull; Адрес: Республика Казахстан, г. Алматы]
           </div>
         </section>
       </main>
