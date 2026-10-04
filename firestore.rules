@@ -22,14 +22,7 @@ service cloud.firestore {
 
     // Questions collection: public question data readable by authenticated users (for taking exams), teacher-owned writes
     match /questions/{questionId} {
-      allow read: if isAuthenticated() && (
-        !isTeacher()
-        || resource == null
-        || !resource.data.keys().hasAny(['createdBy'])
-        || resource.data.createdBy == null
-        || resource.data.createdBy == request.auth.uid
-        || isAdmin()
-      );
+      allow read: if isAuthenticated();
 
       allow create: if isTeacher()
         && (!request.resource.data.keys().hasAny(['createdBy']) || request.resource.data.createdBy == request.auth.uid || request.resource.data.createdBy == null)
@@ -52,13 +45,7 @@ service cloud.firestore {
 
     // Question answers collection: protected correct answers and explanations. Strictly forbidden to students.
     match /question_answers/{questionId} {
-      allow read: if isTeacher() && (
-        resource == null
-        || !resource.data.keys().hasAny(['createdBy'])
-        || resource.data.createdBy == null
-        || resource.data.createdBy == request.auth.uid
-        || isAdmin()
-      );
+      allow read: if isTeacher();
 
       allow create: if isTeacher()
         && (!request.resource.data.keys().hasAny(['createdBy']) || request.resource.data.createdBy == request.auth.uid || request.resource.data.createdBy == null);

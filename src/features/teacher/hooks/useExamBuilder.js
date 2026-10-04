@@ -64,16 +64,28 @@ export function useExamBuilder({
         setError(null);
 
         const fetchQuestionsPromise = async () => {
-          if (questionRepo.getAllQuestionsWithAnswers) {
-            const all = await questionRepo.getAllQuestionsWithAnswers();
-            if (all && all.length > 0) return all;
+          try {
+            if (questionRepo.getAllQuestionsWithAnswers) {
+              const all = await questionRepo.getAllQuestionsWithAnswers();
+              if (all && all.length > 0) return all;
+            }
+          } catch {
+            // Fallback if getAllQuestionsWithAnswers fails
           }
-          if (questionRepo.getAllQuestions) {
-            const all = await questionRepo.getAllQuestions();
-            if (all && all.length > 0) return all;
+          try {
+            if (questionRepo.getAllQuestions) {
+              const all = await questionRepo.getAllQuestions();
+              if (all && all.length > 0) return all;
+            }
+          } catch {
+            // Fallback if getAllQuestions fails
           }
-          if (questionRepo.getTeacherQuestions) {
-            return await questionRepo.getTeacherQuestions(userId);
+          try {
+            if (questionRepo.getTeacherQuestions) {
+              return (await questionRepo.getTeacherQuestions(userId)) || [];
+            }
+          } catch {
+            // Fallback empty array
           }
           return [];
         };
