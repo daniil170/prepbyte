@@ -307,7 +307,7 @@ service cloud.firestore {
         && request.resource.data.groupId == get(/databases/$(database)/documents/exams/$(request.resource.data.examId)).data.groupId
         && exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId))
         && (request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.studentIds)
-        && !request.resource.data.keys().hasAny(['score', 'totalScore', 'percentage', 'correctAnswersCount', 'maxPossibleScore', 'expiresAt', 'startedAt', 'questionOrder']);
+        && !request.resource.data.keys().hasAny(['score', 'totalScore', 'percentage', 'correctAnswersCount', 'maxPossibleScore', 'expiresAt', 'startedAt', 'questionOrder', 'disqualifiedAt', 'disqualificationReason']);
 
       // Update allowed only by student owner while waiting or in_progress, preserving immutable fields and preventing score modification
       allow update: if isAuthenticated() && (
@@ -322,6 +322,24 @@ service cloud.firestore {
 
       // Client deletions are strictly denied
       allow delete: if isAdmin();
+
+      // Violations subcollection: browser anti-cheat security log
+      match /violations/{violationId} {
+        // Read allowed for student owner, admin, or teacher owning the exam
+        allow read: if isAuthenticated() && (
+          (exists(/databases/$(database)/documents/exam_sessions/$(sessionId)) && get(/databases/$(database)/documents/exam_sessions/$(sessionId)).data.studentId == request.auth.uid)
+          || isAdmin()
+          || (
+            isTeacher()
+            && exists(/databases/$(database)/documents/exam_sessions/$(sessionId))
+            && exists(/databases/$(database)/documents/exams/$(get(/databases/$(database)/documents/exam_sessions/$(sessionId)).data.examId))
+            && get(/databases/$(database)/documents/exams/$(get(/databases/$(database)/documents/exam_sessions/$(sessionId)).data.examId)).data.teacherId == request.auth.uid
+          )
+        );
+
+        // Client writes strictly forbidden (written exclusively server-side via Cloud Function reportExamViolation)
+        allow write: if false;
+      }
     }
 
     // Default deny for all other documents

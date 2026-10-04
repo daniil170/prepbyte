@@ -855,6 +855,74 @@ describe('Firestore Security Rules Unit Tests', () => {
     );
   });
 
+  it('25. Student CANNOT forge violationCount, attemptNumber, disqualified status, or write to violations subcollection', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+
+    // Student cannot modify violationCount directly
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        violationCount: 1,
+      })
+    );
+
+    // Student cannot transition status to disqualified
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        status: 'disqualified',
+      })
+    );
+
+    // Student cannot set disqualifiedAt or disqualificationReason
+    await assertFails(
+      updateDoc(doc(db, 'exam_sessions/examA_studentA'), {
+        disqualifiedAt: Date.now(),
+      })
+    );
+
+    // Student cannot write to /violations subcollection directly
+    await assertFails(
+      setDoc(doc(db, 'exam_sessions/examA_studentA/violations/viol1'), {
+        type: 'COPY_ATTEMPT',
+        timestamp: Date.now(),
+      })
+    );
+  });
+
+  it('26. Student CAN read their own violations subcollection, but CANNOT read Student B violations', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const dbA = studentA.firestore();
+
+    // Student A can read own violations
+    await assertSucceeds(getDoc(doc(dbA, 'exam_sessions/examA_studentA/violations/viol1')));
+
+    // Student A cannot read Student B violations
+    await assertFails(getDoc(doc(dbA, 'exam_sessions/examB_studentB/violations/viol1')));
+  });
+
+  it('27. Teacher A CAN read violations for their exam, Teacher B CANNOT', async () => {
+    if (!isEmulatorAvailable) return;
+    const teacherA = testEnv.authenticatedContext('teacherA', {
+      teacher: true,
+      email: 'teachera@pifagorschool.kz',
+    });
+    const dbA = teacherA.firestore();
+    await assertSucceeds(getDoc(doc(dbA, 'exam_sessions/examA_studentA/violations/viol1')));
+
+    const teacherB = testEnv.authenticatedContext('teacherB', {
+      teacher: true,
+      email: 'teacherb@pifagorschool.kz',
+    });
+    const dbB = teacherB.firestore();
+    await assertFails(getDoc(doc(dbB, 'exam_sessions/examA_studentA/violations/viol1')));
+  });
+
   it('rules structure sanity test', () => {
     expect(rulesContent).toContain('rules_version = \'2\';');
     expect(rulesContent).toContain('match /users/{userId}');
@@ -863,5 +931,6 @@ describe('Firestore Security Rules Unit Tests', () => {
     expect(rulesContent).toContain('match /exams/{examId}');
     expect(rulesContent).toContain('match /exam_pin_lookup/{pin}');
     expect(rulesContent).toContain('match /exam_sessions/{sessionId}');
+    expect(rulesContent).toContain('match /violations/{violationId}');
   });
 });
