@@ -94,6 +94,7 @@ describe('AuthForm', () => {
     fireEvent.change(screen.getByLabelText(/подтверждение пароля/i), {
       target: { value: 'password123' },
     });
+    fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(
       screen.getByRole('button', { name: /^зарегистрироваться$/i })
     );
@@ -105,7 +106,41 @@ describe('AuthForm', () => {
       email: 'daniyar@pifagorschool.kz',
       password: 'password123',
       confirmPassword: 'password123',
+      agreePrivacyPolicy: true,
     });
+  });
+
+  it('rejects registration without agreeing to privacy policy', () => {
+    const onSubmit = vi.fn();
+    renderWithRouter(<AuthForm mode="register" onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText(/^имя$/i), {
+      target: { value: 'Данияр' },
+    });
+    fireEvent.change(screen.getByLabelText(/^фамилия$/i), {
+      target: { value: 'Ахметов' },
+    });
+    fireEvent.change(screen.getByLabelText(/^класс$/i), {
+      target: { value: '10А' },
+    });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'daniyar@pifagorschool.kz' },
+    });
+    fireEvent.change(screen.getByLabelText(/^пароль/i), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByLabelText(/подтверждение пароля/i), {
+      target: { value: 'password123' },
+    });
+    // Deliberately do not check the checkbox
+    fireEvent.click(
+      screen.getByRole('button', { name: /^зарегистрироваться$/i })
+    );
+
+    expect(
+      screen.getByText('Необходимо согласие с Политикой конфиденциальности и файлами cookie.')
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('rejects registration with non-school email domain', () => {
@@ -130,6 +165,7 @@ describe('AuthForm', () => {
     fireEvent.change(screen.getByLabelText(/подтверждение пароля/i), {
       target: { value: 'password123' },
     });
+    fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(
       screen.getByRole('button', { name: /^зарегистрироваться$/i })
     );

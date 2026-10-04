@@ -29,6 +29,7 @@ import {
   StudentExamJoinPage,
   StudentExamPage,
 } from '@features/exams';
+import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import CookiePolicyPage from './pages/CookiePolicyPage';
@@ -41,6 +42,10 @@ export const routes = [
         <HomePage />
       </ProtectedRoute>
     ),
+  },
+  {
+    path: '/landing',
+    element: <LandingPage />,
   },
   {
     path: '/admin/variants',

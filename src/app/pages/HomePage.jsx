@@ -4,6 +4,13 @@ import { StartTestPanel } from '@features/testing';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { HeroBackgroundAnimation } from '@shared/ui/BackgroundAnimation/HeroBackgroundAnimation';
 import { ThemeToggle } from '@shared/theme';
+import {
+  UserIcon,
+  SparkIcon,
+  ClockIcon,
+  AnalyticsIcon,
+  TargetIcon,
+} from '@shared/ui/Icons/LandingIcons';
 import styles from './HomePage.module.css';
 
 const PLATFORM_METRICS = [
@@ -35,25 +42,25 @@ const PLATFORM_METRICS = [
 
 const CORE_FEATURES = [
   {
-    icon: '⚡',
+    icon: SparkIcon,
     title: '12 тем спецификации ЕНТ',
     description:
       'Сбалансированное распределение по алгоритмам, базам данных, архитектуре и сетевым протоколам.',
   },
   {
-    icon: '⏱',
+    icon: ClockIcon,
     title: 'Реалистичный симулятор теста',
     description:
       '40 заданий в каждом варианте, дедлайн-таймер с защитой от перезагрузок и пошаговый навигатор.',
   },
   {
-    icon: '💡',
+    icon: TargetIcon,
     title: 'Педагогические объяснения',
     description:
       'Каждое задание содержит исчерпывающее пошаговое обоснование верных ответов и разбор дистракторов.',
   },
   {
-    icon: '📊',
+    icon: AnalyticsIcon,
     title: 'Адаптивная аналитика прогресса',
     description:
       'Глубокий трекинг динамики баллов, определение сильных навыков и персональных зон роста.',
@@ -77,6 +84,9 @@ export default function HomePage() {
             <Logo variant="full" size={24} />
           </Link>
           <nav className={styles.navLinks} aria-label="Основная навигация">
+            <Link to="/landing" className={styles.navLink}>
+              О платформе
+            </Link>
             <Link to="/analytics" className={styles.navLink}>
               Дашборд
             </Link>
@@ -97,7 +107,7 @@ export default function HomePage() {
           <ThemeToggle showLabel={false} />
           {user && (
             <div className={styles.userBadge}>
-              <span className={styles.userIcon}>👤</span>
+              <UserIcon size={14} className={styles.userIcon} />
               <span className={styles.email}>{user.email}</span>
             </div>
           )}
@@ -201,17 +211,20 @@ export default function HomePage() {
           </div>
 
           <div className={styles.featuresGrid}>
-            {CORE_FEATURES.map((feature, idx) => (
-              <div key={idx} className={styles.featureCard}>
-                <span className={styles.featureIcon} aria-hidden="true">
-                  {feature.icon}
-                </span>
-                <h3 className={styles.featureTitle}>{feature.title}</h3>
-                <p className={styles.featureDescription}>
-                  {feature.description}
-                </p>
-              </div>
-            ))}
+            {CORE_FEATURES.map((feature, idx) => {
+              const IconComp = feature.icon;
+              return (
+                <div key={idx} className={styles.featureCard}>
+                  <span className={styles.featureIcon} aria-hidden="true">
+                    <IconComp size={18} />
+                  </span>
+                  <h3 className={styles.featureTitle}>{feature.title}</h3>
+                  <p className={styles.featureDescription}>
+                    {feature.description}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -249,6 +262,10 @@ export default function HomePage() {
           </span>
         </div>
         <div className={styles.footerLinks}>
+          <Link to="/landing" className={styles.footerLink}>
+            О платформе
+          </Link>
+          <span className={styles.footerDivider}>&bull;</span>
           <Link to="/privacy-policy" className={styles.footerLink}>
             Конфиденциальность
           </Link>

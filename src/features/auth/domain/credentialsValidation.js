@@ -40,6 +40,7 @@ const GENERAL_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * @param {string} [params.firstName='']
  * @param {string} [params.lastName='']
  * @param {string} [params.className='']
+ * @param {boolean} [params.agreePrivacyPolicy=false]
  * @returns {{ isValid: boolean, errors: Record<string, string> }}
  */
 export function validateCredentials({
@@ -50,6 +51,7 @@ export function validateCredentials({
   firstName = '',
   lastName = '',
   className = '',
+  agreePrivacyPolicy = false,
 } = {}) {
   const errors = {};
   const normalizedEmail = normalizeSchoolEmail(email);
@@ -101,6 +103,11 @@ export function validateCredentials({
       errors.confirmPassword = 'Подтвердите пароль.';
     } else if (password !== confirmPassword) {
       errors.confirmPassword = 'Пароли не совпадают.';
+    }
+
+    if (!agreePrivacyPolicy) {
+      errors.agreePrivacyPolicy =
+        'Необходимо согласие с Политикой конфиденциальности и файлами cookie.';
     }
   }
 

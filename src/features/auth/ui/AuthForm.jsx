@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '@shared/ui/Logo/Logo';
+import { PolicyModal } from '@shared/ui/CookieConsent';
 import { validateCredentials } from '../domain/credentialsValidation';
 import styles from './AuthForm.module.css';
 
@@ -17,6 +18,8 @@ export function AuthForm({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreePrivacyPolicy, setAgreePrivacyPolicy] = useState(false);
+  const [activePolicy, setActivePolicy] = useState(null); // 'privacy' | 'cookies' | null
   const [fieldErrors, setFieldErrors] = useState({});
 
   const isRegister = mode === 'register';
@@ -31,6 +34,7 @@ export function AuthForm({
       firstName,
       lastName,
       className,
+      agreePrivacyPolicy,
     });
 
     if (!validation.isValid) {
@@ -47,6 +51,7 @@ export function AuthForm({
         email: email.trim().toLowerCase(),
         password,
         confirmPassword,
+        agreePrivacyPolicy,
       });
     } else {
       onSubmit({ email: email.trim().toLowerCase(), password });
@@ -231,16 +236,51 @@ export function AuthForm({
           )}
 
           {isRegister && (
-            <div className={styles.legalNotice}>
-              Создавая аккаунт, вы подтверждаете согласие с{' '}
-              <Link to="/privacy-policy" className={styles.link} target="_blank" rel="noreferrer">
-                Политикой конфиденциальности
-              </Link>{' '}
-              и{' '}
-              <Link to="/cookie-policy" className={styles.link} target="_blank" rel="noreferrer">
-                Политикой файлов cookie
-              </Link>
-              .
+            <div className={styles.checkboxField}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  id="agreePrivacyPolicy"
+                  checked={agreePrivacyPolicy}
+                  onChange={(e) => {
+                    setAgreePrivacyPolicy(e.target.checked);
+                    if (fieldErrors.agreePrivacyPolicy) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        agreePrivacyPolicy: undefined,
+                      }));
+                    }
+                  }}
+                  disabled={isPending}
+                  className={styles.checkboxInput}
+                />
+                <span className={styles.checkboxText}>
+                  Я ознакомлен(-а) и согласен(-на) с{' '}
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy('privacy')}
+                    className={styles.modalLinkButton}
+                  >
+                    Политикой конфиденциальности
+                  </button>{' '}
+                  и{' '}
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy('cookies')}
+                    className={styles.modalLinkButton}
+                  >
+                    файлами cookie
+                  </button>
+                </span>
+              </label>
+              {fieldErrors.agreePrivacyPolicy && (
+                <span className={styles.fieldError}>
+                  <span className={styles.errorIcon} aria-hidden="true">
+                    [!]
+                  </span>
+                  <span>{fieldErrors.agreePrivacyPolicy}</span>
+                </span>
+              )}
             </div>
           )}
 
@@ -256,6 +296,11 @@ export function AuthForm({
                 : 'Войти'}
           </button>
         </form>
+
+        <PolicyModal
+          type={activePolicy}
+          onClose={() => setActivePolicy(null)}
+        />
 
         {onGoogleSignIn ? (
           <>
@@ -314,6 +359,11 @@ export function AuthForm({
               </Link>
             </p>
           )}
+          <p style={{ marginTop: '12px', fontSize: '0.75rem' }}>
+            <Link to="/landing" className={styles.link}>
+              ← О платформе PrepByte
+            </Link>
+          </p>
         </div>
       </div>
     </div>

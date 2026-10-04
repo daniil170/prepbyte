@@ -41,10 +41,29 @@ describe('credentialsValidation domain', () => {
         email: 'daniyar@pifagorschool.kz',
         password: 'securePassword123',
         confirmPassword: 'securePassword123',
+        agreePrivacyPolicy: true,
       });
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual({});
+    });
+
+    it('flags missing agreePrivacyPolicy checkbox on registration', () => {
+      const result = validateCredentials({
+        isRegister: true,
+        firstName: 'Данияр',
+        lastName: 'Ахметов',
+        className: '10А',
+        email: 'daniyar@pifagorschool.kz',
+        password: 'securePassword123',
+        confirmPassword: 'securePassword123',
+        agreePrivacyPolicy: false,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.agreePrivacyPolicy).toBe(
+        'Необходимо согласие с Политикой конфиденциальности и файлами cookie.'
+      );
     });
 
     it('flags missing and invalid registration fields', () => {
@@ -56,6 +75,7 @@ describe('credentialsValidation domain', () => {
         email: 'student@gmail.com',
         password: '123',
         confirmPassword: '456',
+        agreePrivacyPolicy: false,
       });
 
       expect(result.isValid).toBe(false);
@@ -69,6 +89,7 @@ describe('credentialsValidation domain', () => {
         'Пароль должен содержать минимум 6 символов.'
       );
       expect(result.errors.confirmPassword).toBe('Пароли не совпадают.');
+      expect(result.errors.agreePrivacyPolicy).toBeDefined();
     });
   });
 

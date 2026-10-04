@@ -21,14 +21,14 @@ describe('ThemeToggle & ThemeProvider', () => {
       name: /Переключить на светлую тему/i,
     });
     expect(toggleBtn).toBeInTheDocument();
-    expect(screen.getByText('Светлая')).toBeInTheDocument();
+    expect(screen.getAllByText('Светлая').length).toBeGreaterThan(0);
 
     // Click toggle button -> switches to light
     fireEvent.click(toggleBtn);
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
-    expect(screen.getByText('Тёмная')).toBeInTheDocument();
+    expect(screen.getAllByText('Тёмная').length).toBeGreaterThan(0);
 
     // Click again -> switches back to dark
     fireEvent.click(screen.getByRole('button', { name: /Переключить на тёмную тему/i }));

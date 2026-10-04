@@ -1,0 +1,26 @@
+.modalBody {
+  display: inline;
+  line-height: 1.6;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+
+.inlineModalLink {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.inlineModalLink:hover {
+  opacity: 0.75;
+}
