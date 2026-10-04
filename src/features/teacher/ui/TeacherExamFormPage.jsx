@@ -33,6 +33,7 @@ export function TeacherExamFormPage() {
     setTypeFilter,
     addQuestion,
     removeQuestion,
+    removeAllQuestions,
     moveQuestionUp,
     moveQuestionDown,
     saveDraft,
@@ -45,6 +46,7 @@ export function TeacherExamFormPage() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedVariantToLoad, setSelectedVariantToLoad] = useState('');
+  const [isListCollapsed, setIsListCollapsed] = useState(false);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -157,84 +159,6 @@ export function TeacherExamFormPage() {
           </div>
         </div>
 
-        {/* Selected Questions List Card */}
-        <div className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>
-              Состав экзамена ({selectedQuestions.length} вопросов)
-            </h2>
-          </div>
-
-          {validationErrors.questions && (
-            <div className={styles.errorBox}>{validationErrors.questions}</div>
-          )}
-
-          {selectedQuestions.length === 0 ? (
-            <div className={styles.emptySelectedBox}>
-              Вопросы ещё не добавлены. Выберите необходимые вопросы из Банка
-              Вопросов ниже.
-            </div>
-          ) : (
-            <div className={styles.selectedList}>
-              {selectedQuestions.map((q, index) => (
-                <div key={q.id || index} className={styles.selectedRow}>
-                  <div className={styles.numBadge}>#{index + 1}</div>
-
-                  <div className={styles.questionContent}>
-                    <div className={styles.questionText}>
-                      {q.questionText || `Вопрос ID: ${q.id}`}
-                    </div>
-                    <div className={styles.questionMeta}>
-                      {q.topic && <span className={styles.tag}>{q.topic}</span>}
-                      {q.difficulty && (
-                        <span
-                          className={`${styles.tag} ${
-                            styles[`diff_${q.difficulty}`] || ''
-                          }`}
-                        >
-                          {q.difficulty}
-                        </span>
-                      )}
-                      <span className={styles.tag}>
-                        {q.multiple ? 'Несколько ответов' : 'Один ответ'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className={styles.orderActions}>
-                    <button
-                      type="button"
-                      className={styles.orderBtn}
-                      onClick={() => moveQuestionUp(index)}
-                      disabled={index === 0}
-                      title="Переместить вверх"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.orderBtn}
-                      onClick={() => moveQuestionDown(index)}
-                      disabled={index === selectedQuestions.length - 1}
-                      title="Переместить вниз"
-                    >
-                      ▼
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.removeBtn}
-                      onClick={() => removeQuestion(q.id)}
-                      title="Удалить из экзамена"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Quick Load Variant Card */}
         {availableVariants && availableVariants.length > 0 && (
           <div className={styles.card}>
@@ -273,6 +197,120 @@ export function TeacherExamFormPage() {
             </div>
           </div>
         )}
+
+        {/* Selected Questions List Card */}
+        <div className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <h2 className={styles.cardTitle}>
+              Состав экзамена ({selectedQuestions.length} вопросов)
+            </h2>
+            {selectedQuestions.length > 0 && (
+              <div className={styles.headerControls}>
+                <button
+                  type="button"
+                  className={styles.compactToggleBtn}
+                  onClick={() => setIsListCollapsed((prev) => !prev)}
+                >
+                  {isListCollapsed ? '📜 Развернуть список' : '📋 Свернуть список'}
+                </button>
+                {removeAllQuestions && (
+                  <button
+                    type="button"
+                    className={styles.clearAllBtn}
+                    onClick={() => removeAllQuestions()}
+                    title="Очистить все выбранные вопросы"
+                  >
+                    Очистить все
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {validationErrors.questions && (
+            <div className={styles.errorBox}>{validationErrors.questions}</div>
+          )}
+
+          {selectedQuestions.length === 0 ? (
+            <div className={styles.emptySelectedBox}>
+              Вопросы ещё не добавлены. Выберите необходимые вопросы из Банка
+              Вопросов ниже или загрузите готовый вариант ЕНТ.
+            </div>
+          ) : isListCollapsed ? (
+            <div className={styles.collapsedSummaryBox}>
+              <span>
+                📋 Все <strong>{selectedQuestions.length} вопросов</strong> загружены в экзамен.
+              </span>
+              <button
+                type="button"
+                className={styles.compactToggleBtn}
+                onClick={() => setIsListCollapsed(false)}
+              >
+                Развернуть для настройки порядка
+              </button>
+            </div>
+          ) : (
+            <div className={styles.scrollableContainer}>
+              <div className={styles.selectedList}>
+                {selectedQuestions.map((q, index) => (
+                  <div key={q.id || index} className={styles.selectedRow}>
+                    <div className={styles.numBadge}>#{index + 1}</div>
+
+                    <div className={styles.questionContent}>
+                      <div className={styles.questionText}>
+                        {q.questionText || `Вопрос ID: ${q.id}`}
+                      </div>
+                      <div className={styles.questionMeta}>
+                        {q.topic && <span className={styles.tag}>{q.topic}</span>}
+                        {q.difficulty && (
+                          <span
+                            className={`${styles.tag} ${
+                              styles[`diff_${q.difficulty}`] || ''
+                            }`}
+                          >
+                            {q.difficulty}
+                          </span>
+                        )}
+                        <span className={styles.tag}>
+                          {q.multiple ? 'Несколько ответов' : 'Один ответ'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={styles.orderActions}>
+                      <button
+                        type="button"
+                        className={styles.orderBtn}
+                        onClick={() => moveQuestionUp(index)}
+                        disabled={index === 0}
+                        title="Переместить вверх"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.orderBtn}
+                        onClick={() => moveQuestionDown(index)}
+                        disabled={index === selectedQuestions.length - 1}
+                        title="Переместить вниз"
+                      >
+                        ▼
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.removeBtn}
+                        onClick={() => removeQuestion(q.id)}
+                        title="Удалить из экзамена"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Question Bank Picker Card */}
         <div className={styles.card}>
@@ -344,37 +382,39 @@ export function TeacherExamFormPage() {
               Доступных вопросов не найдено (или все подходящие вопросы уже добавлены в экзамен).
             </div>
           ) : (
-            <div className={styles.pickerList}>
-              {pickerQuestions.map((q) => (
-                <div key={q.id} className={styles.pickerRow}>
-                  <div className={styles.questionContent}>
-                    <div className={styles.questionText}>{q.questionText}</div>
-                    <div className={styles.questionMeta}>
-                      {q.topic && <span className={styles.tag}>{q.topic}</span>}
-                      {q.difficulty && (
-                        <span
-                          className={`${styles.tag} ${
-                            styles[`diff_${q.difficulty}`] || ''
-                          }`}
-                        >
-                          {q.difficulty}
+            <div className={styles.scrollableContainer}>
+              <div className={styles.pickerList}>
+                {pickerQuestions.map((q) => (
+                  <div key={q.id} className={styles.pickerRow}>
+                    <div className={styles.questionContent}>
+                      <div className={styles.questionText}>{q.questionText}</div>
+                      <div className={styles.questionMeta}>
+                        {q.topic && <span className={styles.tag}>{q.topic}</span>}
+                        {q.difficulty && (
+                          <span
+                            className={`${styles.tag} ${
+                              styles[`diff_${q.difficulty}`] || ''
+                            }`}
+                          >
+                            {q.difficulty}
+                          </span>
+                        )}
+                        <span className={styles.tag}>
+                          {q.multiple ? 'Несколько ответов' : 'Один ответ'}
                         </span>
-                      )}
-                      <span className={styles.tag}>
-                        {q.multiple ? 'Несколько ответов' : 'Один ответ'}
-                      </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <button
-                    type="button"
-                    className={styles.addBtn}
-                    onClick={() => addQuestion(q)}
-                  >
-                    + Добавить
-                  </button>
-                </div>
-              ))}
+                    <button
+                      type="button"
+                      className={styles.addBtn}
+                      onClick={() => addQuestion(q)}
+                    >
+                      + Добавить
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

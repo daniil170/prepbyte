@@ -254,6 +254,11 @@ export function useExamBuilder({
     setQuestionIds((prev) => prev.filter((id) => id !== qId));
   }, []);
 
+  // Remove all questions from exam
+  const removeAllQuestions = useCallback(() => {
+    setQuestionIds([]);
+  }, []);
+
   // Move question up
   const moveQuestionUp = useCallback((index) => {
     if (index <= 0) return;
@@ -382,6 +387,7 @@ export function useExamBuilder({
     // Operations
     addQuestion,
     removeQuestion,
+    removeAllQuestions,
     moveQuestionUp,
     moveQuestionDown,
     saveDraft,
