@@ -73,6 +73,9 @@ export function TeacherExamFormPage() {
         <h1 className={styles.title}>
           {isEditMode ? 'Редактирование черновика экзамена' : 'Конструктор экзамена'}
         </h1>
+        <p className={styles.subtitle}>
+          Настройте основные параметры тестирования, выберите группу и сформируйте список вопросов
+        </p>
       </header>
 
       {error && <div className={styles.errorBox}>{error}</div>}
@@ -80,7 +83,12 @@ export function TeacherExamFormPage() {
       <form onSubmit={handleSave} className={styles.form} noValidate>
         {/* Basic Exam Info Card */}
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Параметры экзамена</h2>
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Параметры экзамена</h2>
+              <span className={styles.cardHint}>Основные настройки и ограничения сессии</span>
+            </div>
+          </div>
 
           <div className={styles.formGroup}>
             <label htmlFor="examTitle" className={styles.label}>
@@ -154,10 +162,14 @@ export function TeacherExamFormPage() {
 
         {/* Selected Questions List Card */}
         <div className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <h2 className={styles.cardTitle}>
-              Состав экзамена ({selectedQuestions.length} вопросов)
-            </h2>
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Состав экзамена</h2>
+              <span className={styles.cardHint}>Порядок и перечень включенных в экзамен вопросов</span>
+            </div>
+            <span className={styles.counterBadge}>
+              {selectedQuestions.length} вопросов
+            </span>
           </div>
 
           {validationErrors.questions && (
@@ -232,7 +244,15 @@ export function TeacherExamFormPage() {
 
         {/* Question Bank Picker Card */}
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Банк Вопросов (Добавление вопросов)</h2>
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Банк Вопросов (Добавление вопросов)</h2>
+              <span className={styles.cardHint}>Поиск и добавление заданий из общей базы</span>
+            </div>
+            <span className={styles.counterBadge}>
+              Доступно: {pickerQuestions.length}
+            </span>
+          </div>
 
           {/* Filters Bar */}
           <div className={styles.filtersBar}>
