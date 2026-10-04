@@ -60,4 +60,15 @@ describe('question entity', () => {
 
     expect(codeQuestion.questionText).toContain('```python');
   });
+
+  it('assigns default active status and createdBy metadata when provided', () => {
+    const q = createQuestion({
+      ...validData,
+      createdBy: 'teacher_123',
+      status: 'archived',
+    });
+
+    expect(q.createdBy).toBe('teacher_123');
+    expect(q.status).toBe('archived');
+  });
 });

@@ -354,8 +354,41 @@ describe('Firestore Security Rules Unit Tests', () => {
         multiple: false,
         difficulty: 'easy',
         version: 1,
+        createdBy: 'teacherA',
+        status: 'active',
       })
     );
+  });
+
+  it('6g. Teacher B CANNOT update or delete Teacher A question (ownership check)', async () => {
+    if (!isEmulatorAvailable) return;
+    const teacherA = testEnv.authenticatedContext('teacherA', {
+      teacher: true,
+      email: 'teachera@pifagorschool.kz',
+    });
+    const dbA = teacherA.firestore();
+    await setDoc(doc(dbA, 'questions/qOwnedByA'), {
+      topic: 'python_loops',
+      questionText: 'Question owned by Teacher A',
+      options: ['A', 'B'],
+      multiple: false,
+      difficulty: 'easy',
+      version: 1,
+      createdBy: 'teacherA',
+      status: 'active',
+    });
+
+    const teacherB = testEnv.authenticatedContext('teacherB', {
+      teacher: true,
+      email: 'teacherb@pifagorschool.kz',
+    });
+    const dbB = teacherB.firestore();
+    await assertFails(
+      updateDoc(doc(dbB, 'questions/qOwnedByA'), {
+        questionText: 'Hacked by Teacher B',
+      })
+    );
+    await assertFails(deleteDoc(doc(dbB, 'questions/qOwnedByA')));
   });
 
   it('7. Ordinary user CANNOT create a profile with role: "teacher" or "admin"', async () => {

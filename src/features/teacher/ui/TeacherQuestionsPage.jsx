@@ -30,6 +30,8 @@ export function TeacherQuestionsPage() {
     setSelectedDifficulty,
     selectedType,
     setSelectedType,
+    selectedStatus,
+    setSelectedStatus,
     deleteQuestion,
   } = useTeacherQuestions();
 
@@ -128,6 +130,22 @@ export function TeacherQuestionsPage() {
               <option value="multiple">Несколько ответов</option>
             </select>
           </div>
+
+          <div className={styles.filterField}>
+            <label htmlFor="status-filter" className={styles.filterLabel}>
+              Статус:
+            </label>
+            <select
+              id="status-filter"
+              className={styles.selectInput}
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="active">Активные</option>
+              <option value="archived">В архиве</option>
+              <option value="all">Все</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -219,9 +237,9 @@ export function TeacherQuestionsPage() {
 
       <ConfirmDialog
         open={Boolean(deletingId)}
-        title="Удалить вопрос?"
-        description="Этот вопрос будет удалён из банка вопросов."
-        confirmLabel={isDeleting ? 'Удаление...' : 'Удалить'}
+        title="Архивировать вопрос?"
+        description="Этот вопрос будет перемещён в архив и скрыт из основного банка вопросов."
+        confirmLabel={isDeleting ? 'Архивация...' : 'Архивировать'}
         cancelLabel="Отмена"
         onConfirm={handleConfirmDelete}
         onCancel={() => {

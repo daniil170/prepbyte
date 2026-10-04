@@ -45,6 +45,16 @@ export function validateQuestion(raw) {
     errors.push('Поле version должно быть целым положительным числом.');
   }
 
+  // status validation (if provided)
+  if (raw.status !== undefined && !['active', 'archived'].includes(raw.status)) {
+    errors.push('Поле status должно иметь значение active или archived.');
+  }
+
+  // createdBy validation (if provided)
+  if (raw.createdBy !== undefined && raw.createdBy !== null && (typeof raw.createdBy !== 'string' || !raw.createdBy.trim())) {
+    errors.push('Поле createdBy должно быть непустой строкой.');
+  }
+
   // options validation
   if (!Array.isArray(raw.options)) {
     errors.push('Поле options должно быть массивом строк.');
@@ -221,6 +231,16 @@ export function validatePublicQuestion(raw) {
     raw.version <= 0
   ) {
     errors.push('Поле version должно быть целым положительным числом.');
+  }
+
+  // status validation (if provided)
+  if (raw.status !== undefined && !['active', 'archived'].includes(raw.status)) {
+    errors.push('Поле status должно иметь значение active или archived.');
+  }
+
+  // createdBy validation (if provided)
+  if (raw.createdBy !== undefined && raw.createdBy !== null && (typeof raw.createdBy !== 'string' || !raw.createdBy.trim())) {
+    errors.push('Поле createdBy должно быть непустой строкой.');
   }
 
   // options validation

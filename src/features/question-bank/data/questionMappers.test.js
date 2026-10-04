@@ -65,6 +65,8 @@ describe('questionMappers', () => {
         multiple: false,
         difficulty: 'easy',
         version: 1,
+        status: 'active',
+        createdBy: null,
       });
       expect(docData).not.toHaveProperty('id');
       expect(docData).not.toHaveProperty('correctAnswers');
@@ -86,6 +88,7 @@ describe('questionMappers', () => {
         correctAnswers: [0],
         explanation: 'Цикл for используется для перебора последовательностей.',
         version: 1,
+        createdBy: null,
       });
     });
   });

@@ -32,6 +32,10 @@ export function documentToQuestion(id, data) {
       multiple: data.multiple,
       difficulty: data.difficulty,
       version: data.version,
+      status: data.status || 'active',
+      createdBy: data.createdBy || null,
+      createdAt: data.createdAt || null,
+      updatedAt: data.updatedAt || null,
     };
     if (data.correctAnswers !== undefined) {
       raw.correctAnswers = data.correctAnswers;
@@ -60,6 +64,10 @@ export function questionToDocument(question) {
       : Boolean(question.multiple),
     difficulty: question.difficulty,
     version: question.version || 1,
+    status: question.status || 'active',
+    createdBy: question.createdBy || null,
+    ...(question.createdAt ? { createdAt: question.createdAt } : {}),
+    ...(question.updatedAt ? { updatedAt: question.updatedAt } : {}),
   };
 }
 
@@ -76,6 +84,8 @@ export function questionToAnswerDocument(question) {
       : [],
     explanation: question.explanation || '',
     version: question.version || 1,
+    createdBy: question.createdBy || null,
+    ...(question.updatedAt ? { updatedAt: question.updatedAt } : {}),
   };
 }
 
@@ -89,5 +99,7 @@ export function documentToQuestionAnswer(id, data) {
     correctAnswers: Array.isArray(data.correctAnswers) ? [...data.correctAnswers] : [],
     explanation: data.explanation || '',
     version: data.version || 1,
+    createdBy: data.createdBy || null,
+    updatedAt: data.updatedAt || null,
   };
 }

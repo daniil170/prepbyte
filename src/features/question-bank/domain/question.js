@@ -30,6 +30,10 @@ export function createQuestion(raw) {
     ),
     difficulty: raw.difficulty,
     version: raw.version || 1,
+    status: raw.status === 'archived' ? 'archived' : 'active',
+    createdBy: raw.createdBy ? String(raw.createdBy).trim() : null,
+    createdAt: raw.createdAt || null,
+    updatedAt: raw.updatedAt || null,
   };
 
   if (!isPublicOnly) {

@@ -9,7 +9,9 @@ vi.mock('@features/question-bank', async (importOriginal) => {
     ...actual,
     questionRepository: {
       getAllQuestionsWithAnswers: vi.fn(),
+      getTeacherQuestions: vi.fn(),
       saveQuestion: vi.fn(),
+      archiveQuestion: vi.fn(),
       deleteQuestion: vi.fn(),
     },
   };
@@ -39,6 +41,7 @@ describe('useTeacherQuestions hook', () => {
 
   it('loads questions on mount and supports filtering', async () => {
     questionRepository.getAllQuestionsWithAnswers.mockResolvedValue(mockList);
+    questionRepository.getTeacherQuestions.mockResolvedValue(mockList);
 
     const { result } = renderHook(() => useTeacherQuestions());
 
@@ -74,7 +77,9 @@ describe('useTeacherQuestions hook', () => {
 
   it('handles deleteQuestion and updates list on success', async () => {
     questionRepository.getAllQuestionsWithAnswers.mockResolvedValue(mockList);
+    questionRepository.getTeacherQuestions.mockResolvedValue(mockList);
     questionRepository.deleteQuestion.mockResolvedValue();
+    questionRepository.archiveQuestion.mockResolvedValue();
 
     const { result } = renderHook(() => useTeacherQuestions());
     await act(async () => {});

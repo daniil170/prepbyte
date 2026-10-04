@@ -6,26 +6,77 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && request.auth.token.admin == true;
+      return isAuthenticated() && request.auth.token.keys().hasAny(['admin']) && request.auth.token.admin == true;
     }
 
     function isTeacher() {
-      return isAuthenticated() && (request.auth.token.teacher == true || isAdmin());
+      return isAuthenticated() && (
+        (request.auth.token.keys().hasAny(['teacher']) && request.auth.token.teacher == true)
+        || isAdmin()
+      );
     }
 
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Questions collection: public question data readable by authenticated users, client writes allowed for teachers and admins
+    // Questions collection: public question data readable by authenticated users (for taking exams), teacher-owned writes
     match /questions/{questionId} {
-      allow read: if isAuthenticated();
-      allow write: if isTeacher();
+      allow read: if isAuthenticated() && (
+        !isTeacher()
+        || resource == null
+        || !resource.data.keys().hasAny(['createdBy'])
+        || resource.data.createdBy == null
+        || resource.data.createdBy == request.auth.uid
+        || isAdmin()
+      );
+
+      allow create: if isTeacher()
+        && (!request.resource.data.keys().hasAny(['createdBy']) || request.resource.data.createdBy == request.auth.uid || request.resource.data.createdBy == null)
+        && (!request.resource.data.keys().hasAny(['status']) || request.resource.data.status in ['active', 'archived']);
+
+      allow update: if isAuthenticated() && (
+        isAdmin()
+        || (
+          isTeacher()
+          && (!resource.data.keys().hasAny(['createdBy']) || resource.data.createdBy == null || resource.data.createdBy == request.auth.uid)
+          && (!request.resource.data.keys().hasAny(['createdBy']) || !resource.data.keys().hasAny(['createdBy']) || request.resource.data.createdBy == resource.data.createdBy)
+        )
+      );
+
+      allow delete: if isAuthenticated() && (
+        isAdmin()
+        || (isTeacher() && (!resource.data.keys().hasAny(['createdBy']) || resource.data.createdBy == null || resource.data.createdBy == request.auth.uid))
+      );
     }
 
     // Question answers collection: protected correct answers and explanations. Strictly forbidden to students.
     match /question_answers/{questionId} {
-      allow read, write: if isTeacher();
+      allow read: if isTeacher() && (
+        resource == null
+        || !resource.data.keys().hasAny(['createdBy'])
+        || resource.data.createdBy == null
+        || resource.data.createdBy == request.auth.uid
+        || isAdmin()
+      );
+
+      allow create: if isTeacher()
+        && (!request.resource.data.keys().hasAny(['createdBy']) || request.resource.data.createdBy == request.auth.uid || request.resource.data.createdBy == null);
+
+      allow update: if isTeacher() && (
+        isAdmin()
+        || (
+          (!resource.data.keys().hasAny(['createdBy']) || resource.data.createdBy == null || resource.data.createdBy == request.auth.uid)
+          && (!request.resource.data.keys().hasAny(['createdBy']) || !resource.data.keys().hasAny(['createdBy']) || request.resource.data.createdBy == resource.data.createdBy)
+        )
+      );
+
+      allow delete: if isTeacher() && (
+        isAdmin()
+        || !resource.data.keys().hasAny(['createdBy'])
+        || resource.data.createdBy == null
+        || resource.data.createdBy == request.auth.uid
+      );
     }
 
     // Users collection: user profiles and educational associations

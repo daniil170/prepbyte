@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@features/auth';
 import {
   getTopicLabel,
   isMultipleAnswer,
@@ -6,6 +7,15 @@ import {
 } from '@features/question-bank';
 
 export function useTeacherQuestions() {
+  let user = null;
+  try {
+    const authContext = useAuth();
+    user = authContext?.user;
+  } catch {
+    user = null;
+  }
+  const userUid = user?.uid;
+
   const [questions, setQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,26 +26,33 @@ export function useTeacherQuestions() {
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('active');
 
   const loadQuestions = useCallback(async () => {
     setError(null);
     try {
-      const data = await questionRepository.getAllQuestionsWithAnswers();
-      setQuestions(data);
+      const fetchFn =
+        questionRepository.getTeacherQuestions ||
+        questionRepository.getAllQuestionsWithAnswers;
+      const data = await fetchFn(userUid);
+      setQuestions(data || []);
     } catch (err) {
       setError(err.message || 'Ошибка загрузки вопросов');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userUid]);
 
   useEffect(() => {
     let ignore = false;
     async function init() {
       try {
-        const data = await questionRepository.getAllQuestionsWithAnswers();
+        const fetchFn =
+          questionRepository.getTeacherQuestions ||
+          questionRepository.getAllQuestionsWithAnswers;
+        const data = await fetchFn(userUid);
         if (!ignore) {
-          setQuestions(data);
+          setQuestions(data || []);
         }
       } catch (err) {
         if (!ignore) {
@@ -52,10 +69,18 @@ export function useTeacherQuestions() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [userUid]);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
+      // 0. Status Filter (default 'active')
+      if (selectedStatus !== 'all') {
+        const qStatus = q.status || 'active';
+        if (qStatus !== selectedStatus) {
+          return false;
+        }
+      }
+
       // 1. Search Filter (Text & Topic)
       if (searchQuery.trim()) {
         const queryClean = searchQuery.trim().toLowerCase();
@@ -95,20 +120,33 @@ export function useTeacherQuestions() {
 
       return true;
     });
-  }, [questions, searchQuery, selectedTopic, selectedDifficulty, selectedType]);
+  }, [
+    questions,
+    searchQuery,
+    selectedTopic,
+    selectedDifficulty,
+    selectedType,
+    selectedStatus,
+  ]);
 
-  const deleteQuestion = useCallback(async (id) => {
+  const archiveQuestion = useCallback(async (id) => {
     setActionError(null);
     try {
-      await questionRepository.deleteQuestion(id);
+      if (questionRepository.archiveQuestion) {
+        await questionRepository.archiveQuestion(id);
+      } else {
+        await questionRepository.deleteQuestion(id);
+      }
       setQuestions((prev) => prev.filter((q) => q.id !== id));
       return { success: true };
     } catch (err) {
-      const msg = err.message || 'Не удалось удалить вопрос.';
+      const msg = err.message || 'Не удалось архивировать вопрос.';
       setActionError(msg);
       return { success: false, error: msg };
     }
   }, []);
+
+  const deleteQuestion = archiveQuestion;
 
   const saveQuestion = useCallback(async (questionData) => {
     setActionError(null);
@@ -146,8 +184,11 @@ export function useTeacherQuestions() {
     setSelectedDifficulty,
     selectedType,
     setSelectedType,
+    selectedStatus,
+    setSelectedStatus,
     loadQuestions,
     deleteQuestion,
+    archiveQuestion,
     saveQuestion,
   };
 }

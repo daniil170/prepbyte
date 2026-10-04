@@ -44,6 +44,8 @@ describe('TeacherQuestionsPage component', () => {
       setSelectedDifficulty: vi.fn(),
       selectedType: 'all',
       setSelectedType: vi.fn(),
+      selectedStatus: 'active',
+      setSelectedStatus: vi.fn(),
       deleteQuestion: vi.fn(),
     });
 
@@ -66,6 +68,7 @@ describe('TeacherQuestionsPage component', () => {
     const setSelectedTopic = vi.fn();
     const setSelectedDifficulty = vi.fn();
     const setSelectedType = vi.fn();
+    const setSelectedStatus = vi.fn();
 
     vi.spyOn(useTeacherQuestionsModule, 'useTeacherQuestions').mockReturnValue({
       questions: mockQuestions,
@@ -82,6 +85,8 @@ describe('TeacherQuestionsPage component', () => {
       setSelectedDifficulty,
       selectedType: 'all',
       setSelectedType,
+      selectedStatus: 'active',
+      setSelectedStatus,
       deleteQuestion: vi.fn(),
     });
 
@@ -106,6 +111,10 @@ describe('TeacherQuestionsPage component', () => {
     const typeSelect = screen.getByLabelText('Тип:');
     fireEvent.change(typeSelect, { target: { value: 'single' } });
     expect(setSelectedType).toHaveBeenCalledWith('single');
+
+    const statusSelect = screen.getByLabelText('Статус:');
+    fireEvent.change(statusSelect, { target: { value: 'archived' } });
+    expect(setSelectedStatus).toHaveBeenCalledWith('archived');
   });
 
   it('triggers delete confirmation dialog', async () => {
@@ -126,6 +135,8 @@ describe('TeacherQuestionsPage component', () => {
       setSelectedDifficulty: vi.fn(),
       selectedType: 'all',
       setSelectedType: vi.fn(),
+      selectedStatus: 'active',
+      setSelectedStatus: vi.fn(),
       deleteQuestion,
     });
 
@@ -139,9 +150,9 @@ describe('TeacherQuestionsPage component', () => {
     fireEvent.click(deleteBtns[0]);
 
     // Dialog heading
-    expect(screen.getByText('Удалить вопрос?')).toBeInTheDocument();
+    expect(screen.getByText('Архивировать вопрос?')).toBeInTheDocument();
     expect(
-      screen.getByText('Этот вопрос будет удалён из банка вопросов.')
+      screen.getByText('Этот вопрос будет перемещён в архив и скрыт из основного банка вопросов.')
     ).toBeInTheDocument();
   });
 });

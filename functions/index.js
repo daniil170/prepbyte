@@ -428,3 +428,196 @@ export const submitExamSession = onCall(async (request) => {
     };
   });
 });
+
+/**
+ * Callable Cloud Function: saveQuestion
+ *
+ * Server-authoritative question creation and editing for teachers:
+ * - Validates authentication and teacher/admin role
+ * - Validates domain rules (questionText, topic, difficulty, options, correctAnswers)
+ * - Enforces teacher ownership (cannot edit another teacher's question)
+ * - Server-authoritatively binds createdBy to request.auth.uid (ignores client input)
+ * - Performs atomic transaction writing to /questions and /question_answers
+ */
+export const saveQuestion = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для сохранения вопроса требуется аутентификация.');
+  }
+
+  const isTeacher = Boolean(request.auth.token?.teacher || request.auth.token?.admin);
+  if (!isTeacher) {
+    throw new HttpsError('permission-denied', 'Доступ разрешён только преподавателям и администраторам.');
+  }
+
+  const questionData = request.data || {};
+  const {
+    id,
+    questionText,
+    topic,
+    difficulty,
+    type,
+    multiple,
+    options,
+    correctAnswers,
+    explanation,
+  } = questionData;
+
+  // Validation checks
+  if (typeof questionText !== 'string' || !questionText.trim()) {
+    throw new HttpsError('invalid-argument', 'Текст вопроса (questionText) обязателен.');
+  }
+  if (typeof topic !== 'string' || !topic.trim()) {
+    throw new HttpsError('invalid-argument', 'Тема вопроса (topic) обязательна.');
+  }
+  if (!['easy', 'medium', 'hard'].includes(difficulty)) {
+    throw new HttpsError('invalid-argument', 'Некорректная сложность вопроса (difficulty).');
+  }
+  if (!Array.isArray(options) || options.length < 2 || options.length > 6) {
+    throw new HttpsError('invalid-argument', 'Количество вариантов должно быть от 2 до 6.');
+  }
+
+  const cleanOptions = options.map((opt) => (typeof opt === 'string' ? opt.trim() : ''));
+  if (cleanOptions.some((opt) => !opt)) {
+    throw new HttpsError('invalid-argument', 'Все варианты ответов должны быть непустыми строками.');
+  }
+  const uniqueOptions = new Set(cleanOptions);
+  if (uniqueOptions.size !== cleanOptions.length) {
+    throw new HttpsError('invalid-argument', 'Варианты ответов не должны дублироваться.');
+  }
+
+  const isMultiple = Boolean(
+    type === 'multiple' || multiple || (Array.isArray(correctAnswers) && correctAnswers.length > 1)
+  );
+
+  if (!Array.isArray(correctAnswers) || correctAnswers.length === 0) {
+    throw new HttpsError('invalid-argument', 'Укажите хотя бы один правильный ответ.');
+  }
+  if (!isMultiple && correctAnswers.length > 1) {
+    throw new HttpsError('invalid-argument', 'Для вопроса с одним выбором ответа укажите ровно один правильный вариант.');
+  }
+
+  const maxOptionIndex = cleanOptions.length - 1;
+  const invalidIndices = correctAnswers.some(
+    (idx) => typeof idx !== 'number' || !Number.isInteger(idx) || idx < 0 || idx > maxOptionIndex
+  );
+  if (invalidIndices) {
+    throw new HttpsError('invalid-argument', 'Индексы правильных ответов выходят за диапазон вариантов.');
+  }
+
+  const targetId = id && typeof id === 'string' && id.trim()
+    ? id.trim()
+    : `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+  const callerUid = request.auth.uid;
+  const isAdmin = Boolean(request.auth.token?.admin);
+
+  const publicDocRef = db.collection('questions').doc(targetId);
+  const answerDocRef = db.collection('question_answers').doc(targetId);
+
+  return await db.runTransaction(async (transaction) => {
+    const publicSnap = await transaction.get(publicDocRef);
+    let ownerUid = callerUid;
+    let version = 1;
+    let currentStatus = 'active';
+
+    if (publicSnap.exists) {
+      const existingData = publicSnap.data();
+      if (existingData.createdBy && existingData.createdBy !== callerUid && !isAdmin) {
+        throw new HttpsError('permission-denied', 'Вы можете редактировать только собственные вопросы.');
+      }
+      ownerUid = existingData.createdBy || callerUid;
+      version = (existingData.version || 1) + 1;
+      currentStatus = existingData.status || 'active';
+    }
+
+    const publicPayload = {
+      topic: topic.trim(),
+      questionText: questionText.trim(),
+      options: cleanOptions,
+      multiple: isMultiple,
+      difficulty,
+      createdBy: ownerUid,
+      status: currentStatus,
+      version,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (!publicSnap.exists) {
+      publicPayload.createdAt = FieldValue.serverTimestamp();
+    }
+
+    const answerPayload = {
+      questionId: targetId,
+      correctAnswers: [...new Set(correctAnswers)].sort((a, b) => a - b),
+      explanation: typeof explanation === 'string' ? explanation.trim() : '',
+      createdBy: ownerUid,
+      version,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    transaction.set(publicDocRef, publicPayload, { merge: true });
+    transaction.set(answerDocRef, answerPayload, { merge: true });
+
+    return {
+      success: true,
+      id: targetId,
+      question: {
+        id: targetId,
+        ...publicPayload,
+        correctAnswers: answerPayload.correctAnswers,
+        explanation: answerPayload.explanation,
+      },
+    };
+  });
+});
+
+/**
+ * Callable Cloud Function: archiveQuestion
+ *
+ * Soft-deletes a teacher question by updating status = 'archived':
+ * - Validates authentication and teacher role
+ * - Enforces ownership check (teachers can only archive their own questions)
+ */
+export const archiveQuestion = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Для архивации вопроса требуется аутентификация.');
+  }
+
+  const isTeacher = Boolean(request.auth.token?.teacher || request.auth.token?.admin);
+  if (!isTeacher) {
+    throw new HttpsError('permission-denied', 'Доступ разрешён только преподавателям и администраторам.');
+  }
+
+  const { questionId } = request.data || {};
+  if (!questionId || typeof questionId !== 'string' || !questionId.trim()) {
+    throw new HttpsError('invalid-argument', 'Идентификатор вопроса (questionId) обязателен.');
+  }
+
+  const cleanId = questionId.trim();
+  const callerUid = request.auth.uid;
+  const isAdmin = Boolean(request.auth.token?.admin);
+  const publicDocRef = db.collection('questions').doc(cleanId);
+
+  return await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(publicDocRef);
+    if (!snap.exists) {
+      throw new HttpsError('not-found', `Вопрос [${cleanId}] не найден.`);
+    }
+
+    const data = snap.data();
+    if (data.createdBy && data.createdBy !== callerUid && !isAdmin) {
+      throw new HttpsError('permission-denied', 'Вы можете архивировать только собственные вопросы.');
+    }
+
+    transaction.update(publicDocRef, {
+      status: 'archived',
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      id: cleanId,
+      status: 'archived',
+    };
+  });
+});
