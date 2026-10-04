@@ -54,6 +54,8 @@ export { useTeacherExams } from './hooks/useTeacherExams';
 export { useTeacherExamLive } from './hooks/useTeacherExamLive';
 export { useTeacherQuestions } from './hooks/useTeacherQuestions';
 export { useExamBuilder } from './hooks/useExamBuilder';
+export { useTeacherExamResults } from './hooks/useTeacherExamResults';
+export { useTeacherStudentAnalytics } from './hooks/useTeacherStudentAnalytics';
 
 // UI
 export { TeacherLayout } from './ui/TeacherLayout';
@@ -65,6 +67,8 @@ export { TeacherGroupDetailPage } from './ui/TeacherGroupDetailPage';
 export { TeacherExamsPage } from './ui/TeacherExamsPage';
 export { TeacherExamLivePage } from './ui/TeacherExamLivePage';
 export { TeacherExamFormPage } from './ui/TeacherExamFormPage';
+export { TeacherExamResultsPage } from './ui/TeacherExamResultsPage';
+export { TeacherStudentAnalyticsPage } from './ui/TeacherStudentAnalyticsPage';
 export { TeacherQuestionsPage } from './ui/TeacherQuestionsPage';
 export { TeacherQuestionFormPage } from './ui/TeacherQuestionFormPage';
 export { CreateExamModal } from './ui/CreateExamModal';

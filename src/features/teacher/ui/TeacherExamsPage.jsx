@@ -191,16 +191,23 @@ export function TeacherExamsPage() {
                     </Link>
                   )}
 
-                  <Link
-                    to={`/teacher/exams/${exam.id}`}
-                    className={styles.liveLink}
-                  >
-                    {exam.status === EXAM_STATUS.ACTIVE
-                      ? 'Мониторинг LIVE →'
-                      : exam.status === EXAM_STATUS.FINISHED
-                      ? 'Результаты →'
-                      : 'Подробнее →'}
-                  </Link>
+                  {exam.status === EXAM_STATUS.FINISHED ? (
+                    <Link
+                      to={`/teacher/exams/${exam.id}/results`}
+                      className={styles.liveLink}
+                    >
+                      Результаты &rarr;
+                    </Link>
+                  ) : (
+                    <Link
+                      to={`/teacher/exams/${exam.id}`}
+                      className={styles.liveLink}
+                    >
+                      {exam.status === EXAM_STATUS.ACTIVE
+                        ? 'Мониторинг LIVE →'
+                        : 'Подробнее →'}
+                    </Link>
+                  )}
 
                   {exam.status === EXAM_STATUS.DRAFT && (
                     <button
