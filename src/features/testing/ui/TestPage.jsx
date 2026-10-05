@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getTopicLabel } from '@features/question-bank';
+import { getTopicLabel, isMultipleAnswer } from '@features/question-bank';
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog/ConfirmDialog';
 import { Logo } from '@shared/ui/Logo/Logo';
 import { countAnswered } from '../domain/testSession';
@@ -159,7 +159,7 @@ export function TestPage() {
               <AnswerOptions
                 options={currentQuestion.options}
                 selectedAnswers={session.answers[currentQuestion.id] || []}
-                multiple={currentQuestion.correctAnswers.length > 1}
+                multiple={isMultipleAnswer(currentQuestion)}
                 onSelect={actions.select}
               />
             </div>
