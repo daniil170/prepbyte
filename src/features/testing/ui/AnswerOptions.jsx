@@ -32,13 +32,20 @@ export function AnswerOptions({
           const isSelected = selectedAnswers.includes(index);
           const letter = OPTION_LETTERS[index] || `${index + 1}`;
 
+          const handleOptionSelect = () => {
+            if (!disabled && typeof onSelect === 'function') {
+              onSelect(index);
+            }
+          };
+
           return (
             <label
               key={index}
               className={`${styles.optionLabel} ${isSelected ? styles.selected : ''}`}
-              onClick={() => {
-                if (!disabled && typeof onSelect === 'function') {
-                  onSelect(index);
+              onClick={(e) => {
+                if (e.target.tagName !== 'INPUT') {
+                  e.preventDefault();
+                  handleOptionSelect();
                 }
               }}
             >
@@ -46,7 +53,7 @@ export function AnswerOptions({
                 type={multiple ? 'checkbox' : 'radio'}
                 name="answer-option"
                 checked={isSelected}
-                onChange={(e) => e.stopPropagation()}
+                onChange={handleOptionSelect}
                 disabled={disabled}
                 className={styles.input}
               />

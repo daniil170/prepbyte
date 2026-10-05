@@ -63,4 +63,20 @@ describe('AnswerOptions', () => {
 
     expect(screen.getByText('[✓]')).toBeInTheDocument();
   });
+
+  it('triggers onSelect when clicking the text label of single and multi-choice options', () => {
+    const handleSelect = vi.fn();
+    render(
+      <AnswerOptions
+        options={options}
+        selectedAnswers={[]}
+        multiple={true}
+        onSelect={handleSelect}
+      />
+    );
+
+    const optionText = screen.getByText('Шина адреса');
+    fireEvent.click(optionText);
+    expect(handleSelect).toHaveBeenCalledWith(1);
+  });
 });

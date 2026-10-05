@@ -83,3 +83,21 @@
   color: var(--color-text);
   margin-left: 8px;
 }
+
+@media (max-width: 640px) {
+  .optionLabel {
+    padding: 14px 14px;
+    min-height: 52px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .input {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+  }
+
+  .optionText {
+    font-size: 0.9375rem;
+  }
+}

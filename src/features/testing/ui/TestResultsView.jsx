@@ -103,40 +103,41 @@ export function TestResultsView({ session, questions = [] }) {
   }, [byTopicBreakdown]);
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <Link to="/" className={styles.homeLink} title="PrepByte Главная">
-            <Logo variant="mark" size={24} />
-          </Link>
-          <span className={styles.headerTitle}>Результаты тестирования</span>
-        </div>
+    <>
+      <div className={`${styles.container} ${isExportOpen ? styles.exportModalOpen : ''}`}>
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <Link to="/" className={styles.homeLink} title="PrepByte Главная">
+              <Logo variant="mark" size={24} />
+            </Link>
+            <span className={styles.headerTitle}>Результаты тестирования</span>
+          </div>
 
-        <div className={styles.headerRight}>
-          <ThemeToggle showLabel={false} />
-          <button
-            type="button"
-            className={styles.exportHeaderBtn}
-            onClick={() => setIsExportOpen(true)}
-            aria-label="Открыть официальный бланк и экспорт работы"
-          >
-            📄 Бланк ЕНТ / Экспорт
-          </button>
-          <button
-            type="button"
-            className={styles.tutorHeaderBtn}
-            onClick={() => setIsTutorOpen(true)}
-            aria-label="Открыть ИИ-тьютор"
-          >
-            🤖 ИИ-Тьютор
-          </button>
-          <Link to="/" className={styles.backHomeButton}>
-            ← На главную
-          </Link>
-        </div>
-      </header>
+          <div className={styles.headerRight}>
+            <ThemeToggle showLabel={false} />
+            <button
+              type="button"
+              className={styles.exportHeaderBtn}
+              onClick={() => setIsExportOpen(true)}
+              aria-label="Открыть официальный бланк и экспорт работы"
+            >
+              📄 Бланк ЕНТ / Экспорт
+            </button>
+            <button
+              type="button"
+              className={styles.tutorHeaderBtn}
+              onClick={() => setIsTutorOpen(true)}
+              aria-label="Открыть ИИ-тьютор"
+            >
+              🤖 ИИ-Тьютор
+            </button>
+            <Link to="/" className={styles.backHomeButton}>
+              ← На главную
+            </Link>
+          </div>
+        </header>
 
-      <main className={styles.mainContent}>
+        <main className={styles.mainContent}>
         {/* Score Summary Card */}
         <section className={styles.summaryCard} aria-label="Итоги тестирования">
           <div className={styles.summaryHeader}>
@@ -450,6 +451,7 @@ export function TestResultsView({ session, questions = [] }) {
           </div>
         </section>
       </main>
+      </div>
 
       <TutorDrawer
         isOpen={isTutorOpen}
@@ -465,6 +467,6 @@ export function TestResultsView({ session, questions = [] }) {
           onClose={() => setIsExportOpen(false)}
         />
       ) : null}
-    </div>
+    </>
   );
 }
