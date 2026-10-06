@@ -95,4 +95,21 @@ describe('variantValidation domain module', () => {
     expect(result.stats.isStandard40UNT).toBe(false);
     expect(result.warnings.length).toBeGreaterThan(0);
   });
+
+  it('rejects 40-question variant if Part 1 (1-30) has multiple answers or Part 2 (31-40) has single answer', () => {
+    const questions = [];
+    for (let i = 1; i <= 30; i++) {
+      questions.push(createValidQuestion(`q-${i}`, 'python_loops', false));
+    }
+    for (let i = 31; i <= 40; i++) {
+      // Question 31 erroneously marked as single choice (1 correct answer)
+      questions.push(createValidQuestion(`q-${i}`, 'sql_queries', i === 31 ? false : true));
+    }
+
+    const result = validateVariantPayload({ questions });
+    expect(result.isValid).toBe(false);
+    expect(
+      result.errors.some((e) => e.includes('Часть 2, 31–40') && e.includes('Задание #31'))
+    ).toBe(true);
+  });
 });

@@ -34,15 +34,26 @@ export function evaluateQuestion({ question, userAnswers = [] }) {
   );
   const correctSet = new Set(validCorrectIndices);
 
-  const isMultipleChoice = correctSet.size > 1;
-  const maxPoints = isMultipleChoice ? 2 : 1;
+  const isMultipleChoice = Boolean(
+    question.type === 'multiple' ||
+      question.multiple === true ||
+      correctSet.size > 1
+  );
+  const maxPoints =
+    typeof question.maxPoints === 'number'
+      ? question.maxPoints
+      : typeof question.points === 'number'
+        ? question.points
+        : isMultipleChoice
+          ? 2
+          : 1;
 
   let pointsAwarded = 0;
 
   if (!isMultipleChoice) {
     const singleCorrect = rawCorrectAnswers[0];
     if (userSet.size === 1 && userSet.has(singleCorrect)) {
-      pointsAwarded = 1;
+      pointsAwarded = maxPoints;
     } else {
       pointsAwarded = 0;
     }

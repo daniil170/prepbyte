@@ -64,13 +64,24 @@ export function evaluateExamAnswers(answers = {}, questions = []) {
       ? question.correctAnswers
       : [];
     const correctSet = new Set(correctAnswers);
-    const isMultipleChoice = correctSet.size > 1;
-    const maxPoints = isMultipleChoice ? 2 : 1;
+    const isMultipleChoice = Boolean(
+      question.type === 'multiple' ||
+        question.multiple === true ||
+        correctSet.size > 1
+    );
+    const maxPoints =
+      typeof question.maxPoints === 'number'
+        ? question.maxPoints
+        : typeof question.points === 'number'
+          ? question.points
+          : isMultipleChoice
+            ? 2
+            : 1;
 
     let pointsAwarded = 0;
     if (!isMultipleChoice) {
       if (userSet.size === 1 && userSet.has(correctAnswers[0])) {
-        pointsAwarded = 1;
+        pointsAwarded = maxPoints;
       }
     } else {
       let omissions = 0;

@@ -99,6 +99,19 @@ export function validateVariantPayload(payload) {
         errors.push(`Задание #${index + 1} [${q.id || 'без ID'}]: ${err}`);
       });
     }
+
+    // If payload has 40 questions, enforce UNT structure: 1..30 single, 31..40 multiple
+    if (questions.length === 40 && Array.isArray(q.correctAnswers)) {
+      if (index < 30 && q.correctAnswers.length > 1) {
+        errors.push(
+          `Задание #${index + 1} (Часть 1, 1–30): должно быть одиночным с 1 правильным ответом (получено: ${q.correctAnswers.length}).`
+        );
+      } else if (index >= 30 && q.correctAnswers.length < 2) {
+        errors.push(
+          `Задание #${index + 1} (Часть 2, 31–40): должно быть множественным с минимум 2 правильными ответами (получено: ${q.correctAnswers.length}).`
+        );
+      }
+    }
   });
 
   if (duplicateIds.size > 0) {

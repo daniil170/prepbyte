@@ -314,6 +314,45 @@ describe('scoringEngine', () => {
       );
     });
 
+    it('respects question.type, question.multiple, and points even if correctAnswers is incomplete or single', () => {
+      const questions = [
+        {
+          id: 'q-typed-multi',
+          topic: 'networks',
+          type: 'multiple',
+          options: ['A', 'B', 'C', 'D'],
+          correctAnswers: [0, 1, 2],
+        },
+        {
+          id: 'q-typed-single',
+          topic: 'networks',
+          type: 'single',
+          options: ['A', 'B', 'C', 'D'],
+          correctAnswers: [1],
+        },
+      ];
+
+      // User selects 2 out of 3 for multi -> 1 error (omission) -> 1/2 points
+      const resultMulti = evaluateQuestion({
+        question: questions[0],
+        userAnswers: [0, 1],
+      });
+      expect(resultMulti.isMultipleChoice).toBe(true);
+      expect(resultMulti.maxPoints).toBe(2);
+      expect(resultMulti.pointsAwarded).toBe(1);
+      expect(resultMulti.isPartiallyCorrect).toBe(true);
+
+      // User selects correct for single -> 1/1 points
+      const resultSingle = evaluateQuestion({
+        question: questions[1],
+        userAnswers: [1],
+      });
+      expect(resultSingle.isMultipleChoice).toBe(false);
+      expect(resultSingle.maxPoints).toBe(1);
+      expect(resultSingle.pointsAwarded).toBe(1);
+      expect(resultSingle.isCorrect).toBe(true);
+    });
+
     it('throws error when questions parameter is not an array', () => {
       expect(() => calculateExamScore({}, null)).toThrow(
         'Список вопросов должен быть массивом.'

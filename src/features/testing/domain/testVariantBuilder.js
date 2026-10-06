@@ -225,6 +225,7 @@ export function buildTestVariant(
 
   const isMultiQuestion = (q) =>
     Boolean(
+      q.type === 'multiple' ||
       q.multiple ||
       (Array.isArray(q.correctAnswers) && q.correctAnswers.length > 1)
     );

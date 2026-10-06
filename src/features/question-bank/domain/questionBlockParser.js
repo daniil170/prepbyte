@@ -186,9 +186,12 @@ export function checkSkippedReason(text) {
   return null;
 }
 
+const RUS_ALPHABET = ['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ж', 'З'];
+const LAT_ALPHABET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
 /**
  * Parses raw answer string into an array of clean answer labels.
- * Handles "A, C", "A; C", "A и C", "AC", "1B", etc.
+ * Handles "A, C", "A; C", "A и C", "AC", "1B", "(B)", "[B]", etc.
  *
  * @param {string} raw
  * @returns {string[]}
@@ -208,6 +211,9 @@ export function parseAnswerLabels(raw) {
   if (/[A-Za-zА-Яа-я]-\d+/.test(cleaned)) {
     return [cleaned];
   }
+
+  // Strip wrapping parentheses or brackets like "(B)", "[B]" while preserving content
+  cleaned = cleaned.replace(/[()[\]{}]/g, ' ').trim();
 
   // If format is like "A, B, C", "A; B", "A B"
   let parts = cleaned
@@ -259,7 +265,7 @@ export function parseAnswerKeySection(keysText) {
 
     // Match question entries: (\d+) followed by answer text until pipe or next question entry
     const entryRegex =
-      /(?:^|[|;\s]+)(\d+)\s*[:.)-]?\s*([A-Za-zА-Яа-я0-9\s,;иand-]+?)(?=(?:[|;\s]+\d+\s*[:.)-]?\s*[A-Za-zА-Яа-я])|$)/g;
+      /(?:^|[|;\s]+)(\d+)\s*[:.)-]?\s*([A-Za-zА-Яа-я0-9\s,;иand()-]+?)(?=(?:[|;\s]+\d+\s*[:.)-]?\s*[A-Za-zА-Яа-я])|$)/g;
     let match;
     while ((match = entryRegex.exec(line)) !== null) {
       const qNum = parseInt(match[1], 10);
@@ -298,20 +304,46 @@ export function resolveAnswerIndices(answerLabels, options) {
     return { indices: [], isValid: false };
   }
 
-  const normalizedOptionLabels = options.map((opt, idx) => {
-    return normalizeLabel(opt.label) || String.fromCharCode(65 + idx);
+  const rawOptionLabels = options.map((opt, idx) => {
+    return (
+      (opt?.label || '').trim().toUpperCase() ||
+      String.fromCharCode(65 + idx)
+    );
+  });
+
+  // Check if option labels follow the Cyrillic sequence А, Б, В, Г (detected by presence of 'Б')
+  const hasCyrillicBe = rawOptionLabels.some((l) => l === 'Б');
+
+  const normalizedOptionLabels = rawOptionLabels.map((l) => {
+    if (hasCyrillicBe) {
+      const cyrIdx = RUS_ALPHABET.indexOf(l);
+      if (cyrIdx !== -1) {
+        return LAT_ALPHABET[cyrIdx];
+      }
+    }
+    return normalizeLabel(l);
   });
 
   const indices = [];
 
   for (const rawLabel of answerLabels) {
-    const norm = normalizeLabel(rawLabel);
+    const trimmed = (rawLabel || '').trim().toUpperCase();
+    let norm = trimmed;
+
+    if (hasCyrillicBe) {
+      const cyrIdx = RUS_ALPHABET.indexOf(trimmed);
+      if (cyrIdx !== -1) {
+        norm = LAT_ALPHABET[cyrIdx];
+      }
+    }
+    norm = normalizeLabel(norm);
+
     let foundIndex = normalizedOptionLabels.indexOf(norm);
 
     // Fallback: Latin / Cyrillic alphabetical position
     if (foundIndex === -1) {
       const charCode = norm.charCodeAt(0);
-      if (charCode >= 65 && charCode <= 70) {
+      if (charCode >= 65 && charCode <= 72) {
         // A=65 -> 0, B=66 -> 1, ...
         const candidate = charCode - 65;
         if (candidate < options.length) {

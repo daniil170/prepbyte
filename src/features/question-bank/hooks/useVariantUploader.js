@@ -34,6 +34,20 @@ function validateEditableQuestion(q) {
     q.correctAnswers.some((idx) => idx < 0 || idx >= q.options.length)
   ) {
     issues.push('Индекс правильного ответа выходит за пределы вариантов.');
+  } else {
+    // In UNT: if question is explicitly marked as single/multiple
+    const isExplicitSingle = q.type === 'single';
+    const isExplicitMultiple = q.type === 'multiple';
+
+    if (isExplicitSingle && q.correctAnswers.length > 1) {
+      issues.push(
+        'Для задания с одиночным выбором должен быть выбран ровно один правильный вариант.'
+      );
+    } else if (isExplicitMultiple && q.correctAnswers.length < 2) {
+      issues.push(
+        'Для задания с множественным выбором необходимо выбрать как минимум 2 правильных варианта.'
+      );
+    }
   }
 
   const effectiveTopic =
@@ -451,16 +465,23 @@ export function useVariantUploader({
             q.topic ||
             detectQuestionTopic(q.questionText, q.options) ||
             'cpu_memory';
+          const isMultiple =
+            q.type === 'multiple' ||
+            (typeof q.number === 'number' && q.number >= 31 && q.number <= 40) ||
+            (Array.isArray(q.correctAnswers) && q.correctAnswers.length > 1);
 
           return {
             id: q.id || `${clean}-${paddedIndex}`,
             topic,
             questionText: q.questionText.trim(),
             options: q.options.map((opt) => opt.trim()),
+            type: isMultiple ? 'multiple' : 'single',
+            multiple: isMultiple,
             correctAnswers: q.correctAnswers,
             explanation: q.explanation.trim(),
             difficulty: q.difficulty,
-            points: q.correctAnswers.length > 1 ? 2 : 1,
+            points: isMultiple ? 2 : 1,
+            maxPoints: isMultiple ? 2 : 1,
             version: 1,
           };
         });

@@ -64,9 +64,32 @@ D. Граф
     expect(items).toHaveLength(1);
     const q = items[0];
     expect(q.options).toHaveLength(4);
-    // Cyrillic В is the 3rd option (index 2)
+    // Cyrillic В is the 3rd option in [А, Б, В, Г] (index 2)
     expect(q.correctAnswers).toEqual([2]);
     expect(q.status).toBe('ok');
+  });
+
+  it('maps Latin key B to option index 1 when options are Russian А, Б, В, Г', () => {
+    const text = `
+6. Защищённый удалённый терминальный доступ
+А) Telnet
+Б) SSH
+В) FTP
+Г) RDP
+Ответ: B
+`;
+    const { items } = parseQuestionBlocks(text);
+    expect(items).toHaveLength(1);
+    const q = items[0];
+    expect(q.options[1]).toBe('SSH');
+    expect(q.correctAnswers).toEqual([1]);
+    expect(q.status).toBe('ok');
+  });
+
+  it('correctly parses bracketed answer keys like (B) or [B]', () => {
+    expect(parseAnswerLabels('(B)')).toEqual(['B']);
+    expect(parseAnswerLabels('[B]')).toEqual(['B']);
+    expect(parseAnswerLabels('(A), (C)')).toEqual(['A', 'C']);
   });
 
   it('parses multi-answer question with multiple correct indices', () => {
