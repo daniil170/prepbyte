@@ -50,7 +50,9 @@ export function evaluateQuestion({ question, userAnswers = [] }) {
 
   let pointsAwarded = 0;
 
-  if (!isMultipleChoice) {
+  if (userSet.size === 0 || correctSet.size === 0) {
+    pointsAwarded = 0;
+  } else if (!isMultipleChoice) {
     const singleCorrect = rawCorrectAnswers[0];
     if (userSet.size === 1 && userSet.has(singleCorrect)) {
       pointsAwarded = maxPoints;

@@ -152,6 +152,23 @@ describe('scoringEngine', () => {
       expect(result.isPartiallyCorrect).toBe(false);
     });
 
+    it('awards 0 points if question has empty correctAnswers even if user answers nothing', () => {
+      const brokenQuestion = {
+        id: 'broken-1',
+        topic: 'systems',
+        type: 'multiple',
+        options: ['A', 'B', 'C', 'D'],
+        correctAnswers: [],
+      };
+      const result = evaluateQuestion({
+        question: brokenQuestion,
+        userAnswers: [],
+      });
+      expect(result.pointsAwarded).toBe(0);
+      expect(result.isCorrect).toBe(false);
+      expect(result.isPartiallyCorrect).toBe(false);
+    });
+
     it('awards 0 points when all selected answers are false positives (selected [1, 3])', () => {
       const result = evaluateQuestion({
         question: multiChoiceQuestion,
