@@ -526,17 +526,18 @@ export function parseQuestionBlocks(text) {
         isNewQuestion = true;
       } else if (nextNum > current.number) {
         const isExplicitHeader = /(?:№|задание|вопрос)\s*\d+/i.test(line);
+        const isNextSequential = nextNum === current.number + 1;
         const hasOptions = current.options.length >= 2;
         const hasAnswers = current.answerLabels.length > 0;
         const isMatching = Boolean(current.isMatching);
         const isSkipped = Boolean(checkSkippedReason(current.questionText));
 
-        if (
-          hasOptions ||
-          hasAnswers ||
-          isMatching ||
-          isSkipped ||
-          isExplicitHeader
+        if (isExplicitHeader || isNextSequential) {
+          isNewQuestion = true;
+        } else if (
+          currentSection !== 'explanation' &&
+          nextNum <= 100 &&
+          (hasOptions || hasAnswers || isMatching || isSkipped)
         ) {
           isNewQuestion = true;
         }
@@ -619,28 +620,31 @@ export function parseQuestionBlocks(text) {
       continue;
     }
 
-    // Check for multiple options on a single line (e.g. "A) 1   B) 2   C) 3   D) 4")
-    const multiMatches = [...line.matchAll(MULTI_OPTION_LINE_REGEX)];
-    if (multiMatches.length >= 2) {
-      for (const m of multiMatches) {
-        const label = m[1] || m[2] || m[3];
-        const optText = (m[4] || '').trim();
+    // Options can only be parsed before the explanation section
+    if (currentSection !== 'explanation') {
+      // Check for multiple options on a single line (e.g. "A) 1   B) 2   C) 3   D) 4")
+      const multiMatches = [...line.matchAll(MULTI_OPTION_LINE_REGEX)];
+      if (multiMatches.length >= 2) {
+        for (const m of multiMatches) {
+          const label = m[1] || m[2] || m[3];
+          const optText = (m[4] || '').trim();
+          current.rawOptions.push({ label, text: optText });
+          current.options.push(optText);
+        }
+        currentSection = 'option';
+        continue;
+      }
+
+      // Check for single option start ("A. Option text")
+      const optMatch = line.match(OPTION_PREFIX_REGEX);
+      if (optMatch) {
+        const label = optMatch[1] || optMatch[2] || optMatch[3];
+        const optText = (optMatch[4] || '').trim();
         current.rawOptions.push({ label, text: optText });
         current.options.push(optText);
+        currentSection = 'option';
+        continue;
       }
-      currentSection = 'option';
-      continue;
-    }
-
-    // Check for single option start ("A. Option text")
-    const optMatch = line.match(OPTION_PREFIX_REGEX);
-    if (optMatch) {
-      const label = optMatch[1] || optMatch[2] || optMatch[3];
-      const optText = (optMatch[4] || '').trim();
-      current.rawOptions.push({ label, text: optText });
-      current.options.push(optText);
-      currentSection = 'option';
-      continue;
     }
 
     // Continuation of current section
