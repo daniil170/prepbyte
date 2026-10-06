@@ -41,6 +41,7 @@ export function AdminVariantsPage() {
     applyDefaultDifficultyToAll,
     canSaveDocument,
     includedCount,
+    documentStats,
     uploadVariant,
     reset,
   } = useVariantUploader();
@@ -316,6 +317,21 @@ export function AdminVariantsPage() {
                         Очистить
                       </button>
                     </div>
+
+                    {documentStats && includedCount > 0 && (
+                      <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#a3a3a3', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                        <span>📊 Всего: <strong>{documentStats.totalQuestions}</strong></span>
+                        <span>Часть 1 (один): <strong>{documentStats.singleChoiceCount}</strong> (по 1 б.)</span>
+                        <span>Часть 2 (несколько): <strong>{documentStats.multiChoiceCount}</strong> (по 2 б.)</span>
+                        <span>Сумма: <strong style={{ color: documentStats.isStandard40UNT ? '#4ade80' : documentStats.totalQuestions === 40 ? '#f87171' : '#ffffff' }}>{documentStats.totalPoints} {documentStats.isStandard40UNT ? '/ 50 б. (ЕНТ ✓)' : 'б.'}</strong></span>
+                      </div>
+                    )}
+
+                    {documentStats && documentStats.totalQuestions === 40 && !documentStats.isStandard40UNT && (
+                      <div className={styles.validationNotice} style={{ color: '#fbbf24', marginTop: '0.5rem' }}>
+                        ⚠️ Внимание: в варианте из 40 заданий сумма баллов составляет {documentStats.totalPoints} из 50 стандартных. Для ЕНТ требуется ровно 30 одиночных (1 б.) и 10 множественных (2 б.) заданий.
+                      </div>
+                    )}
 
                     {!canSaveDocument && includedCount > 0 && (
                       <div className={styles.validationNotice}>

@@ -427,6 +427,39 @@ export function useVariantUploader({
     [documentQuestions]
   );
 
+  const documentStats = useMemo(() => {
+    let singleChoiceCount = 0;
+    let multiChoiceCount = 0;
+    let totalPoints = 0;
+
+    includedQuestions.forEach((q) => {
+      const isMulti =
+        q.type === 'multiple' ||
+        (Array.isArray(q.correctAnswers) && q.correctAnswers.length > 1);
+      if (isMulti) {
+        multiChoiceCount += 1;
+        totalPoints += 2;
+      } else {
+        singleChoiceCount += 1;
+        totalPoints += 1;
+      }
+    });
+
+    const isStandard40UNT =
+      includedQuestions.length === 40 &&
+      singleChoiceCount === 30 &&
+      multiChoiceCount === 10 &&
+      totalPoints === 50;
+
+    return {
+      totalQuestions: includedQuestions.length,
+      singleChoiceCount,
+      multiChoiceCount,
+      totalPoints,
+      isStandard40UNT,
+    };
+  }, [includedQuestions]);
+
   const canSaveDocument = useMemo(() => {
     if (includedQuestions.length === 0) return false;
     return includedQuestions.every((q) => {
@@ -549,6 +582,7 @@ export function useVariantUploader({
     applyDefaultDifficultyToAll,
     canSaveDocument,
     includedCount: includedQuestions.length,
+    documentStats,
     uploadVariant,
     reset,
   };
