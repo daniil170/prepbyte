@@ -12,7 +12,7 @@ import { QuestionNavigator } from './QuestionNavigator';
 import { SaveIndicator } from './SaveIndicator';
 import { TestTimer } from './TestTimer';
 import { TestResultsView } from './TestResultsView';
-import { ScratchpadDrawer } from './ScratchpadDrawer';
+import { CalculatorModal } from '@shared/ui/Calculator';
 import { ThemeToggle } from '@shared/theme';
 import styles from './TestPage.module.css';
 
@@ -29,7 +29,7 @@ export function TestPage() {
   } = useTestSession(sessionId);
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
+  const [isCalcOpen, setIsCalcOpen] = useState(false);
 
   const remainingSeconds = useRemainingSeconds(session, {
     onExpire: actions.finish,
@@ -112,15 +112,13 @@ export function TestPage() {
           <ThemeToggle showLabel={false} />
           <button
             type="button"
-            onClick={() => setIsScratchpadOpen((prev) => !prev)}
-            className={`${styles.scratchpadButton} ${
-              isScratchpadOpen ? styles.scratchpadActive : ''
-            }`}
-            aria-label="Белый лист и черновик"
-            title="Открыть белый лист / черновик для вычислений"
+            onClick={() => setIsCalcOpen(true)}
+            className={styles.calcButton}
+            aria-label="Калькулятор"
+            title="Открыть калькулятор"
           >
-            <span aria-hidden="true">📝</span>
-            <span>Черновик</span>
+            <span aria-hidden="true">🧮</span>
+            <span>Калькулятор</span>
           </button>
           <button
             type="button"
@@ -211,10 +209,9 @@ export function TestPage() {
         onCancel={() => setIsConfirmOpen(false)}
       />
 
-      <ScratchpadDrawer
-        isOpen={isScratchpadOpen}
-        onClose={() => setIsScratchpadOpen(false)}
-        sessionId={session?.id}
+      <CalculatorModal
+        isOpen={isCalcOpen}
+        onClose={() => setIsCalcOpen(false)}
       />
     </div>
   );

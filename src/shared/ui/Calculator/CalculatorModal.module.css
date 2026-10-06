@@ -178,3 +178,26 @@
 .btnZero {
   grid-column: span 2;
 }
+
+@media (max-width: 480px) {
+  .overlay {
+    padding: 12px;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 320px;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .btn {
+    height: 48px;
+    font-size: 1.125rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btnEquals {
+    height: 104px;
+  }
+}

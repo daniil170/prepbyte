@@ -167,19 +167,19 @@ describe('TestPage Integration', () => {
 
     expect(await screen.findByText('Что такое цикл for?')).toBeInTheDocument();
 
-    const scratchpadBtn = screen.getByRole('button', {
-      name: 'Белый лист и черновик',
+    const calcBtn = screen.getByRole('button', {
+      name: 'Калькулятор',
     });
-    expect(scratchpadBtn).toBeInTheDocument();
+    expect(calcBtn).toBeInTheDocument();
 
-    // Open scratchpad
-    fireEvent.click(scratchpadBtn);
-    expect(screen.getByText('Белый лист / Черновик')).toBeInTheDocument();
+    // Open calculator modal
+    fireEvent.click(calcBtn);
+    expect(screen.getByText('🧮 Калькулятор')).toBeInTheDocument();
 
-    // Close scratchpad
-    const closeBtn = screen.getByRole('button', { name: 'Скрыть черновик' });
+    // Close calculator modal
+    const closeBtn = screen.getByRole('button', { name: '✕' });
     fireEvent.click(closeBtn);
-    expect(screen.queryByText('Белый лист / Черновик')).not.toBeInTheDocument();
+    expect(screen.queryByText('🧮 Калькулятор')).not.toBeInTheDocument();
   });
 });
 

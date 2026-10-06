@@ -63,7 +63,7 @@
   color: var(--color-bg);
 }
 
-.scratchpadButton {
+.calcButton {
   padding: 8px 14px;
   background-color: var(--color-surface);
   color: var(--color-text);
@@ -79,15 +79,9 @@
   gap: 6px;
 }
 
-.scratchpadButton:hover {
+.calcButton:hover {
   background-color: var(--color-surface-hover, rgba(255, 255, 255, 0.15));
   border-color: var(--color-border-strong);
-}
-
-.scratchpadActive {
-  background-color: var(--color-text);
-  color: var(--color-bg);
-  border-color: var(--color-text);
 }
 
 .mainContent {
@@ -292,7 +286,7 @@
     min-height: 38px;
   }
 
-  .scratchpadButton {
+  .calcButton {
     padding: 8px 10px;
     font-size: 0.75rem;
     min-height: 38px;
