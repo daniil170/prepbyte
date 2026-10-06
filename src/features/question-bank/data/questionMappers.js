@@ -31,19 +31,30 @@ export function documentToQuestion(id, data) {
       options: data.options,
       multiple: data.multiple,
       difficulty: data.difficulty,
-      version: data.version,
+      version: data.version ?? 1,
       status: data.status || 'active',
       createdBy: data.createdBy || null,
       createdAt: data.createdAt || null,
       updatedAt: data.updatedAt || null,
     };
-    if (data.correctAnswers !== undefined) {
-      raw.correctAnswers = data.correctAnswers;
+    const resolvedCorrectAnswers =
+      data.correctAnswers !== undefined
+        ? data.correctAnswers
+        : data.correctAnswer !== undefined
+          ? (Array.isArray(data.correctAnswer) ? data.correctAnswer : [data.correctAnswer])
+          : data.correct_answers !== undefined
+            ? data.correct_answers
+            : undefined;
+
+    if (resolvedCorrectAnswers !== undefined) {
+      raw.correctAnswers = resolvedCorrectAnswers;
     }
-    if (data.explanation !== undefined) {
-      const expStr = typeof data.explanation === 'string' ? data.explanation.trim() : '';
+
+    const resolvedExplanation = data.explanation ?? data.solution ?? data.comment;
+    if (resolvedExplanation !== undefined) {
+      const expStr = typeof resolvedExplanation === 'string' ? resolvedExplanation.trim() : '';
       raw.explanation = expStr || 'Пояснение к заданию';
-    } else if (data.correctAnswers !== undefined) {
+    } else if (resolvedCorrectAnswers !== undefined) {
       raw.explanation = 'Пояснение к заданию';
     }
     return createQuestion(raw);

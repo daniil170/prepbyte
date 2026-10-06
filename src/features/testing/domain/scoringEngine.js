@@ -1,3 +1,44 @@
+const LATIN_OPTION_MAP = {
+  A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7,
+};
+const CYRILLIC_OPTION_MAP = {
+  А: 0, В: 1, С: 2, Е: 4, К: 7,
+  Б: 1, Г: 3, Д: 4, Ж: 6, И: 7,
+};
+
+/**
+ * Normalizes answer indices from numbers, arrays, strings or letters.
+ *
+ * @param {number|number[]|string|string[]} raw
+ * @returns {number[]} Array of 0-based sorted unique indices.
+ */
+export function normalizeAnswerIndices(raw) {
+  if (raw === null || raw === undefined) return [];
+  const items = Array.isArray(raw)
+    ? raw
+    : typeof raw === 'string'
+      ? raw.split(/[,;\s+]+/).filter(Boolean)
+      : [raw];
+
+  const indices = [];
+  for (const item of items) {
+    if (typeof item === 'number' && Number.isInteger(item) && item >= 0) {
+      indices.push(item);
+    } else if (typeof item === 'string') {
+      const trimmed = item.trim().toUpperCase();
+      if (/^\d+$/.test(trimmed)) {
+        indices.push(parseInt(trimmed, 10));
+      } else if (LATIN_OPTION_MAP[trimmed] !== undefined) {
+        indices.push(LATIN_OPTION_MAP[trimmed]);
+      } else if (CYRILLIC_OPTION_MAP[trimmed] !== undefined) {
+        indices.push(CYRILLIC_OPTION_MAP[trimmed]);
+      }
+    }
+  }
+
+  return [...new Set(indices)].sort((a, b) => a - b);
+}
+
 /**
  * Evaluates a single question against user answers using official UNT (ЕНТ) grading rules.
  *
@@ -5,7 +46,7 @@
  * - 1 point if the single selected option matches correctAnswers[0].
  * - 0 points otherwise.
  *
- * Multiple-choice questions (correctAnswers.length > 1):
+ * Multiple-choice questions (correctAnswers.length > 1 or multiple flag):
  * - 2 points: all correct options chosen with zero mistakes (0 omissions, 0 false positives).
  * - 1 point: exactly one omission OR one false positive (standard UNT partial credit).
  * - 0 points: two or more errors.
@@ -20,24 +61,25 @@ export function evaluateQuestion({ question, userAnswers = [] }) {
     throw new Error('Вопрос обязателен для проверки.');
   }
 
-  const rawUserAnswers = Array.isArray(userAnswers) ? userAnswers : [];
-  const validUserIndices = rawUserAnswers.filter(
-    (idx) => typeof idx === 'number' && Number.isInteger(idx) && idx >= 0
-  );
+  const validUserIndices = normalizeAnswerIndices(userAnswers);
   const userSet = new Set(validUserIndices);
 
-  const rawCorrectAnswers = Array.isArray(question.correctAnswers)
-    ? question.correctAnswers
-    : [];
-  const validCorrectIndices = rawCorrectAnswers.filter(
-    (idx) => typeof idx === 'number' && Number.isInteger(idx) && idx >= 0
-  );
+  const rawCorrect =
+    question.correctAnswers !== undefined
+      ? question.correctAnswers
+      : question.correctAnswer !== undefined
+        ? question.correctAnswer
+        : question.correct_answers !== undefined
+          ? question.correct_answers
+          : [];
+  const validCorrectIndices = normalizeAnswerIndices(rawCorrect);
   const correctSet = new Set(validCorrectIndices);
 
   const isMultipleChoice = Boolean(
     question.type === 'multiple' ||
       question.multiple === true ||
-      correctSet.size > 1
+      correctSet.size > 1 ||
+      (typeof question.number === 'number' && question.number >= 31 && question.number <= 40)
   );
   const maxPoints =
     typeof question.maxPoints === 'number'
@@ -53,7 +95,7 @@ export function evaluateQuestion({ question, userAnswers = [] }) {
   if (userSet.size === 0 || correctSet.size === 0) {
     pointsAwarded = 0;
   } else if (!isMultipleChoice) {
-    const singleCorrect = rawCorrectAnswers[0];
+    const singleCorrect = validCorrectIndices[0];
     if (userSet.size === 1 && userSet.has(singleCorrect)) {
       pointsAwarded = maxPoints;
     } else {

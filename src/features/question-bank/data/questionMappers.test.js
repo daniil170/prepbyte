@@ -44,6 +44,32 @@ describe('questionMappers', () => {
       }
     });
 
+    it('normalizes singular correctAnswer to correctAnswers array', () => {
+      const dataWithSingular = {
+        topic: 'python_loops',
+        questionText: 'Test text with question?',
+        options: ['A', 'B', 'C', 'D'],
+        correctAnswer: 1,
+        explanation: 'Some explanation',
+        difficulty: 'easy',
+      };
+      const question = documentToQuestion('q-singular-1', dataWithSingular);
+      expect(question.correctAnswers).toEqual([1]);
+    });
+
+    it('normalizes correct_answers alias to correctAnswers array', () => {
+      const dataWithAlias = {
+        topic: 'python_loops',
+        questionText: 'Test text with question?',
+        options: ['A', 'B', 'C', 'D'],
+        correct_answers: [2],
+        explanation: 'Some explanation',
+        difficulty: 'easy',
+      };
+      const question = documentToQuestion('q-alias-1', dataWithAlias);
+      expect(question.correctAnswers).toEqual([2]);
+    });
+
     it('throws when document id or data is invalid', () => {
       expect(() => documentToQuestion('', validData)).toThrow(
         CorruptedQuestionDocumentError

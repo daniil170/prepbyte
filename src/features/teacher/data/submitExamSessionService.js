@@ -203,7 +203,13 @@ export async function submitExamSessionService(
       chunks.map(async (idChunk) => {
         const q = query(questionsRef, where(documentId(), 'in', idChunk));
         const snap = await getDocs(q);
-        return snap.docs.map((d) => ({ id: d.id, topic: d.data().topic || 'unknown' }));
+        return snap.docs.map((d) => ({
+          id: d.id,
+          topic: d.data().topic || 'unknown',
+          multiple: d.data().multiple,
+          type: d.data().type,
+          correctAnswers: d.data().correctAnswers,
+        }));
       })
     ),
   ]);
@@ -215,10 +221,18 @@ export async function submitExamSessionService(
   const protectedQuestions = uniqueIds.map((id) => {
     const ansData = answerDocsMap.get(id);
     const qData = questionDocsMap.get(id);
+    const resolvedCorrectAnswers =
+      Array.isArray(ansData?.correctAnswers)
+        ? ansData.correctAnswers
+        : Array.isArray(qData?.correctAnswers)
+          ? qData.correctAnswers
+          : [];
     return {
       id,
       topic: qData?.topic || 'unknown',
-      correctAnswers: Array.isArray(ansData?.correctAnswers) ? ansData.correctAnswers : [],
+      multiple: qData?.multiple,
+      type: qData?.type,
+      correctAnswers: resolvedCorrectAnswers,
     };
   });
 

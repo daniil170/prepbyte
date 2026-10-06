@@ -32,7 +32,15 @@ export function TestResultsView({ session, questions = [] }) {
 
   // Derive complete score evaluation
   const scoreData = useMemo(() => {
-    if (session?.score && Array.isArray(session?.questionSnapshots)) {
+    const hasValidSnapshots =
+      session?.score &&
+      Array.isArray(session?.questionSnapshots) &&
+      session.questionSnapshots.length > 0 &&
+      session.questionSnapshots.every(
+        (q) => Array.isArray(q.correctAnswers) && q.correctAnswers.length > 0
+      );
+
+    if (hasValidSnapshots) {
       return {
         ...session.score,
         detailedResults: session.questionSnapshots,

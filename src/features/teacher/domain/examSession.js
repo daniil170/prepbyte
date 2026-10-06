@@ -56,18 +56,29 @@ export function evaluateExamAnswers(answers = {}, questions = []) {
 
   for (const question of questions) {
     if (!question || !question.id) continue;
-    const userAnswers = Array.isArray(answers[question.id])
-      ? answers[question.id]
-      : [];
+    const rawUserAnswers = answers[question.id];
+    const userAnswers = Array.isArray(rawUserAnswers)
+      ? rawUserAnswers
+      : typeof rawUserAnswers === 'number'
+        ? [rawUserAnswers]
+        : [];
     const userSet = new Set(userAnswers);
-    const correctAnswers = Array.isArray(question.correctAnswers)
-      ? question.correctAnswers
+
+    const rawCorrectAnswers =
+      question.correctAnswers !== undefined
+        ? question.correctAnswers
+        : question.correctAnswer !== undefined
+          ? (Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer])
+          : [];
+    const correctAnswers = Array.isArray(rawCorrectAnswers)
+      ? rawCorrectAnswers
       : [];
     const correctSet = new Set(correctAnswers);
     const isMultipleChoice = Boolean(
       question.type === 'multiple' ||
         question.multiple === true ||
-        correctSet.size > 1
+        correctSet.size > 1 ||
+        (typeof question.number === 'number' && question.number >= 31 && question.number <= 40)
     );
     const maxPoints =
       typeof question.maxPoints === 'number'

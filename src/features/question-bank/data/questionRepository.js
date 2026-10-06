@@ -77,7 +77,7 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
       .filter(Boolean);
   }
 
-  async function getQuestionsByIds(ids) {
+  async function getQuestionsByIds(ids, { includeAnswers = true } = {}) {
     if (!Array.isArray(ids) || ids.length === 0) {
       return [];
     }
@@ -90,18 +90,57 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
       chunks.map(async (idChunk) => {
         const q = query(questionsRef, where(documentId(), 'in', idChunk));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map((docSnap) =>
-          documentToQuestion(docSnap.id, docSnap.data())
-        );
+        return snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          data: docSnap.data(),
+        }));
       })
     );
 
-    const foundQuestions = chunkResults.flat();
-    const foundMap = new Map(foundQuestions.map((q) => [q.id, q]));
+    const foundDocs = chunkResults.flat();
+    const foundDocMap = new Map(foundDocs.map((item) => [item.id, item.data]));
+
+    let answersMap = new Map();
+    if (includeAnswers) {
+      try {
+        const answersList = await getQuestionAnswersByIds(uniqueIds);
+        answersMap = new Map(answersList.map((a) => [a.id, a]));
+      } catch {
+        // Safe fallback if answer bank cannot be accessed
+      }
+    }
 
     const allQuestions = ids.map((id, idx) => {
-      if (foundMap.has(id)) {
-        return foundMap.get(id);
+      if (foundDocMap.has(id)) {
+        const pubData = foundDocMap.get(id);
+        const ans = answersMap.get(id);
+        const resolvedCorrectAnswers =
+          ans?.correctAnswers ??
+          pubData?.correctAnswers ??
+          pubData?.correctAnswer ??
+          pubData?.correct_answers;
+        const resolvedExplanation =
+          ans?.explanation && typeof ans.explanation === 'string' && ans.explanation.trim()
+            ? ans.explanation.trim()
+            : pubData?.explanation && typeof pubData.explanation === 'string' && pubData.explanation.trim()
+              ? pubData.explanation.trim()
+              : 'Пояснение к заданию';
+
+        const mergedData = {
+          ...pubData,
+          ...(resolvedCorrectAnswers !== undefined
+            ? { correctAnswers: resolvedCorrectAnswers }
+            : {}),
+          ...(resolvedExplanation !== undefined
+            ? { explanation: resolvedExplanation }
+            : {}),
+        };
+
+        try {
+          return documentToQuestion(id, mergedData);
+        } catch {
+          return documentToQuestion(id, pubData);
+        }
       }
       return {
         id,

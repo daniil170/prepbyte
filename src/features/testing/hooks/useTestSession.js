@@ -192,13 +192,17 @@ export function useTestSession(sessionId) {
           return;
         }
 
-        // Load questions: prefer immutable questionSnapshots if session is completed
+        // Load questions: prefer immutable questionSnapshots if session is completed AND snapshots are valid
         let loadedQuestions = [];
-        if (
+        const hasValidSnapshots =
           loadedSession.status === 'completed' &&
           Array.isArray(loadedSession.questionSnapshots) &&
-          loadedSession.questionSnapshots.length > 0
-        ) {
+          loadedSession.questionSnapshots.length > 0 &&
+          loadedSession.questionSnapshots.every(
+            (q) => Array.isArray(q.correctAnswers) && q.correctAnswers.length > 0
+          );
+
+        if (hasValidSnapshots) {
           loadedQuestions = loadedSession.questionSnapshots;
         } else {
           loadedQuestions = await questionRepository.getQuestionsByIds(
@@ -230,10 +234,10 @@ export function useTestSession(sessionId) {
           await sessionRepository.finishSession(loadedSession);
         } else if (
           loadedSession.status === 'completed' &&
-          !loadedSession.score &&
+          (!loadedSession.score || !hasValidSnapshots) &&
           loadedQuestions.length > 0
         ) {
-          // Backward compatibility for existing completed sessions without score
+          // Backward compatibility and auto-repair for completed sessions with missing score or corrupted snapshots
           const evaluation = calculateExamScore(loadedSession, loadedQuestions);
           loadedSession = {
             ...loadedSession,
@@ -246,6 +250,9 @@ export function useTestSession(sessionId) {
             },
             questionSnapshots: evaluation.detailedResults,
           };
+          if (typeof sessionRepository?.saveProgress === 'function') {
+            sessionRepository.saveProgress(loadedSession).catch(() => {});
+          }
         }
 
         setSession(loadedSession);

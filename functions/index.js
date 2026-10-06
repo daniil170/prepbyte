@@ -25,7 +25,11 @@ export function evaluateAnswers(answers = {}, protectedQuestions = []) {
     const userSet = new Set(userAnswers);
     const correctAnswers = Array.isArray(question.correctAnswers) ? question.correctAnswers : [];
     const correctSet = new Set(correctAnswers);
-    const isMultipleChoice = correctSet.size > 1;
+    const isMultipleChoice = Boolean(
+      question.type === 'multiple' ||
+      question.multiple === true ||
+      correctSet.size > 1
+    );
     const maxPoints = isMultipleChoice ? 2 : 1;
 
     let pointsAwarded = 0;
@@ -429,10 +433,18 @@ export const submitExamSession = onCall(async (request) => {
     const protectedQuestions = uniqueIds.map((id) => {
       const ansData = answerMap.get(id);
       const qData = questionMap.get(id);
+      const resolvedCorrectAnswers =
+        Array.isArray(ansData?.correctAnswers)
+          ? ansData.correctAnswers
+          : Array.isArray(qData?.correctAnswers)
+            ? qData.correctAnswers
+            : [];
       return {
         id,
         topic: qData?.topic || 'unknown',
-        correctAnswers: Array.isArray(ansData?.correctAnswers) ? ansData.correctAnswers : [],
+        multiple: qData?.multiple,
+        type: qData?.type,
+        correctAnswers: resolvedCorrectAnswers,
       };
     });
 
@@ -1630,6 +1642,7 @@ export const getStudentExamAnalytics = onCall(async (request) => {
   const studentAnswers = sessionData.answers || {};
   const questionDetails = [];
   let correctCount = 0;
+  let partiallyCorrectCount = 0;
   let incorrectCount = 0;
   let unansweredCount = 0;
 
@@ -1674,8 +1687,8 @@ export const getStudentExamAnalytics = onCall(async (request) => {
           correctCount++;
         } else if (errs === 1) {
           pointsAwarded = 1;
-          status = 'incorrect';
-          incorrectCount++;
+          status = 'partially_correct';
+          partiallyCorrectCount++;
         } else {
           pointsAwarded = 0;
           status = 'incorrect';
@@ -1726,6 +1739,7 @@ export const getStudentExamAnalytics = onCall(async (request) => {
       maxPossibleScore: sessionData.maxPossibleScore ?? 0,
       percentage: sessionData.percentage ?? 0,
       correctAnswersCount: correctCount,
+      partiallyCorrectAnswersCount: partiallyCorrectCount,
       incorrectAnswersCount: incorrectCount,
       unansweredCount,
       startedAt: sessionData.startedAt?.toDate ? sessionData.startedAt.toDate().getTime() : sessionData.startedAt,
