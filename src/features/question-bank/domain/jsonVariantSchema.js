@@ -1,4 +1,4 @@
-import { isValidTopic } from './topics.js';
+import { TOPICS, isValidTopic } from './topics.js';
 
 /**
  * Expected schema format for canonical UNT mock exams:
@@ -234,6 +234,24 @@ export function validateCanonicalJsonVariant(payload) {
     }
   });
 
+  const topicCounts = {};
+  const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
+
+  TOPICS.forEach((t) => {
+    topicCounts[t.id] = 0;
+  });
+
+  normalizedQuestions.forEach((q) => {
+    if (q.topic && topicCounts[q.topic] !== undefined) {
+      topicCounts[q.topic] += 1;
+    }
+    if (q.difficulty && difficultyCounts[q.difficulty] !== undefined) {
+      difficultyCounts[q.difficulty] += 1;
+    }
+  });
+
+  const coveredTopicsCount = Object.values(topicCounts).filter((c) => c > 0).length;
+
   const isStandard40UNT =
     normalizedQuestions.length === 40 &&
     singleChoiceCount === 30 &&
@@ -248,6 +266,9 @@ export function validateCanonicalJsonVariant(payload) {
       totalPoints,
       singleChoiceCount,
       multiChoiceCount,
+      topicCounts,
+      difficultyCounts,
+      coveredTopicsCount,
       isStandard40UNT,
     },
     questions: normalizedQuestions,

@@ -99,7 +99,7 @@ export function VariantValidationSummary({ validationResult, fileName }) {
             <div className={styles.kpiCard}>
               <span className={styles.kpiLabel}>Темы ЕНТ</span>
               <span className={styles.kpiValue}>
-                {stats.coveredTopicsCount} / 12
+                {stats.coveredTopicsCount ?? 0} / 12
               </span>
             </div>
           </div>
@@ -108,13 +108,13 @@ export function VariantValidationSummary({ validationResult, fileName }) {
             <h4 className={styles.subHeading}>Баланс сложности:</h4>
             <div className={styles.difficultyPills}>
               <span className={`${styles.diffPill} ${styles.diffEasy}`}>
-                Лёгкий: {stats.difficultyCounts.easy || 0}
+                Лёгкий: {stats.difficultyCounts?.easy ?? 0}
               </span>
               <span className={`${styles.diffPill} ${styles.diffMedium}`}>
-                Средний: {stats.difficultyCounts.medium || 0}
+                Средний: {stats.difficultyCounts?.medium ?? 0}
               </span>
               <span className={`${styles.diffPill} ${styles.diffHard}`}>
-                Сложный: {stats.difficultyCounts.hard || 0}
+                Сложный: {stats.difficultyCounts?.hard ?? 0}
               </span>
             </div>
           </div>
@@ -123,7 +123,7 @@ export function VariantValidationSummary({ validationResult, fileName }) {
             <h4 className={styles.subHeading}>Распределение по темам:</h4>
             <div className={styles.topicGrid}>
               {TOPICS.map((topic) => {
-                const count = stats.topicCounts[topic.id] || 0;
+                const count = stats.topicCounts?.[topic.id] ?? 0;
                 return (
                   <div
                     key={topic.id}

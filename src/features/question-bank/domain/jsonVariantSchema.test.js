@@ -48,7 +48,7 @@ describe('jsonVariantSchema', () => {
 
     expect(result.isValid).toBe(true);
     expect(result.errors).toHaveLength(0);
-    expect(result.stats).toEqual({
+    expect(result.stats).toMatchObject({
       totalQuestions: 40,
       totalPoints: 50,
       singleChoiceCount: 30,

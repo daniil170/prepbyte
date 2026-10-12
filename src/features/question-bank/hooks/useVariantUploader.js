@@ -6,7 +6,10 @@ import { parseQuestionBlocks } from '../domain/questionBlockParser';
 import { buildImportedQuestions } from '../domain/questionImportMapper';
 import { detectQuestionTopic, isValidTopic } from '../domain/topics';
 import { validateVariantPayload } from '../domain/variantValidation';
-import { validateCanonicalJsonVariant } from '../domain/jsonVariantSchema';
+import {
+  validateCanonicalJsonVariant,
+  VARIANT_ID_REGEX,
+} from '../domain/jsonVariantSchema';
 
 /**
  * Validates a single question in the document import workflow.
@@ -245,12 +248,15 @@ export function useVariantUploader({
             return;
           }
 
-          // If JSON contains canonical unt-var structure (or questions array of 40), validate strictly
-          if (
+          // If JSON contains canonical unt-var structure (variantId matches pattern or exactly 40 questions), validate with canonical validator
+          const isCanonical =
             parsed &&
             typeof parsed === 'object' &&
-            (typeof parsed.variantId === 'string' || Array.isArray(parsed.questions))
-          ) {
+            ((typeof parsed.variantId === 'string' &&
+              VARIANT_ID_REGEX.test(parsed.variantId.trim())) ||
+              (Array.isArray(parsed.questions) && parsed.questions.length === 40));
+
+          if (isCanonical) {
             const canonicalResult = validateCanonicalJsonVariant(parsed);
             if (!canonicalResult.isValid) {
               setValidationResult({
