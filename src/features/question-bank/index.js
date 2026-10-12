@@ -27,6 +27,11 @@ export {
 } from './domain/aiPromptTemplates';
 export { generateCurriculumQuestions } from './domain/curriculumGenerator';
 export { validateVariantPayload } from './domain/variantValidation';
+export {
+  validateCanonicalJsonVariant,
+  validateCanonicalQuestion,
+  VARIANT_ID_REGEX,
+} from './domain/jsonVariantSchema';
 export { useVariantUploader } from './hooks/useVariantUploader';
 export { useAiVariantGenerator } from './hooks/useAiVariantGenerator';
 export { AdminVariantsPage } from './ui/AdminVariantsPage';
