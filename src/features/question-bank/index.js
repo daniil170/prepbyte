@@ -38,6 +38,7 @@ export { AdminVariantsPage } from './ui/AdminVariantsPage';
 export { AiVariantGenerator } from './ui/AiVariantGenerator';
 export { QuestionPreviewEditor } from './ui/QuestionPreviewEditor';
 export { VariantDropzone } from './ui/VariantDropzone';
+export { VariantPdfExportView } from './ui/VariantPdfExportView';
 export { VariantValidationSummary } from './ui/VariantValidationSummary';
 export {
   auditBank,
