@@ -2,13 +2,22 @@ import { useCallback, useRef, useState } from 'react';
 import styles from './VariantDropzone.module.css';
 
 /**
- * Drag and drop zone for selecting variant JSON files.
+ * Drag and drop zone for selecting variant files (JSON only or legacy DOCX/PDF/JSON).
  *
  * @param {object} props
  * @param {Function} props.onFileSelect - Callback when a file is selected.
  * @param {boolean} [props.disabled=false] - Whether the dropzone is disabled.
+ * @param {boolean} [props.jsonOnly=false] - If true, restricts to JSON only with strict canonical validation.
+ * @param {string} [props.title] - Custom prompt title.
+ * @param {string} [props.hint] - Custom hint text.
  */
-export function VariantDropzone({ onFileSelect, disabled = false }) {
+export function VariantDropzone({
+  onFileSelect,
+  disabled = false,
+  jsonOnly = false,
+  title,
+  hint,
+}) {
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef(null);
 
@@ -37,6 +46,14 @@ export function VariantDropzone({ onFileSelect, disabled = false }) {
       if (droppedFiles && droppedFiles.length > 0) {
         const file = droppedFiles[0];
         const lower = (file.name || '').toLowerCase();
+
+        if (jsonOnly) {
+          if (lower.endsWith('.json') || file.type === 'application/json') {
+            onFileSelect(file);
+          }
+          return;
+        }
+
         if (
           lower.endsWith('.json') ||
           lower.endsWith('.docx') ||
@@ -50,7 +67,7 @@ export function VariantDropzone({ onFileSelect, disabled = false }) {
         }
       }
     },
-    [disabled, onFileSelect]
+    [disabled, jsonOnly, onFileSelect]
   );
 
   const handleInputChange = useCallback(
@@ -73,6 +90,14 @@ export function VariantDropzone({ onFileSelect, disabled = false }) {
     }
   }, [disabled]);
 
+  const defaultTitle = jsonOnly
+    ? 'Перетащите canonical JSON-файл пробника сюда или'
+    : 'Перетащите файл варианта сюда или';
+
+  const defaultHint = jsonOnly
+    ? 'Принимаются только валидные .json файлы (строгая спецификация ЕНТ: 40 заданий, 50 баллов)'
+    : 'Поддерживаются форматы JSON, DOCX и PDF (с текстовым слоем)';
+
   return (
     <div
       className={`${styles.dropzone} ${isDragOver ? styles.dragOver : ''} ${
@@ -89,27 +114,34 @@ export function VariantDropzone({ onFileSelect, disabled = false }) {
           handleClick();
         }
       }}
-      aria-label="Загрузить файл варианта (JSON, DOCX, PDF)"
+      aria-label={
+        jsonOnly
+          ? 'Загрузить канонический JSON-пробник'
+          : 'Загрузить файл варианта (JSON, DOCX, PDF)'
+      }
     >
       <input
         ref={inputRef}
         type="file"
-        accept=".json,application/json,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
+        accept={
+          jsonOnly
+            ? '.json,application/json'
+            : '.json,application/json,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf'
+        }
         className={styles.hiddenInput}
         onChange={handleInputChange}
         disabled={disabled}
       />
       <div className={styles.iconContainer}>
-        <span className={styles.icon}>[DOC / JSON]</span>
+        <span className={styles.icon}>
+          {jsonOnly ? '[AI CANONICAL JSON]' : '[DOC / JSON]'}
+        </span>
       </div>
       <p className={styles.prompt}>
-        Перетащите файл варианта сюда или{' '}
+        {title || defaultTitle}{' '}
         <span className={styles.browseLink}>выберите файл</span>
       </p>
-      <p className={styles.hint}>
-        Поддерживаются форматы JSON (спецификация ЕНТ), DOCX и PDF (с текстовым
-        слоем)
-      </p>
+      <p className={styles.hint}>{hint || defaultHint}</p>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useVariantUploader } from '../hooks/useVariantUploader';
 import { AiVariantGenerator } from './AiVariantGenerator';
 import { QuestionPreviewEditor } from './QuestionPreviewEditor';
 import { VariantDropzone } from './VariantDropzone';
+import { VariantPdfExportView } from './VariantPdfExportView';
 import { VariantValidationSummary } from './VariantValidationSummary';
 import { ThemeToggle } from '@shared/theme';
 import { DraggableGlassNav } from '@shared/ui/DraggableGlassNav';
@@ -16,6 +17,7 @@ export function AdminVariantsPage() {
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' | 'generator'
   const [expandedQuestionIdx, setExpandedQuestionIdx] = useState(null);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [exportModal, setExportModal] = useState(null); // null | { mode: 'student' | 'teacher', questions, meta }
 
   const {
     file,
@@ -180,10 +182,48 @@ export function AdminVariantsPage() {
             </div>
           </div>
 
-          <VariantDropzone
-            onFileSelect={handleFileSelect}
-            disabled={isUploading}
-          />
+          {/* Primary Canonical Ingestion Zone: AI-JSON */}
+          <div className={styles.introCard} style={{ borderLeft: '4px solid #38bdf8' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 className={styles.sectionHeading} style={{ color: '#38bdf8', margin: 0 }}>
+                  ⚡ Загрузить AI-пробник (Канонический JSON)
+                </h3>
+                <p className={styles.sectionDesc} style={{ margin: '0.25rem 0 0 0' }}>
+                  Основной надёжный канал: строгая схема ЕНТ (40 заданий, 50 баллов). Валидация выполняется мгновенно при загрузке.
+                </p>
+              </div>
+              <span className={styles.promptGuideBadge}>РЕКОМЕНДУЕМЫЙ ФОРМАТ</span>
+            </div>
+            <div style={{ marginTop: '1rem' }}>
+              <VariantDropzone
+                onFileSelect={handleFileSelect}
+                disabled={isUploading}
+                jsonOnly={true}
+                title="Перетащите canonical JSON-файл пробника сюда или"
+                hint="Принимается только .json со структурой: 30 одиночных (1 б.) + 10 множественных (2 б.) = 50 баллов"
+              />
+            </div>
+          </div>
+
+          {/* Legacy / Manual Document Ingestion Zone */}
+          <details className={styles.introCard} style={{ opacity: 0.9 }}>
+            <summary style={{ cursor: 'pointer', fontFamily: 'var(--font-mono, monospace)', fontSize: '0.9rem', fontWeight: 700, color: '#a3a3a3' }}>
+              📁 Ручной импорт документов DOCX / PDF (Legacy)
+            </summary>
+            <div style={{ marginTop: '1rem' }}>
+              <p className={styles.sectionDesc}>
+                Используется для ручных тестов или старых вариантов. Текст парсится эвристически с проверкой структуры в редакторе.
+              </p>
+              <VariantDropzone
+                onFileSelect={handleFileSelect}
+                disabled={isUploading}
+                jsonOnly={false}
+                title="Перетащите DOCX, PDF или произвольный JSON файл сюда или"
+                hint="DOCX / PDF с текстовым слоем"
+              />
+            </div>
+          </details>
 
           {error && (
             <div className={styles.errorAlert} role="alert">
@@ -193,17 +233,51 @@ export function AdminVariantsPage() {
 
           {uploadSuccess && (
             <div className={styles.successBanner} role="status">
-              <div className={styles.successText}>
-                ✓ Успешно записано <strong>{uploadCount}</strong> заданий в
-                Firestore коллекцию <code>questions</code>!
+              <div>
+                <div className={styles.successText}>
+                  ✓ Успешно записано <strong>{uploadCount}</strong> заданий в Firestore коллекцию <code>questions</code>!
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+                  Теперь вы можете скачать готовые PDF-бланки для печати и раздачи.
+                </div>
               </div>
-              <button
-                type="button"
-                className={styles.secondaryBtn}
-                onClick={reset}
-              >
-                Загрузить другой файл
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className={styles.primaryBtn}
+                  style={{ background: '#38bdf8', color: '#000000', padding: '0.6rem 1rem' }}
+                  onClick={() =>
+                    setExportModal({
+                      mode: 'student',
+                      questions: validationResult?.questions || documentQuestions,
+                      meta: validationResult?.meta || { variantId: variantSlug, title: file?.name },
+                    })
+                  }
+                >
+                  📄 Скачать PDF (Ученик)
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  style={{ borderColor: '#f59e0b', color: '#f59e0b', padding: '0.6rem 1rem' }}
+                  onClick={() =>
+                    setExportModal({
+                      mode: 'teacher',
+                      questions: validationResult?.questions || documentQuestions,
+                      meta: validationResult?.meta || { variantId: variantSlug, title: file?.name },
+                    })
+                  }
+                >
+                  🔑 Ответы (PDF)
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={reset}
+                >
+                  Загрузить другой файл
+                </button>
+              </div>
             </div>
           )}
 
@@ -405,7 +479,7 @@ export function AdminVariantsPage() {
 
               {/* Actions row */}
               {!uploadSuccess && (
-                <div className={styles.actionsBar}>
+                <div className={styles.actionsBar} style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
                   <button
                     type="button"
                     className={styles.primaryBtn}
@@ -415,6 +489,34 @@ export function AdminVariantsPage() {
                     {isUploading
                       ? 'Запись в Firestore...'
                       : `Опубликовать в базу (${validationResult.questions.length} заданий)`}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    onClick={() =>
+                      setExportModal({
+                        mode: 'student',
+                        questions: validationResult.questions,
+                        meta: validationResult.meta || { variantId: variantSlug, title: file?.name },
+                      })
+                    }
+                    disabled={validationResult.questions.length === 0}
+                  >
+                    📄 Предпросмотр PDF (Ученик)
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    onClick={() =>
+                      setExportModal({
+                        mode: 'teacher',
+                        questions: validationResult.questions,
+                        meta: validationResult.meta || { variantId: variantSlug, title: file?.name },
+                      })
+                    }
+                    disabled={validationResult.questions.length === 0}
+                  >
+                    🔑 Ответы (PDF)
                   </button>
                   <button
                     type="button"
@@ -518,6 +620,15 @@ export function AdminVariantsPage() {
         >
           <AiVariantGenerator />
         </section>
+      )}
+
+      {exportModal && (
+        <VariantPdfExportView
+          variant={exportModal.meta}
+          questions={exportModal.questions}
+          initialMode={exportModal.mode}
+          onClose={() => setExportModal(null)}
+        />
       )}
     </div>
   );

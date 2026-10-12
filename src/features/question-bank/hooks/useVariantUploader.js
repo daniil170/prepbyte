@@ -6,6 +6,7 @@ import { parseQuestionBlocks } from '../domain/questionBlockParser';
 import { buildImportedQuestions } from '../domain/questionImportMapper';
 import { detectQuestionTopic, isValidTopic } from '../domain/topics';
 import { validateVariantPayload } from '../domain/variantValidation';
+import { validateCanonicalJsonVariant } from '../domain/jsonVariantSchema';
 
 /**
  * Validates a single question in the document import workflow.
@@ -241,6 +242,36 @@ export function useVariantUploader({
             parsed = JSON.parse(text);
           } catch (parseErr) {
             setError(`Ошибка парсинга JSON: ${parseErr.message}`);
+            return;
+          }
+
+          // If JSON contains canonical unt-var structure (or questions array of 40), validate strictly
+          if (
+            parsed &&
+            typeof parsed === 'object' &&
+            (typeof parsed.variantId === 'string' || Array.isArray(parsed.questions))
+          ) {
+            const canonicalResult = validateCanonicalJsonVariant(parsed);
+            if (!canonicalResult.isValid) {
+              setValidationResult({
+                isValid: false,
+                errors: canonicalResult.errors,
+                warnings: [],
+                stats: canonicalResult.stats,
+                questions: canonicalResult.questions,
+                meta: canonicalResult.meta,
+              });
+              return;
+            }
+
+            setValidationResult({
+              isValid: true,
+              errors: [],
+              warnings: [],
+              stats: canonicalResult.stats,
+              questions: canonicalResult.questions,
+              meta: canonicalResult.meta,
+            });
             return;
           }
 
