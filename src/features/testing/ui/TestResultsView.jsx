@@ -30,22 +30,44 @@ export function TestResultsView({ session, questions = [] }) {
     });
   };
 
-  // Derive complete score evaluation
+  // Derive complete score evaluation from session / Cloud Function response
   const scoreData = useMemo(() => {
-    const hasValidSnapshots =
-      session?.score &&
-      Array.isArray(session?.questionSnapshots) &&
-      session.questionSnapshots.length > 0 &&
-      session.questionSnapshots.every(
-        (q) => Array.isArray(q.correctAnswers) && q.correctAnswers.length > 0
-      );
+    if (session?.score) {
+      const results =
+        Array.isArray(session.questionResults) && session.questionResults.length > 0
+          ? session.questionResults
+          : Array.isArray(session.questionSnapshots) && session.questionSnapshots.length > 0
+            ? session.questionSnapshots
+            : [];
 
-    if (hasValidSnapshots) {
+      const questionMap = new Map((questions || []).map((q) => [q.id, q]));
+      const detailedResults = results.map((r) => {
+        const q = questionMap.get(r.id);
+        return {
+          ...r,
+          questionText: r.questionText || q?.questionText || '',
+          options: Array.isArray(r.options) && r.options.length > 0 ? r.options : (q?.options || []),
+          topic: r.topic || q?.topic || 'unknown',
+          userAnswers: Array.isArray(r.userAnswers) ? r.userAnswers : [],
+          correctAnswers: Array.isArray(r.correctAnswers) ? r.correctAnswers : [],
+        };
+      });
+
+      const scoreObj = typeof session.score === 'object' ? session.score : { totalScore: session.score };
+
       return {
-        ...session.score,
-        detailedResults: session.questionSnapshots,
+        ...scoreObj,
+        totalScore: scoreObj.totalScore ?? session.totalScore ?? 0,
+        part1Score: scoreObj.part1Score ?? session.part1Score ?? 0,
+        part2Score: scoreObj.part2Score ?? session.part2Score ?? 0,
+        maxPossibleScore: scoreObj.maxPossibleScore ?? session.maxPossibleScore ?? 50,
+        percentage: scoreObj.percentage ?? session.percentage ?? 0,
+        passed: Boolean(scoreObj.passed ?? session.passed),
+        byTopicBreakdown: scoreObj.byTopicBreakdown ?? session.byTopicBreakdown ?? {},
+        detailedResults,
       };
     }
+
     return calculateExamScore(session, questions);
   }, [session, questions]);
 
@@ -383,17 +405,30 @@ export function TestResultsView({ session, questions = [] }) {
 
                         {result.options.map((option, optIdx) => {
                           const isUserSelected =
+                            Array.isArray(result.userAnswers) &&
                             result.userAnswers.includes(optIdx);
+                          const hasCorrectAnswers =
+                            Array.isArray(result.correctAnswers) &&
+                            result.correctAnswers.length > 0;
                           const isCorrectOption =
+                            hasCorrectAnswers &&
                             result.correctAnswers.includes(optIdx);
 
                           let optionStyle = styles.optionItem;
-                          if (isUserSelected && isCorrectOption) {
-                            optionStyle = `${styles.optionItem} ${styles.optionSelectedCorrect}`;
-                          } else if (isUserSelected && !isCorrectOption) {
-                            optionStyle = `${styles.optionItem} ${styles.optionSelectedIncorrect}`;
-                          } else if (!isUserSelected && isCorrectOption) {
-                            optionStyle = `${styles.optionItem} ${styles.optionMissedCorrect}`;
+                          if (hasCorrectAnswers) {
+                            if (isUserSelected && isCorrectOption) {
+                              optionStyle = `${styles.optionItem} ${styles.optionSelectedCorrect}`;
+                            } else if (isUserSelected && !isCorrectOption) {
+                              optionStyle = `${styles.optionItem} ${styles.optionSelectedIncorrect}`;
+                            } else if (!isUserSelected && isCorrectOption) {
+                              optionStyle = `${styles.optionItem} ${styles.optionMissedCorrect}`;
+                            }
+                          } else if (isUserSelected) {
+                            if (result.isCorrect || result.isPartiallyCorrect) {
+                              optionStyle = `${styles.optionItem} ${styles.optionSelectedCorrect}`;
+                            } else {
+                              optionStyle = `${styles.optionItem} ${styles.optionSelectedIncorrect}`;
+                            }
                           }
 
                           return (
@@ -408,12 +443,12 @@ export function TestResultsView({ session, questions = [] }) {
                               </div>
 
                               <div className={styles.optionTags}>
-                                {isUserSelected && isCorrectOption ? (
+                                {isUserSelected && (isCorrectOption || (!hasCorrectAnswers && (result.isCorrect || result.isPartiallyCorrect))) ? (
                                   <span className={styles.tagCorrect}>
                                     ✓ Ваш ответ
                                   </span>
                                 ) : null}
-                                {isUserSelected && !isCorrectOption ? (
+                                {isUserSelected && (!isCorrectOption && (hasCorrectAnswers || (!result.isCorrect && !result.isPartiallyCorrect))) ? (
                                   <span className={styles.tagUserMistake}>
                                     ✗ Ваш ответ
                                   </span>

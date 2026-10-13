@@ -91,7 +91,7 @@ export function documentToSession(id, data) {
 
   const questionSnapshots = Array.isArray(data.questionSnapshots)
     ? data.questionSnapshots
-    : null;
+    : (Array.isArray(data.questionResults) ? data.questionResults : null);
 
   return {
     id,
@@ -140,7 +140,7 @@ export function sessionToDocument(
     ...(session.score ? { score: session.score } : {}),
     ...(session.questionSnapshots
       ? { questionSnapshots: session.questionSnapshots }
-      : {}),
+      : (session.questionResults ? { questionSnapshots: session.questionResults } : {})),
     ...(updatedAtTimestamp !== undefined
       ? { updatedAt: updatedAtTimestamp }
       : {}),

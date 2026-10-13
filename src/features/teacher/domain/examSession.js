@@ -51,10 +51,13 @@ export function evaluateExamAnswers(answers = {}, questions = []) {
   let totalScore = 0;
   let maxPossibleScore = 0;
   let correctAnswersCount = 0;
+  let part1Score = 0;
+  let part2Score = 0;
   const byTopicBreakdown = {};
   const detailedResults = [];
 
-  for (const question of questions) {
+  for (let idx = 0; idx < questions.length; idx++) {
+    const question = questions[idx];
     if (!question || !question.id) continue;
     const rawUserAnswers = answers[question.id];
     const userAnswers = Array.isArray(rawUserAnswers)
@@ -112,9 +115,16 @@ export function evaluateExamAnswers(answers = {}, questions = []) {
     }
 
     const isCorrect = pointsAwarded === maxPoints;
+    const isPartiallyCorrect = pointsAwarded > 0 && pointsAwarded < maxPoints;
     if (isCorrect) correctAnswersCount++;
     totalScore += pointsAwarded;
     maxPossibleScore += maxPoints;
+
+    if (idx < 30) {
+      part1Score += pointsAwarded;
+    } else {
+      part2Score += pointsAwarded;
+    }
 
     const topic = question.topic || 'unknown';
     if (!byTopicBreakdown[topic]) {
@@ -133,9 +143,14 @@ export function evaluateExamAnswers(answers = {}, questions = []) {
     detailedResults.push({
       id: question.id,
       topic,
+      questionText: question.questionText || '',
+      options: Array.isArray(question.options) ? question.options : [],
+      userAnswers: Array.from(userSet).sort((a, b) => a - b),
+      isMultipleChoice,
       pointsAwarded,
       maxPoints,
       isCorrect,
+      isPartiallyCorrect,
     });
   }
 
@@ -155,12 +170,15 @@ export function evaluateExamAnswers(answers = {}, questions = []) {
 
   return {
     totalScore,
+    part1Score,
+    part2Score,
     maxPossibleScore,
     percentage,
     passed,
     correctAnswersCount,
     byTopicBreakdown,
     detailedResults,
+    questionResults: detailedResults,
   };
 }
 

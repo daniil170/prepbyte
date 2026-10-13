@@ -61,12 +61,50 @@ describe('TestPage Integration', () => {
       getQuestionsByIds: vi.fn().mockResolvedValue(mockQuestions),
     };
 
+    const mockSubmitExamSession = vi.fn().mockImplementation(async ({ sessionId }) => ({
+      sessionId,
+      totalScore: 2,
+      part1Score: 1,
+      part2Score: 1,
+      maxPossibleScore: 3,
+      percentage: 67,
+      passed: true,
+      byTopicBreakdown: {},
+      questionResults: [
+        {
+          id: 'q-1',
+          topic: 'sql_queries',
+          questionText: 'Какой оператор выбирает строки в SQL?',
+          options: ['SELECT', 'CHOOSE', 'GET'],
+          userAnswers: [0],
+          isMultipleChoice: false,
+          pointsAwarded: 1,
+          maxPoints: 1,
+          isCorrect: true,
+          isPartiallyCorrect: false,
+        },
+        {
+          id: 'q-2',
+          topic: 'sql_queries',
+          questionText: 'Какой оператор выбирает строки в SQL?',
+          options: ['SELECT', 'CHOOSE', 'GET'],
+          userAnswers: [],
+          isMultipleChoice: false,
+          pointsAwarded: 0,
+          maxPoints: 1,
+          isCorrect: false,
+          isPartiallyCorrect: false,
+        },
+      ],
+    }));
+
     render(
       <MemoryRouter initialEntries={['/test/sess-123']}>
         <AuthProvider repository={mockAuthRepo}>
           <TestingProvider
             sessionRepository={sessionRepo}
             questionRepository={questionRepo}
+            submitExamSession={mockSubmitExamSession}
             now={() => 1700000000000}
           >
             <Routes>

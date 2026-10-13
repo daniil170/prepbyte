@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@features/auth';
 import { isMultipleAnswer } from '@features/question-bank';
+import { submitExamSessionClient as defaultSubmitExamSession } from '@features/teacher';
 import {
   finishSession as domainFinishSession,
   goToQuestion as domainGoToQuestion,
@@ -8,7 +9,6 @@ import {
   selectAnswer as domainSelectAnswer,
   toggleFlag as domainToggleFlag,
 } from '../domain/testSession';
-import { calculateExamScore } from '../domain/scoringEngine';
 import { useTestingDependencies } from './useTestingDependencies';
 
 /**
@@ -32,8 +32,13 @@ import { useTestingDependencies } from './useTestingDependencies';
  */
 export function useTestSession(sessionId) {
   const { user } = useAuth();
-  const { sessionRepository, questionRepository, now } =
-    useTestingDependencies();
+  const {
+    sessionRepository,
+    questionRepository,
+    submitExamSession: injectedSubmitSession,
+    now,
+  } = useTestingDependencies();
+  const submitSessionFn = injectedSubmitSession || defaultSubmitExamSession;
 
   const [status, setStatus] = useState('loading');
   const [session, setSession] = useState(null);
@@ -117,7 +122,7 @@ export function useTestSession(sessionId) {
     questionsRef.current = questions;
   }, [questions]);
 
-  // Finish session handler
+  // Finish session handler: authoritative server evaluation via submitExamSession Cloud Function
   const finish = useCallback(async () => {
     const current = sessionRef.current;
     if (!current || current.status !== 'in_progress') {
@@ -131,36 +136,44 @@ export function useTestSession(sessionId) {
       clearTimeout(retryTimerRef.current);
     }
 
-    const currentQuestions = questionsRef.current || [];
-    let score = null;
-    let questionSnapshots = null;
-
-    if (currentQuestions.length > 0) {
-      const evaluation = calculateExamScore(current, currentQuestions);
-      score = {
-        totalScore: evaluation.totalScore,
-        maxPossibleScore: evaluation.maxPossibleScore,
-        percentage: evaluation.percentage,
-        passed: evaluation.passed,
-        byTopicBreakdown: evaluation.byTopicBreakdown,
-      };
-      questionSnapshots = evaluation.detailedResults;
-    }
-
-    const completed = domainFinishSession(current, now, {
-      score,
-      questionSnapshots,
-    });
-    sessionRef.current = completed;
-    setSession(completed);
+    setSaveState('saving');
 
     try {
-      await sessionRepository.finishSession(completed);
+      const evaluationResult = await submitSessionFn({
+        sessionId: current.id,
+        answers: current.answers || {},
+      });
+
+      const score = {
+        totalScore: evaluationResult.totalScore ?? 0,
+        part1Score: evaluationResult.part1Score ?? 0,
+        part2Score: evaluationResult.part2Score ?? 0,
+        maxPossibleScore: evaluationResult.maxPossibleScore ?? 50,
+        percentage: evaluationResult.percentage ?? 0,
+        passed: Boolean(evaluationResult.passed),
+        byTopicBreakdown: evaluationResult.byTopicBreakdown || {},
+      };
+      const questionSnapshots = evaluationResult.questionResults || [];
+
+      const completed = domainFinishSession(current, now, {
+        score,
+        questionSnapshots,
+      });
+      sessionRef.current = completed;
+      setSession(completed);
+
+      if (typeof sessionRepository?.finishSession === 'function') {
+        await sessionRepository.finishSession(completed);
+      }
+
       setSaveState('saved');
-    } catch {
+    } catch (err) {
       setSaveState('error');
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Не удалось отправить результаты тестирования.'
+      );
     }
-  }, [sessionRepository, now]);
+  }, [submitSessionFn, sessionRepository, now]);
 
   // Initial load effect
   useEffect(() => {
@@ -192,19 +205,21 @@ export function useTestSession(sessionId) {
           return;
         }
 
-        // Load questions: prefer immutable questionSnapshots if session is completed AND snapshots are valid
+        // Load questions: prefer immutable questionSnapshots if session is completed
         let loadedQuestions = [];
-        const hasValidSnapshots =
+        if (
           loadedSession.status === 'completed' &&
           Array.isArray(loadedSession.questionSnapshots) &&
-          loadedSession.questionSnapshots.length > 0 &&
-          loadedSession.questionSnapshots.every(
-            (q) => Array.isArray(q.correctAnswers) && q.correctAnswers.length > 0
-          );
-
-        if (hasValidSnapshots) {
+          loadedSession.questionSnapshots.length > 0
+        ) {
           loadedQuestions = loadedSession.questionSnapshots;
-        } else {
+        } else if (
+          loadedSession.status === 'completed' &&
+          Array.isArray(loadedSession.questionResults) &&
+          loadedSession.questionResults.length > 0
+        ) {
+          loadedQuestions = loadedSession.questionResults;
+        } else if (Array.isArray(loadedSession.questionIds)) {
           loadedQuestions = await questionRepository.getQuestionsByIds(
             loadedSession.questionIds
           );
@@ -217,41 +232,29 @@ export function useTestSession(sessionId) {
           loadedSession.status === 'in_progress' &&
           isExpired(loadedSession, now)
         ) {
-          const evaluation = calculateExamScore(loadedSession, loadedQuestions);
-          const score = {
-            totalScore: evaluation.totalScore,
-            maxPossibleScore: evaluation.maxPossibleScore,
-            percentage: evaluation.percentage,
-            passed: evaluation.passed,
-            byTopicBreakdown: evaluation.byTopicBreakdown,
-          };
-          const questionSnapshots = evaluation.detailedResults;
-
-          loadedSession = domainFinishSession(loadedSession, now, {
-            score,
-            questionSnapshots,
-          });
-          await sessionRepository.finishSession(loadedSession);
-        } else if (
-          loadedSession.status === 'completed' &&
-          (!loadedSession.score || !hasValidSnapshots) &&
-          loadedQuestions.length > 0
-        ) {
-          // Backward compatibility and auto-repair for completed sessions with missing score or corrupted snapshots
-          const evaluation = calculateExamScore(loadedSession, loadedQuestions);
-          loadedSession = {
-            ...loadedSession,
-            score: {
-              totalScore: evaluation.totalScore,
-              maxPossibleScore: evaluation.maxPossibleScore,
-              percentage: evaluation.percentage,
-              passed: evaluation.passed,
-              byTopicBreakdown: evaluation.byTopicBreakdown,
-            },
-            questionSnapshots: evaluation.detailedResults,
-          };
-          if (typeof sessionRepository?.saveProgress === 'function') {
-            sessionRepository.saveProgress(loadedSession).catch(() => {});
+          try {
+            const evaluationResult = await submitSessionFn({
+              sessionId: loadedSession.id,
+              answers: loadedSession.answers || {},
+            });
+            const score = {
+              totalScore: evaluationResult.totalScore ?? 0,
+              part1Score: evaluationResult.part1Score ?? 0,
+              part2Score: evaluationResult.part2Score ?? 0,
+              maxPossibleScore: evaluationResult.maxPossibleScore ?? 50,
+              percentage: evaluationResult.percentage ?? 0,
+              passed: Boolean(evaluationResult.passed),
+              byTopicBreakdown: evaluationResult.byTopicBreakdown || {},
+            };
+            loadedSession = domainFinishSession(loadedSession, now, {
+              score,
+              questionSnapshots: evaluationResult.questionResults || [],
+            });
+          } catch {
+            loadedSession = domainFinishSession(loadedSession, now);
+          }
+          if (typeof sessionRepository?.finishSession === 'function') {
+            await sessionRepository.finishSession(loadedSession);
           }
         }
 
@@ -279,7 +282,7 @@ export function useTestSession(sessionId) {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     };
-  }, [sessionId, user, sessionRepository, questionRepository, now]);
+  }, [sessionId, user, sessionRepository, questionRepository, submitSessionFn, now]);
 
   // Flush pending save on visibilitychange or pagehide
   useEffect(() => {

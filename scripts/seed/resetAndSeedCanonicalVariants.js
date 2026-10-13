@@ -48,6 +48,7 @@ export async function resetAndSeedCanonicalVariants() {
   await deleteCollection('exam_sessions');
   await deleteCollection('exam_pin_lookup');
   await deleteCollection('test_sessions');
+  await deleteCollection('question_exposure');
   await deleteCollection('variants');
 
   // 2. Убедиться, что базовые пользователи и группа существуют

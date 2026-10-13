@@ -118,6 +118,21 @@ describe('Firestore Security Rules Unit Tests', () => {
         answers: {},
       });
 
+      await setDoc(doc(adminDb, 'test_sessions/sessionA_completed'), {
+        userId: 'studentA',
+        status: 'completed',
+        questionIds: ['q1', 'q2'],
+        durationLimitSec: 3600,
+        startedAt: 1000,
+        finishedAt: 2000,
+        answers: { q1: [0] },
+        score: {
+          totalScore: 50,
+          maxScore: 50,
+          percentage: 100,
+        },
+      });
+
       // Questions (Public data: NO correctAnswers)
       await setDoc(doc(adminDb, 'questions/q1'), {
         topic: 'python_loops',
@@ -420,6 +435,23 @@ describe('Firestore Security Rules Unit Tests', () => {
       email: 'teachera@pifagorschool.kz',
     });
     const db = teacherA.firestore();
+    await assertFails(getDoc(doc(db, 'test_sessions/sessionB')));
+  });
+
+  it('8b. Student CAN read their own active and completed test_sessions, but CANNOT read others', async () => {
+    if (!isEmulatorAvailable) return;
+    const studentA = testEnv.authenticatedContext('studentA', {
+      email: 'studenta@pifagorschool.kz',
+    });
+    const db = studentA.firestore();
+    // CAN read own in-progress session
+    await assertSucceeds(getDoc(doc(db, 'test_sessions/sessionA')));
+    // CAN read own completed session with evaluated score
+    const completedSnap = await getDoc(doc(db, 'test_sessions/sessionA_completed'));
+    expect(completedSnap.exists()).toBe(true);
+    expect(completedSnap.data().status).toBe('completed');
+    expect(completedSnap.data().score.totalScore).toBe(50);
+    // CANNOT read student B session
     await assertFails(getDoc(doc(db, 'test_sessions/sessionB')));
   });
 

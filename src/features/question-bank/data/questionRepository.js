@@ -77,7 +77,7 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
       .filter(Boolean);
   }
 
-  async function getQuestionsByIds(ids, { includeAnswers = true } = {}) {
+  async function getQuestionsByIds(ids, { includeAnswers = false } = {}) {
     if (!Array.isArray(ids) || ids.length === 0) {
       return [];
     }
@@ -113,21 +113,33 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
     const allQuestions = ids.map((id, idx) => {
       if (foundDocMap.has(id)) {
         const pubData = foundDocMap.get(id);
-        const ans = answersMap.get(id);
-        const resolvedCorrectAnswers =
-          ans?.correctAnswers ??
-          pubData?.correctAnswers ??
-          pubData?.correctAnswer ??
-          pubData?.correct_answers;
-        const resolvedExplanation =
-          ans?.explanation && typeof ans.explanation === 'string' && ans.explanation.trim()
-            ? ans.explanation.trim()
-            : pubData?.explanation && typeof pubData.explanation === 'string' && pubData.explanation.trim()
-              ? pubData.explanation.trim()
-              : 'Пояснение к заданию';
+        const ans = includeAnswers ? answersMap.get(id) : null;
+        const resolvedCorrectAnswers = includeAnswers
+          ? (ans?.correctAnswers ??
+             pubData?.correctAnswers ??
+             pubData?.correctAnswer ??
+             pubData?.correct_answers)
+          : undefined;
+        const resolvedExplanation = includeAnswers
+          ? (ans?.explanation && typeof ans.explanation === 'string' && ans.explanation.trim()
+             ? ans.explanation.trim()
+             : pubData?.explanation && typeof pubData.explanation === 'string' && pubData.explanation.trim()
+               ? pubData.explanation.trim()
+               : 'Пояснение к заданию')
+          : undefined;
+
+        const sanitizedPubData = { ...pubData };
+        if (!includeAnswers) {
+          delete sanitizedPubData.correctAnswers;
+          delete sanitizedPubData.correctAnswer;
+          delete sanitizedPubData.correct_answers;
+          delete sanitizedPubData.explanation;
+          delete sanitizedPubData.solution;
+          delete sanitizedPubData.comment;
+        }
 
         const mergedData = {
-          ...pubData,
+          ...sanitizedPubData,
           ...(resolvedCorrectAnswers !== undefined
             ? { correctAnswers: resolvedCorrectAnswers }
             : {}),
@@ -139,7 +151,7 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
         try {
           return documentToQuestion(id, mergedData);
         } catch {
-          return documentToQuestion(id, pubData);
+          return documentToQuestion(id, sanitizedPubData);
         }
       }
       return {
@@ -151,9 +163,8 @@ export function createQuestionRepository(firestore = defaultDb, functionsInstanc
           'Вариант C',
           'Вариант D',
         ],
-        correctAnswers: [0],
+        ...(includeAnswers ? { correctAnswers: [0], explanation: 'Вопрос экзамена' } : {}),
         topic: 'Общая информатика',
-        explanation: 'Вопрос экзамена',
       };
     });
 

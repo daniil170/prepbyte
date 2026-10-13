@@ -234,5 +234,88 @@ describe('TestResultsView', () => {
       screen.getByText('ПРОТОКОЛ РЕЗУЛЬТАТОВ ПРОБНОГО ТЕСТИРОВАНИЯ')
     ).toBeInTheDocument();
   });
+
+  it('renders score from Cloud Function evaluated session when questions do NOT contain correctAnswers', () => {
+    // Public questions without correctAnswers
+    const publicQuestions = [
+      {
+        id: 'q-1',
+        topic: 'python_loops',
+        questionText: 'Loop question',
+        options: ['A', 'B', 'C', 'D'],
+      },
+      {
+        id: 'q-2',
+        topic: 'sql_queries',
+        questionText: 'SQL question',
+        options: ['SELECT', 'UPDATE', 'INSERT', 'DROP'],
+      },
+    ];
+
+    // Session evaluated by Cloud Function (without correctAnswers)
+    const evaluatedSession = {
+      id: 'sess-server-evaluated',
+      status: 'completed',
+      answers: { 'q-1': [0], 'q-2': [0, 1] },
+      score: {
+        totalScore: 42,
+        part1Score: 26,
+        part2Score: 16,
+        maxPossibleScore: 50,
+        percentage: 84,
+        passed: true,
+        byTopicBreakdown: {
+          python_loops: {
+            topic: 'python_loops',
+            score: 26,
+            maxScore: 30,
+            percentage: 87,
+            totalQuestions: 25,
+            correctCount: 23,
+            partialCount: 2,
+            incorrectCount: 0,
+          },
+        },
+      },
+      questionResults: [
+        {
+          id: 'q-1',
+          topic: 'python_loops',
+          questionText: 'Loop question',
+          options: ['A', 'B', 'C', 'D'],
+          userAnswers: [0],
+          isMultipleChoice: false,
+          pointsAwarded: 1,
+          maxPoints: 1,
+          isCorrect: true,
+          isPartiallyCorrect: false,
+        },
+        {
+          id: 'q-2',
+          topic: 'sql_queries',
+          questionText: 'SQL question',
+          options: ['SELECT', 'UPDATE', 'INSERT', 'DROP'],
+          userAnswers: [0, 1],
+          isMultipleChoice: true,
+          pointsAwarded: 2,
+          maxPoints: 2,
+          isCorrect: true,
+          isPartiallyCorrect: false,
+        },
+      ],
+    };
+
+    render(
+      <MemoryRouter>
+        <TestResultsView session={evaluatedSession} questions={publicQuestions} />
+      </MemoryRouter>
+    );
+
+    // Score 42 out of 50 must be rendered directly from the server response
+    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.getByText('/ 50')).toBeInTheDocument();
+    expect(screen.getByText('(84%)')).toBeInTheDocument();
+    expect(screen.getByText('Тест сдан')).toBeInTheDocument();
+  });
 });
 

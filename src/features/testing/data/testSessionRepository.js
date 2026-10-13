@@ -118,7 +118,9 @@ export function createTestSessionRepository(firestore = defaultDb) {
 
     const score = options.score || session.score || null;
     const questionSnapshots =
-      options.questionSnapshots || session.questionSnapshots || null;
+      options.questionSnapshots || session.questionSnapshots || session.questionResults || null;
+    const questionResults =
+      options.questionResults || session.questionResults || session.questionSnapshots || null;
 
     const payload = {
       status: 'completed',
@@ -126,6 +128,7 @@ export function createTestSessionRepository(firestore = defaultDb) {
       updatedAt: serverTimestamp(),
       ...(score ? { score } : {}),
       ...(questionSnapshots ? { questionSnapshots } : {}),
+      ...(questionResults ? { questionResults } : {}),
     };
 
     await updateDoc(docRef, payload);

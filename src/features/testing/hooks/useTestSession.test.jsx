@@ -54,6 +54,17 @@ describe('useTestSession', () => {
     questionRepo = {
       getQuestionsByIds: vi.fn().mockResolvedValue(mockQuestions),
     },
+    submitExamSession = vi.fn().mockResolvedValue({
+      sessionId: 'sess-mock',
+      totalScore: 1,
+      part1Score: 1,
+      part2Score: 0,
+      maxPossibleScore: 2,
+      percentage: 50,
+      passed: true,
+      byTopicBreakdown: {},
+      questionResults: [],
+    }),
   }) {
     return function Wrapper({ children }) {
       return (
@@ -61,6 +72,7 @@ describe('useTestSession', () => {
           <TestingProvider
             sessionRepository={sessionRepo}
             questionRepository={questionRepo}
+            submitExamSession={submitExamSession}
             now={() => currentTime}
           >
             {children}

@@ -119,9 +119,16 @@ export async function submitExamSessionService(
 
   const cleanSessionId = sessionId.trim();
 
-  // 2. Load Exam Session
-  const sessionDocRef = doc(firestore, 'exam_sessions', cleanSessionId);
-  const sessionSnap = await getDoc(sessionDocRef);
+  // 2. Load Session (supports test_sessions and exam_sessions)
+  let sessionDocRef = doc(firestore, 'test_sessions', cleanSessionId);
+  let sessionSnap = await getDoc(sessionDocRef);
+  let isTestSession = true;
+
+  if (!sessionSnap.exists()) {
+    sessionDocRef = doc(firestore, 'exam_sessions', cleanSessionId);
+    sessionSnap = await getDoc(sessionDocRef);
+    isTestSession = false;
+  }
 
   if (!sessionSnap.exists()) {
     throw new SubmitExamSessionError(
@@ -133,7 +140,8 @@ export async function submitExamSessionService(
   const sessionData = sessionSnap.data();
 
   // 3. Verify student ownership
-  if (sessionData.studentId !== authUser.uid) {
+  const ownerId = isTestSession ? sessionData.userId : sessionData.studentId;
+  if (ownerId !== authUser.uid) {
     throw new SubmitExamSessionError(
       'Вы не являетесь владельцем этой экзаменационной сессии.',
       'PERMISSION_DENIED'
@@ -141,42 +149,66 @@ export async function submitExamSessionService(
   }
 
   // 4. Idempotency check: if already submitted, return the existing authoritative score
-  if (sessionData.status === 'submitted') {
+  const isSubmitted = isTestSession
+    ? sessionData.status === 'completed'
+    : sessionData.status === 'submitted';
+
+  if (isSubmitted) {
+    const scoreObj = typeof sessionData.score === 'object' && sessionData.score !== null ? sessionData.score : {};
     return {
       sessionId: cleanSessionId,
-      status: 'submitted',
-      score: sessionData.score ?? sessionData.totalScore ?? 0,
-      totalScore: sessionData.totalScore ?? 0,
-      maxPossibleScore: sessionData.maxPossibleScore ?? 0,
-      percentage: sessionData.percentage ?? 0,
-      correctAnswersCount: sessionData.correctAnswersCount ?? 0,
-      passed: Boolean(sessionData.passed),
-      byTopicBreakdown: sessionData.byTopicBreakdown || {},
+      status: sessionData.status,
+      score: sessionData.score?.totalScore ?? sessionData.totalScore ?? sessionData.score ?? 0,
+      totalScore: sessionData.totalScore ?? scoreObj.totalScore ?? 0,
+      part1Score: sessionData.part1Score ?? scoreObj.part1Score ?? 0,
+      part2Score: sessionData.part2Score ?? scoreObj.part2Score ?? 0,
+      maxPossibleScore: sessionData.maxPossibleScore ?? scoreObj.maxPossibleScore ?? 50,
+      percentage: sessionData.percentage ?? scoreObj.percentage ?? 0,
+      correctAnswersCount: sessionData.correctAnswersCount ?? scoreObj.correctAnswersCount ?? 0,
+      passed: Boolean(sessionData.passed ?? scoreObj.passed),
+      byTopicBreakdown: sessionData.byTopicBreakdown ?? scoreObj.byTopicBreakdown ?? {},
+      questionResults: sessionData.questionResults ?? sessionData.questionSnapshots ?? [],
       alreadySubmitted: true,
     };
   }
 
-  if (sessionData.status !== 'waiting' && sessionData.status !== 'in_progress') {
-    throw new SubmitExamSessionError(
-      `Невозможно отправить сессию со статусом [${sessionData.status}].`,
-      'FAILED_PRECONDITION'
-    );
+  if (isTestSession) {
+    if (sessionData.status !== 'in_progress') {
+      throw new SubmitExamSessionError(
+        `Невозможно отправить сессию со статусом [${sessionData.status}].`,
+        'FAILED_PRECONDITION'
+      );
+    }
+  } else {
+    if (sessionData.status !== 'waiting' && sessionData.status !== 'in_progress') {
+      throw new SubmitExamSessionError(
+        `Невозможно отправить сессию со статусом [${sessionData.status}].`,
+        'FAILED_PRECONDITION'
+      );
+    }
   }
 
-  // 5. Load Exam
-  const examId = sessionData.examId;
-  const examDocRef = doc(firestore, 'exams', examId);
-  const examSnap = await getDoc(examDocRef);
+  // 5. Load Question IDs
+  let questionIds = [];
+  if (isTestSession) {
+    questionIds = Array.isArray(sessionData.questionIds) ? sessionData.questionIds : [];
+  } else {
+    const examId = sessionData.examId;
+    const examDocRef = doc(firestore, 'exams', examId);
+    const examSnap = await getDoc(examDocRef);
 
-  if (!examSnap.exists()) {
-    throw new SubmitExamSessionError(
-      `Экзамен [id=${examId}] не найден.`,
-      'NOT_FOUND'
-    );
+    if (!examSnap.exists()) {
+      throw new SubmitExamSessionError(
+        `Экзамен [id=${examId}] не найден.`,
+        'NOT_FOUND'
+      );
+    }
+
+    const examData = examSnap.data();
+    questionIds = Array.isArray(sessionData.questionOrder) && sessionData.questionOrder.length > 0
+      ? sessionData.questionOrder
+      : (Array.isArray(examData?.questionIds) ? examData.questionIds : []);
   }
-
-  const examData = examSnap.data();
-  const questionIds = Array.isArray(examData.questionIds) ? examData.questionIds : [];
 
   if (questionIds.length === 0) {
     throw new SubmitExamSessionError(
@@ -206,6 +238,8 @@ export async function submitExamSessionService(
         return snap.docs.map((d) => ({
           id: d.id,
           topic: d.data().topic || 'unknown',
+          questionText: d.data().questionText || '',
+          options: d.data().options || [],
           multiple: d.data().multiple,
           type: d.data().type,
           correctAnswers: d.data().correctAnswers,
@@ -217,8 +251,8 @@ export async function submitExamSessionService(
   const answerDocsMap = new Map(answersResults.flat().map((a) => [a.id, a]));
   const questionDocsMap = new Map(questionsResults.flat().map((q) => [q.id, q]));
 
-  // Build protected question items for pure domain evaluation
-  const protectedQuestions = uniqueIds.map((id) => {
+  // Build protected question items for pure domain evaluation in questionIds order
+  const protectedQuestions = questionIds.map((id) => {
     const ansData = answerDocsMap.get(id);
     const qData = questionDocsMap.get(id);
     const resolvedCorrectAnswers =
@@ -230,6 +264,8 @@ export async function submitExamSessionService(
     return {
       id,
       topic: qData?.topic || 'unknown',
+      questionText: qData?.questionText || '',
+      options: Array.isArray(qData?.options) ? qData.options : [],
       multiple: qData?.multiple,
       type: qData?.type,
       correctAnswers: resolvedCorrectAnswers,
@@ -245,16 +281,30 @@ export async function submitExamSessionService(
 
   // 8. Write authoritative immutable result to Firestore
   const patch = {
-    status: 'submitted',
-    submittedAt: serverTimestamp(),
+    status: isTestSession ? 'completed' : 'submitted',
+    ...(isTestSession ? { finishedAt: serverTimestamp() } : { submittedAt: serverTimestamp() }),
     answers: sanitizedAnswers,
-    score: evaluationResult.totalScore,
+    score: isTestSession
+      ? {
+          totalScore: evaluationResult.totalScore,
+          part1Score: evaluationResult.part1Score,
+          part2Score: evaluationResult.part2Score,
+          maxPossibleScore: evaluationResult.maxPossibleScore,
+          percentage: evaluationResult.percentage,
+          passed: evaluationResult.passed,
+          byTopicBreakdown: evaluationResult.byTopicBreakdown,
+        }
+      : evaluationResult.totalScore,
     totalScore: evaluationResult.totalScore,
+    part1Score: evaluationResult.part1Score,
+    part2Score: evaluationResult.part2Score,
     maxPossibleScore: evaluationResult.maxPossibleScore,
     percentage: evaluationResult.percentage,
     correctAnswersCount: evaluationResult.correctAnswersCount,
     passed: evaluationResult.passed,
     byTopicBreakdown: evaluationResult.byTopicBreakdown,
+    questionResults: evaluationResult.questionResults,
+    questionSnapshots: evaluationResult.questionResults,
     updatedAt: serverTimestamp(),
   };
 
@@ -263,14 +313,17 @@ export async function submitExamSessionService(
   // 9. Return safe result WITHOUT correctAnswers
   return {
     sessionId: cleanSessionId,
-    status: 'submitted',
+    status: isTestSession ? 'completed' : 'submitted',
     score: evaluationResult.totalScore,
     totalScore: evaluationResult.totalScore,
+    part1Score: evaluationResult.part1Score,
+    part2Score: evaluationResult.part2Score,
     maxPossibleScore: evaluationResult.maxPossibleScore,
     percentage: evaluationResult.percentage,
     correctAnswersCount: evaluationResult.correctAnswersCount,
     passed: evaluationResult.passed,
     byTopicBreakdown: evaluationResult.byTopicBreakdown,
+    questionResults: evaluationResult.questionResults,
     alreadySubmitted: false,
   };
 }

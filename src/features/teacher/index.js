@@ -43,6 +43,11 @@ export {
   documentToExamSession,
   examSessionToDocument,
 } from './data/examMappers';
+export {
+  submitExamSessionClient,
+  submitExamSessionService,
+  startExamSessionClient,
+} from './data/submitExamSessionService';
 
 // Hooks
 export { useTeacherOverview } from './hooks/useTeacherOverview';

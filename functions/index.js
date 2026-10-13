@@ -16,10 +16,14 @@ export function evaluateAnswers(answers = {}, protectedQuestions = []) {
   let totalScore = 0;
   let maxPossibleScore = 0;
   let correctAnswersCount = 0;
+  let part1Score = 0;
+  let part2Score = 0;
   const byTopicBreakdown = {};
+  const questionResults = [];
   const questionsList = Array.isArray(protectedQuestions) ? protectedQuestions : [];
 
-  for (const question of questionsList) {
+  for (let idx = 0; idx < questionsList.length; idx++) {
+    const question = questionsList[idx];
     if (!question || !question.id) continue;
     const userAnswers = Array.isArray(answers[question.id]) ? answers[question.id] : [];
     const userSet = new Set(userAnswers);
@@ -28,12 +32,15 @@ export function evaluateAnswers(answers = {}, protectedQuestions = []) {
     const isMultipleChoice = Boolean(
       question.type === 'multiple' ||
       question.multiple === true ||
-      correctSet.size > 1
+      correctSet.size > 1 ||
+      (typeof question.number === 'number' && question.number >= 31 && question.number <= 40)
     );
     const maxPoints = isMultipleChoice ? 2 : 1;
 
     let pointsAwarded = 0;
-    if (!isMultipleChoice) {
+    if (userSet.size === 0 || correctSet.size === 0) {
+      pointsAwarded = 0;
+    } else if (!isMultipleChoice) {
       if (userSet.size === 1 && userSet.has(correctAnswers[0])) {
         pointsAwarded = 1;
       }
@@ -52,9 +59,33 @@ export function evaluateAnswers(answers = {}, protectedQuestions = []) {
       else pointsAwarded = 0;
     }
 
-    if (pointsAwarded === maxPoints) correctAnswersCount++;
+    const isCorrect = pointsAwarded === maxPoints;
+    const isPartiallyCorrect = pointsAwarded > 0 && pointsAwarded < maxPoints;
+
+    if (isCorrect) correctAnswersCount++;
     totalScore += pointsAwarded;
     maxPossibleScore += maxPoints;
+
+    // Part 1: questions 1..30 (index 0..29), Part 2: questions 31..40 (index 30..39)
+    if (idx < 30) {
+      part1Score += pointsAwarded;
+    } else {
+      part2Score += pointsAwarded;
+    }
+
+    // questionResults WITHOUT correctAnswers!
+    questionResults.push({
+      id: question.id,
+      topic: question.topic || 'unknown',
+      questionText: question.questionText || '',
+      options: Array.isArray(question.options) ? question.options : [],
+      userAnswers: Array.from(userSet).sort((a, b) => a - b),
+      isMultipleChoice,
+      pointsAwarded,
+      maxPoints,
+      isCorrect,
+      isPartiallyCorrect,
+    });
 
     const topic = question.topic || 'unknown';
     if (!byTopicBreakdown[topic]) {
@@ -64,11 +95,21 @@ export function evaluateAnswers(answers = {}, protectedQuestions = []) {
         maxScore: 0,
         percentage: 0,
         totalQuestions: 0,
+        correctCount: 0,
+        partialCount: 0,
+        incorrectCount: 0,
       };
     }
     byTopicBreakdown[topic].score += pointsAwarded;
     byTopicBreakdown[topic].maxScore += maxPoints;
     byTopicBreakdown[topic].totalQuestions += 1;
+    if (isCorrect) {
+      byTopicBreakdown[topic].correctCount += 1;
+    } else if (isPartiallyCorrect) {
+      byTopicBreakdown[topic].partialCount += 1;
+    } else {
+      byTopicBreakdown[topic].incorrectCount += 1;
+    }
   }
 
   for (const topic of Object.keys(byTopicBreakdown)) {
@@ -81,11 +122,14 @@ export function evaluateAnswers(answers = {}, protectedQuestions = []) {
 
   return {
     totalScore,
+    part1Score,
+    part2Score,
     maxPossibleScore,
     percentage,
     passed,
     correctAnswersCount,
     byTopicBreakdown,
+    questionResults,
   };
 }
 
@@ -321,10 +365,12 @@ export const startExamSession = onCall(async (request) => {
  *
  * Implements server-authoritative submission with:
  * - Authentication & Session ownership validation
+ * - Supports both test_sessions and exam_sessions collections
  * - Transactional execution for atomicity and race-condition prevention
  * - Idempotent response for already-submitted sessions
  * - Protected answer loading (strictly hidden from clients)
  * - Safe sanitization of student answers
+ * - Returns { totalScore, part1Score, part2Score, questionResults } without correctAnswers
  */
 export const submitExamSession = onCall(async (request) => {
   // 1. Authentication validation
@@ -338,62 +384,86 @@ export const submitExamSession = onCall(async (request) => {
   }
 
   const cleanSessionId = sessionId.trim();
-  const sessionDocRef = db.collection('exam_sessions').doc(cleanSessionId);
 
   // 2. Transactional execution for atomicity and race-condition prevention
   return await db.runTransaction(async (transaction) => {
-    const sessionSnap = await transaction.get(sessionDocRef);
+    // Check test_sessions first, then exam_sessions
+    let sessionDocRef = db.collection('test_sessions').doc(cleanSessionId);
+    let sessionSnap = await transaction.get(sessionDocRef);
+    let isTestSession = true;
 
     if (!sessionSnap.exists) {
-      throw new HttpsError('not-found', `Сессия экзамена [${cleanSessionId}] не найдена.`);
+      sessionDocRef = db.collection('exam_sessions').doc(cleanSessionId);
+      sessionSnap = await transaction.get(sessionDocRef);
+      isTestSession = false;
+    }
+
+    if (!sessionSnap.exists) {
+      throw new HttpsError('not-found', `Сессия [${cleanSessionId}] не найдена.`);
     }
 
     const sessionData = sessionSnap.data();
 
-    // 3. Ownership verification: request.auth.uid MUST match session.studentId
-    if (sessionData.studentId !== request.auth.uid) {
+    // 3. Ownership verification: request.auth.uid MUST match session owner
+    const sessionOwnerId = isTestSession ? sessionData.userId : sessionData.studentId;
+    if (sessionOwnerId !== request.auth.uid) {
       throw new HttpsError('permission-denied', 'Вы не являетесь владельцем этой экзаменационной сессии.');
     }
 
     // 4. Idempotency: Return existing authoritative score if already submitted
-    if (sessionData.status === 'submitted') {
+    const isSubmitted = isTestSession
+      ? sessionData.status === 'completed'
+      : sessionData.status === 'submitted';
+
+    if (isSubmitted) {
+      const scoreObj = typeof sessionData.score === 'object' && sessionData.score !== null ? sessionData.score : {};
       return {
         sessionId: cleanSessionId,
-        status: 'submitted',
-        score: sessionData.score ?? sessionData.totalScore ?? 0,
-        totalScore: sessionData.totalScore ?? 0,
-        maxPossibleScore: sessionData.maxPossibleScore ?? 0,
-        percentage: sessionData.percentage ?? 0,
-        correctAnswersCount: sessionData.correctAnswersCount ?? 0,
-        passed: Boolean(sessionData.passed),
-        byTopicBreakdown: sessionData.byTopicBreakdown || {},
+        status: sessionData.status,
+        score: scoreObj.totalScore ?? sessionData.totalScore ?? sessionData.score ?? 0,
+        totalScore: sessionData.totalScore ?? scoreObj.totalScore ?? 0,
+        part1Score: sessionData.part1Score ?? scoreObj.part1Score ?? 0,
+        part2Score: sessionData.part2Score ?? scoreObj.part2Score ?? 0,
+        maxPossibleScore: sessionData.maxPossibleScore ?? scoreObj.maxPossibleScore ?? 50,
+        percentage: sessionData.percentage ?? scoreObj.percentage ?? 0,
+        correctAnswersCount: sessionData.correctAnswersCount ?? scoreObj.correctAnswersCount ?? 0,
+        passed: Boolean(sessionData.passed ?? scoreObj.passed),
+        byTopicBreakdown: sessionData.byTopicBreakdown ?? scoreObj.byTopicBreakdown ?? {},
+        questionResults: sessionData.questionResults ?? sessionData.questionSnapshots ?? [],
         alreadySubmitted: true,
       };
     }
 
     // 5. Lifecycle precondition check
-    if (sessionData.status !== 'waiting' && sessionData.status !== 'in_progress') {
-      throw new HttpsError('failed-precondition', `Невозможно отправить сессию со статусом [${sessionData.status}].`);
+    if (isTestSession) {
+      if (sessionData.status !== 'in_progress') {
+        throw new HttpsError('failed-precondition', `Невозможно отправить сессию со статусом [${sessionData.status}].`);
+      }
+    } else {
+      if (sessionData.status !== 'waiting' && sessionData.status !== 'in_progress') {
+        throw new HttpsError('failed-precondition', `Невозможно отправить сессию со статусом [${sessionData.status}].`);
+      }
     }
-
-    const examId = sessionData.examId;
-    if (!examId) {
-      throw new HttpsError('failed-precondition', 'В сессии отсутствует идентификатор экзамена.');
-    }
-
-    const examDocRef = db.collection('exams').doc(examId);
-    const examSnap = await transaction.get(examDocRef);
-
-    if (!examSnap.exists) {
-      throw new HttpsError('not-found', `Экзамен [${examId}] не найден.`);
-    }
-
-    const examData = examSnap.data();
 
     // 6. Authoritative question order
-    const questionIds = Array.isArray(sessionData.questionOrder) && sessionData.questionOrder.length > 0
-      ? sessionData.questionOrder
-      : (Array.isArray(examData.questionIds) ? examData.questionIds : []);
+    let questionIds = [];
+    if (isTestSession) {
+      questionIds = Array.isArray(sessionData.questionIds) ? sessionData.questionIds : [];
+    } else {
+      const examId = sessionData.examId;
+      if (!examId) {
+        throw new HttpsError('failed-precondition', 'В сессии отсутствует идентификатор экзамена.');
+      }
+      const examDocRef = db.collection('exams').doc(examId);
+      const examSnap = await transaction.get(examDocRef);
+      if (!examSnap.exists) {
+        throw new HttpsError('not-found', `Экзамен [${examId}] не найден.`);
+      }
+      const examData = examSnap.data();
+      questionIds = Array.isArray(sessionData.questionOrder) && sessionData.questionOrder.length > 0
+        ? sessionData.questionOrder
+        : (Array.isArray(examData?.questionIds) ? examData.questionIds : []);
+    }
 
     if (questionIds.length === 0) {
       throw new HttpsError('failed-precondition', 'В экзамене отсутствуют вопросы для оценивания.');
@@ -424,13 +494,17 @@ export const submitExamSession = onCall(async (request) => {
     });
 
     // 8. Sanitize client submitted answers
+    const submittedAnswers = answers && typeof answers === 'object' && Object.keys(answers).length > 0
+      ? answers
+      : sessionData.answers;
+
     const sanitizedAnswers = sanitizeStudentAnswers(
-      answers && typeof answers === 'object' ? answers : sessionData.answers,
+      submittedAnswers,
       uniqueIds,
       optionsCountMap
     );
 
-    const protectedQuestions = uniqueIds.map((id) => {
+    const protectedQuestions = questionIds.map((id) => {
       const ansData = answerMap.get(id);
       const qData = questionMap.get(id);
       const resolvedCorrectAnswers =
@@ -442,6 +516,8 @@ export const submitExamSession = onCall(async (request) => {
       return {
         id,
         topic: qData?.topic || 'unknown',
+        questionText: qData?.questionText || '',
+        options: Array.isArray(qData?.options) ? qData.options : [],
         multiple: qData?.multiple,
         type: qData?.type,
         correctAnswers: resolvedCorrectAnswers,
@@ -452,31 +528,48 @@ export const submitExamSession = onCall(async (request) => {
     const evaluation = evaluateAnswers(sanitizedAnswers, protectedQuestions);
 
     // 10. Write immutable result inside transaction
-    transaction.update(sessionDocRef, {
-      status: 'submitted',
-      submittedAt: FieldValue.serverTimestamp(),
+    const updatePayload = {
+      status: isTestSession ? 'completed' : 'submitted',
+      ...(isTestSession ? { finishedAt: FieldValue.serverTimestamp() } : { submittedAt: FieldValue.serverTimestamp() }),
       answers: sanitizedAnswers,
-      score: evaluation.totalScore,
+      score: {
+        totalScore: evaluation.totalScore,
+        part1Score: evaluation.part1Score,
+        part2Score: evaluation.part2Score,
+        maxPossibleScore: evaluation.maxPossibleScore,
+        percentage: evaluation.percentage,
+        passed: evaluation.passed,
+        byTopicBreakdown: evaluation.byTopicBreakdown,
+      },
       totalScore: evaluation.totalScore,
+      part1Score: evaluation.part1Score,
+      part2Score: evaluation.part2Score,
       maxPossibleScore: evaluation.maxPossibleScore,
       percentage: evaluation.percentage,
       correctAnswersCount: evaluation.correctAnswersCount,
       passed: evaluation.passed,
       byTopicBreakdown: evaluation.byTopicBreakdown,
+      questionResults: evaluation.questionResults,
+      questionSnapshots: evaluation.questionResults,
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+
+    transaction.update(sessionDocRef, updatePayload);
 
     // 11. Return safe summary WITHOUT exposing correct answers
     return {
       sessionId: cleanSessionId,
-      status: 'submitted',
+      status: isTestSession ? 'completed' : 'submitted',
       score: evaluation.totalScore,
       totalScore: evaluation.totalScore,
+      part1Score: evaluation.part1Score,
+      part2Score: evaluation.part2Score,
       maxPossibleScore: evaluation.maxPossibleScore,
       percentage: evaluation.percentage,
       correctAnswersCount: evaluation.correctAnswersCount,
       passed: evaluation.passed,
       byTopicBreakdown: evaluation.byTopicBreakdown,
+      questionResults: evaluation.questionResults,
       alreadySubmitted: false,
     };
   });
